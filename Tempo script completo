@@ -1,0 +1,6 @@
+/data/data/com.termux/files/home/.termux/tasker/avvia_ia.sh: line 37: warning: here-document at line 32 delimited by end-of-file (wanted `EOF')
+/data/data/com.termux/files/home/.termux/tasker/avvia_ia.sh: line 38: unexpected EOF while looking for matching `)'
+
+real    0m0.113s
+user    0m0.006s
+sys     0m0.063s
