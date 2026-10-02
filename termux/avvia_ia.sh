@@ -1,21 +1,60 @@
 #!/bin/bash
-# Chiamato da Tasker con la frase dettata come primo argomento.
-# Tutto il lavoro (regex veloce, eventuale IA, salvataggio) lo fa processa_ia.py.
+# Unico punto d'ingresso da Tasker: riceve tutto quello che dici.
+# Se è un comando (apri turno, cancella ultima, totali...) lo esegue,
+# altrimenti lo tratta come una vendita.
+# Al termine: notifica aggiornata e vibrazione in base all'esito
+#   1 vibrazione corta = tutto ok
+#   2 vibrazioni corte = salvato, ma controlla
+#   1 vibrazione lunga = errore, niente salvato
+
+CARTELLA=~/.termux/tasker
 
 # Log di debug per Tasker
 echo "$(date) - Ricevuto da Tasker: '$1'" >> ~/debug_tasker.log
 
-TESTO_VOCALE="$1"
+TESTO="$1"
 
-if [ -z "$TESTO_VOCALE" ] || [[ "$TESTO_VOCALE" == %* ]]; then
-  echo "❌ Errore: Testo vocale non valido o variabile Tasker non espansa ($TESTO_VOCALE)" | tee -a ~/debug_tasker.log
-  exit 1
+if [ -z "$TESTO" ] || [[ "$TESTO" == %* ]]; then
+  echo "❌ Errore: Testo vocale non valido o variabile Tasker non espansa ($TESTO)" | tee -a ~/debug_tasker.log
+  nohup bash $CARTELLA/vibra.sh errore > /dev/null 2>&1 &
+  exit 0
 fi
 
-python3 ~/.termux/tasker/processa_ia.py "$TESTO_VOCALE"
-ESITO=$?
+FRASE="${TESTO,,}"   # tutto minuscolo
+ESITO=0
 
-# Aggiorna la notifica del turno in sottofondo, senza far aspettare Tasker
-nohup bash ~/.termux/tasker/notifica.sh > /dev/null 2>&1 &
+case "$FRASE" in
+  *"apri turno"*|*"inizio turno"*|*"inizia turno"*)
+    bash $CARTELLA/avvia_server.sh ;;
+  *"chiudi turno"*|*"fine turno"*)
+    python3 ~/info_turno.py "chiudi turno"
+    pkill -f llama-server
+    termux-wake-unlock
+    echo "💤 IA spenta fino al prossimo turno" ;;
+  *"penultima"*)
+    python3 ~/info_turno.py "cancella penultima" ;;
+  *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
+    python3 ~/info_turno.py "cancella ultima" ;;
+  *"totali"*|*"riepilogo"*)
+    python3 ~/info_turno.py totali ;;
+  *"ultime"*|*"ultimi"*)
+    python3 ~/info_turno.py ultimi ;;
+  *"archivio"*|*"storico"*)
+    python3 ~/info_turno.py archivio ;;
+  *)
+    python3 $CARTELLA/processa_ia.py "$TESTO"
+    ESITO=$? ;;
+esac
 
-exit $ESITO
+case $ESITO in
+  0) VIBRAZIONE=ok ;;
+  2) VIBRAZIONE=attenzione ;;
+  *) VIBRAZIONE=errore ;;
+esac
+
+# Notifica e vibrazione in sottofondo, senza far aspettare Tasker
+nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
+nohup bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1 &
+
+# Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task
+exit 0

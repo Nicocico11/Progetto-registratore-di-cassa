@@ -2,26 +2,65 @@
 for f in ~/.termux/tasker/avvia_ia.sh ~/.termux/tasker/avvia_server.sh ~/.termux/tasker/processa_ia.py ~/info_turno.py; do [ -f "$f" ] && [ ! -f "$f.vecchio" ] && cp "$f" "$f.vecchio"; done
 cat > ~/.termux/tasker/avvia_ia.sh <<'FINE_FILE'
 #!/bin/bash
-# Chiamato da Tasker con la frase dettata come primo argomento.
-# Tutto il lavoro (regex veloce, eventuale IA, salvataggio) lo fa processa_ia.py.
+# Unico punto d'ingresso da Tasker: riceve tutto quello che dici.
+# Se è un comando (apri turno, cancella ultima, totali...) lo esegue,
+# altrimenti lo tratta come una vendita.
+# Al termine: notifica aggiornata e vibrazione in base all'esito
+#   1 vibrazione corta = tutto ok
+#   2 vibrazioni corte = salvato, ma controlla
+#   1 vibrazione lunga = errore, niente salvato
+
+CARTELLA=~/.termux/tasker
 
 # Log di debug per Tasker
 echo "$(date) - Ricevuto da Tasker: '$1'" >> ~/debug_tasker.log
 
-TESTO_VOCALE="$1"
+TESTO="$1"
 
-if [ -z "$TESTO_VOCALE" ] || [[ "$TESTO_VOCALE" == %* ]]; then
-  echo "❌ Errore: Testo vocale non valido o variabile Tasker non espansa ($TESTO_VOCALE)" | tee -a ~/debug_tasker.log
-  exit 1
+if [ -z "$TESTO" ] || [[ "$TESTO" == %* ]]; then
+  echo "❌ Errore: Testo vocale non valido o variabile Tasker non espansa ($TESTO)" | tee -a ~/debug_tasker.log
+  nohup bash $CARTELLA/vibra.sh errore > /dev/null 2>&1 &
+  exit 0
 fi
 
-python3 ~/.termux/tasker/processa_ia.py "$TESTO_VOCALE"
-ESITO=$?
+FRASE="${TESTO,,}"   # tutto minuscolo
+ESITO=0
 
-# Aggiorna la notifica del turno in sottofondo, senza far aspettare Tasker
-nohup bash ~/.termux/tasker/notifica.sh > /dev/null 2>&1 &
+case "$FRASE" in
+  *"apri turno"*|*"inizio turno"*|*"inizia turno"*)
+    bash $CARTELLA/avvia_server.sh ;;
+  *"chiudi turno"*|*"fine turno"*)
+    python3 ~/info_turno.py "chiudi turno"
+    pkill -f llama-server
+    termux-wake-unlock
+    echo "💤 IA spenta fino al prossimo turno" ;;
+  *"penultima"*)
+    python3 ~/info_turno.py "cancella penultima" ;;
+  *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
+    python3 ~/info_turno.py "cancella ultima" ;;
+  *"totali"*|*"riepilogo"*)
+    python3 ~/info_turno.py totali ;;
+  *"ultime"*|*"ultimi"*)
+    python3 ~/info_turno.py ultimi ;;
+  *"archivio"*|*"storico"*)
+    python3 ~/info_turno.py archivio ;;
+  *)
+    python3 $CARTELLA/processa_ia.py "$TESTO"
+    ESITO=$? ;;
+esac
 
-exit $ESITO
+case $ESITO in
+  0) VIBRAZIONE=ok ;;
+  2) VIBRAZIONE=attenzione ;;
+  *) VIBRAZIONE=errore ;;
+esac
+
+# Notifica e vibrazione in sottofondo, senza far aspettare Tasker
+nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
+nohup bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1 &
+
+# Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task
+exit 0
 FINE_FILE
 cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
@@ -42,7 +81,7 @@ nohup "$SERVER_BIN" -m "$MODELLO" --host 127.0.0.1 --port 8080 --ctx-size 1024 -
 echo "🚀 Server in avvio (pronto tra qualche secondo)"
 FINE_FILE
 cat > ~/.termux/tasker/processa_ia.py <<'FINE_FILE'
-import json, re, csv, datetime, os, sys, urllib.request
+import json, re, csv, datetime, os, sys, subprocess, urllib.request
 
 # Uso: python3 processa_ia.py "20 euro di gasolio con carta"
 # 1) Prova a capire la frase con le regole (istantaneo).
@@ -213,9 +252,13 @@ def analisi_ia():
     try:
         with urllib.request.urlopen(req, timeout=25) as r:
             risposta = json.loads(r.read().decode('utf-8'))
-    except Exception as e:
-        print(f"⚠️ Server IA non raggiungibile ({e})")
-        return None
+    except Exception:
+        # Server spento: lo avviamo per la prossima volta, ma questa vendita NON la salviamo
+        # (meglio ridettarla che registrare un importo inventato)
+        subprocess.Popen(['bash', os.path.expanduser('~/.termux/tasker/avvia_server.sh')],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        print("❌ IA spenta: la sto avviando. Ripeti la vendita tra 30 secondi.")
+        sys.exit(1)
 
     testo = risposta.get('content', '')
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -279,9 +322,24 @@ try:
             writer.writerow(['data_ora', 'dettagli_json', 'importo'])
         writer.writerow([now, json.dumps(data), float(importo_numerico)])
 
-    print(f"✅ Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
+    simbolo = '⚠️' if origine == 'emergenza' else '✅'
+    print(f"{simbolo} Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
 except Exception as e:
     print('❌ Errore fatale nel salvataggio:', e)
+    sys.exit(1)
+
+# Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
+sys.exit(2 if origine == 'emergenza' else 0)
+FINE_FILE
+cat > ~/.termux/tasker/vibra.sh <<'FINE_FILE'
+#!/bin/bash
+# Vibrazioni diverse a seconda dell'esito (serve Termux:API).
+# -f = vibra anche con il telefono in silenzioso
+case "$1" in
+  ok)         termux-vibrate -f -d 150 ;;
+  attenzione) termux-vibrate -f -d 150; sleep 0.4; termux-vibrate -f -d 150 ;;
+  errore)     termux-vibrate -f -d 900 ;;
+esac
 FINE_FILE
 cat > ~/info_turno.py <<'FINE_FILE'
 import csv
@@ -496,4 +554,91 @@ def main():
 if __name__ == "__main__":
     main()
 FINE_FILE
+# Task di Tasker da importare: lo mettiamo nella cartella Download
+if [ -d ~/storage/downloads ]; then
+cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'
+<TaskerData sr="" dvi="1" tv="6.6.20">
+	<Task sr="task90">
+		<cdate>1790920000000</cdate>
+		<edate>1790920000000</edate>
+		<id>90</id>
+		<nme>Cassa Vocale</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>"%avcomm"</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>avvia_ia.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>true</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>avvia_ia.sh "%avcomm"
+
+Working Directory ✕
+Stdin ✕
+Custom Log Level null
+Terminal Session ✕
+Wait For Result ✓</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES>&lt;StringArray sr=""&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;%stdout
+Standard Output
+The &amp;lt;B&amp;gt;stdout&amp;lt;/B&amp;gt; of the command.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;%stdout_original_length
+Standard Output Original Length
+The original length of &amp;lt;B&amp;gt;stdout&amp;lt;/B&amp;gt;.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;%stderr
+Standard Error
+The &amp;lt;B&amp;gt;stderr&amp;lt;/B&amp;gt; of the command.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES3&gt;%stderr_original_length
+Standard Error Original Length
+The original length of &amp;lt;B&amp;gt;stderr&amp;lt;/B&amp;gt;.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES3&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES4&gt;%result
+Exit Code
+The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means success and anything else is usually a failure of some sort.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES4&gt;&lt;/StringArray&gt;</net.dinglisch.android.tasker.RELEVANT_VARIABLES>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>[Ljava.lang.String;</net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="30"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+		<Action sr="act1" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">%stdout</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+	</Task>
+</TaskerData>
+FINE_FILE
+echo "📥 Cassa_Vocale.tsk.xml salvato in Download"
+fi
 chmod +x ~/.termux/tasker/*.sh && echo "✅ INSTALLAZIONE COMPLETATA"

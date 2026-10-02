@@ -6,6 +6,8 @@
 | `avvia_server.sh` | `~/.termux/tasker/avvia_server.sh` |
 | `processa_ia.py` | `~/.termux/tasker/processa_ia.py` |
 | `info_turno.py` | `~/info_turno.py` |
+| `vibra.sh` | `~/.termux/tasker/vibra.sh` |
+| `Cassa_Vocale.tsk.xml` | Download → da importare in Tasker |
 
 Installazione/aggiornamento (una riga in Termux):
 
@@ -17,3 +19,18 @@ limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transaz
 
 `info_turno.py totali` stampa il riepilogo per la chiusura (per pagamento e per prodotto);
 `chiudi turno` archivia e stampa lo stesso riepilogo.
+
+## Comandi vocali (tutto passa da `avvia_ia.sh`)
+
+| Frase | Cosa fa |
+|---|---|
+| apri turno / inizio turno | avvia il server IA |
+| chiudi turno / fine turno | archivia, mostra il riepilogo, spegne l'IA |
+| cancella ultima / annulla ultima | elimina l'ultima vendita |
+| cancella penultima | elimina la penultima |
+| totali / riepilogo | prospetto per la chiusura |
+| ultime / ultimi | notifica con le ultime vendite |
+| archivio / storico | turni archiviati |
+| qualsiasi altra frase | vendita |
+
+Vibrazioni: 1 corta = ok · 2 corte = salvata ma da controllare · 1 lunga = errore, niente salvato.

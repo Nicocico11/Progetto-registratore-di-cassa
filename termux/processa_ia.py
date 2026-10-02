@@ -1,4 +1,4 @@
-import json, re, csv, datetime, os, sys, urllib.request
+import json, re, csv, datetime, os, sys, subprocess, urllib.request
 
 # Uso: python3 processa_ia.py "20 euro di gasolio con carta"
 # 1) Prova a capire la frase con le regole (istantaneo).
@@ -169,9 +169,13 @@ def analisi_ia():
     try:
         with urllib.request.urlopen(req, timeout=25) as r:
             risposta = json.loads(r.read().decode('utf-8'))
-    except Exception as e:
-        print(f"⚠️ Server IA non raggiungibile ({e})")
-        return None
+    except Exception:
+        # Server spento: lo avviamo per la prossima volta, ma questa vendita NON la salviamo
+        # (meglio ridettarla che registrare un importo inventato)
+        subprocess.Popen(['bash', os.path.expanduser('~/.termux/tasker/avvia_server.sh')],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        print("❌ IA spenta: la sto avviando. Ripeti la vendita tra 30 secondi.")
+        sys.exit(1)
 
     testo = risposta.get('content', '')
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -235,6 +239,11 @@ try:
             writer.writerow(['data_ora', 'dettagli_json', 'importo'])
         writer.writerow([now, json.dumps(data), float(importo_numerico)])
 
-    print(f"✅ Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
+    simbolo = '⚠️' if origine == 'emergenza' else '✅'
+    print(f"{simbolo} Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
 except Exception as e:
     print('❌ Errore fatale nel salvataggio:', e)
+    sys.exit(1)
+
+# Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
+sys.exit(2 if origine == 'emergenza' else 0)
