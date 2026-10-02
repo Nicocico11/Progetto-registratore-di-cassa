@@ -31,6 +31,8 @@ limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transaz
 | apertura turno | registra orario e tipo di turno (Mattina 6-14, Pomeriggio 14-22, Notte 22-6) |
 | chiudi turno / chiusura turno / fine turno [HH MM SS] | popup orario terminale pompe (con secondi, es. 140532), documento in Download/Chiusure_Turno, archivia, spegne l'IA |
 | accendi ia / spegni ia / stato ia | gestione manuale del server IA |
+| correggi ultima / correggi penultima + carta, 25 euro, gasolio… | corregge pagamento, importo o carburante (vendite miste: solo il pagamento) |
+| avanzo 150 | inserisce/corregge l'avanzo cassa del turno precedente |
 | market / danea / negozio | prodotti market venduti, raggruppati con quantità |
 | erogazioni / quanto adblue | elenco erogazioni AdBlue, litri sfuso e taniche |
 | cancella ultima / annulla ultima | elimina l'ultima vendita |
@@ -70,3 +72,15 @@ Se il file delle vendite in Termux va perso: comando vocale "ripristina turno".
 
 `bash termux/prova_turno.sh` simula un turno completo (apertura, vendite, cancellazioni,
 ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiornamento.
+
+## Quadratura cassa
+
+- Apertura: popup "Avanzo cassa turno precedente" (suggerisce l'ultimo conteggio).
+- Chiusura: popup orario terminale, "Contanti contati", "Totale POS" (si possono saltare).
+- Nel documento: avanzo + vendite contanti = contanti attesi, confronto con i contati;
+  Carta + POS + Bancomat confrontati con il totale POS.
+
+## Termux:Widget
+
+`installa.sh` crea in `~/.shortcuts` i pulsanti (cartella `widget/`): Apertura, Chiusura,
+Totali, Market, Erogazioni AdBlue, Ultime vendite, Cancella ultima (con conferma), Stato IA.

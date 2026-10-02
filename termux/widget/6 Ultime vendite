@@ -1,0 +1,5 @@
+#!/bin/bash
+# Pulsante Termux:Widget
+python3 ~/info_turno.py notifica
+echo
+read -p "Premi Invio per chiudere… "

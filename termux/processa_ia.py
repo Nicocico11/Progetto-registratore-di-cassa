@@ -5,12 +5,18 @@ import json, re, csv, datetime, os, sys, subprocess, urllib.request
 # 2) Ogni voce si capisce con le regole e il listino (istantaneo).
 # 3) Solo una frase di carburante non capita va all'IA (llama-server sulla porta 8080).
 # 4) Salva una riga per voce su transazioni_turno.csv, con lo stesso numero di transazione.
+#
+# Correzioni: python3 processa_ia.py --correggi ultima|penultima "correggi ultima carta 25 euro"
 
 SERVER_URL = 'http://127.0.0.1:8080/completion'
 output_path = os.path.expanduser('~/.termux/tasker/output_ia.txt')
 prezzi_path = os.path.expanduser('~/prezzi.json')
 csv_file = os.path.expanduser('~/transazioni_turno.csv')
 
+CORREZIONE = None
+if len(sys.argv) > 3 and sys.argv[1] == '--correggi':
+    CORREZIONE = sys.argv[2]            # "ultima" o "penultima"
+    sys.argv = [sys.argv[0], sys.argv[3]]
 testo_originale = sys.argv[1] if len(sys.argv) > 1 else ""
 if not testo_originale.strip():
     print("❌ Nessuna frase ricevuta.")
@@ -271,6 +277,108 @@ def analisi_ia():
         return None
 
 
+def descrivi(v):
+    if 'quantita' not in v:
+        return f"{v['categoria']} {v['importo']} €"
+    unita = {'l': ' l', 'fogli': ' foglio' if v['quantita'] == 1 else ' fogli'}.get(v['unita'], ' ×')
+    q = f"{v['quantita']:g}{unita}"
+    return f"{q} {v['categoria']} {v['importo']} €"
+
+
+
+def avviso_ricevuta(voci, metodo):
+    # Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
+    # (non in contanti e non con la Cartissima/carta carburante)
+    da_stampare = [v for v in voci
+                   if v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')]
+    if not da_stampare or metodo in ('Contanti', 'Carta carburante'):
+        return
+    importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
+    print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
+    try:
+        subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
+                          '--title', '🧾 STAMPARE RICEVUTA',
+                          '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
+                          '--vibrate', '300,150,300'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception:
+        pass
+
+
+def pagamento_detto(testo):
+    """Metodo di pagamento solo se nominato (None se la frase non ne parla)."""
+    for metodo, parole in PAGAMENTI.items():
+        if any(contiene(p, testo) for p in parole):
+            return metodo
+    return None
+
+
+def correggi(quale):
+    """"correggi ultima carta" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
+    with open(csv_file, encoding='utf-8') as f:
+        tutte = list(csv.reader(f))
+    intestazione, righe = tutte[:1], [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
+    # righe raggruppate per transazione (una vendita mista ha più righe)
+    gruppi = []
+    for indice, r in enumerate(righe):
+        num = json.loads(r[1]).get('transazione')
+        if num and gruppi and gruppi[-1][0] == num:
+            gruppi[-1][1].append(indice)
+        else:
+            gruppi.append((num, [indice]))
+    posizione = -2 if quale == 'penultima' else -1
+    if len(gruppi) < -posizione:
+        print(f"❌ Non c'è una {quale} vendita da correggere.")
+        sys.exit(1)
+    indici = gruppi[posizione][1]
+    voci = [json.loads(righe[k][1]) for k in indici]
+    prima = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
+
+    nuovo_metodo = pagamento_detto(testo_basso)
+    nuovo_carburante = carburante_detto(testo_basso)
+    nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
+    if not (nuovo_metodo or nuovo_carburante or nuovo_importo):
+        print("❓ Cosa devo correggere? Es. \"correggi ultima carta\", \"correggi ultima 25 euro\", "
+              "\"correggi ultima gasolio\". Niente cambiato.")
+        sys.exit(1)
+    if (nuovo_carburante or nuovo_importo) and len(voci) > 1:
+        print("❌ È una vendita mista: posso cambiare solo il pagamento. "
+              "Per il resto cancellala e ridettala. Niente cambiato.")
+        sys.exit(1)
+
+    for v in voci:
+        if nuovo_metodo:
+            v['metodo_pagamento'] = nuovo_metodo
+        if nuovo_carburante:
+            if v.get('reparto') != 'Carburante':
+                print("❌ Non è un rifornimento: non posso cambiarlo in carburante. Niente cambiato.")
+                sys.exit(1)
+            v['categoria'] = nuovo_carburante
+        if nuovo_importo:
+            v['importo'] = f"{nuovo_importo:.2f}"
+            if v.get('prezzo_unitario'):
+                v['quantita'] = round(nuovo_importo / float(v['prezzo_unitario']), 2)
+        v['note'] = (v.get('note', '') + f" [corretta: {testo_originale}]").strip()
+    for k, v in zip(indici, voci):
+        righe[k] = [righe[k][0], json.dumps(v), float(v['importo'])]
+
+    tmp = csv_file + '.tmp'
+    with open(tmp, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerows(intestazione + righe)
+    os.replace(tmp, csv_file)
+
+    dopo = " + ".join(descrivi(v) for v in voci) + f" - {voci[0]['metodo_pagamento']}"
+    print(f"✏️ Corretta la {quale} vendita:\n   prima: {prima}\n   ora:   {dopo}")
+    if nuovo_metodo:
+        avviso_ricevuta(voci, nuovo_metodo)
+    sys.exit(0)
+
+
+if CORREZIONE:
+    correggi(CORREZIONE)
+
+
 # ---------- programma ----------
 
 metodo = metodo_pagamento(testo_basso)
@@ -337,14 +445,6 @@ except Exception as e:
     sys.exit(1)
 
 
-def descrivi(v):
-    if 'quantita' not in v:
-        return f"{v['categoria']} {v['importo']} €"
-    unita = {'l': ' l', 'fogli': ' foglio' if v['quantita'] == 1 else ' fogli'}.get(v['unita'], ' ×')
-    q = f"{v['quantita']:g}{unita}"
-    return f"{q} {v['categoria']} {v['importo']} €"
-
-
 totale = sum(float(v['importo']) for v in voci)
 simbolo = '⚠️' if origine == 'emergenza' else '✅'
 if len(voci) == 1:
@@ -353,21 +453,7 @@ else:
     print(f"{simbolo} Vendita salvata ({len(voci)} voci, {metodo}): "
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
-# Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
-# (non in contanti e non con la Cartissima/carta carburante)
-da_stampare = [v for v in voci
-               if v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
-if da_stampare and metodo not in ('Contanti', 'Carta carburante'):
-    importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
-    print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
-    try:
-        subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
-                          '--title', '🧾 STAMPARE RICEVUTA',
-                          '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
-                          '--vibrate', '300,150,300'],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    except Exception:
-        pass
+avviso_ricevuta(voci, metodo)
 
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)

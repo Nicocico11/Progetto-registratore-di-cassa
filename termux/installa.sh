@@ -23,6 +23,18 @@ if [ -z "$TESTO" ] || [[ "$TESTO" == %* ]]; then
   exit 0
 fi
 
+# Popup di testo (Termux:API): stampa quello che è stato scritto, niente se annullato
+chiedi() {  # chiedi "titolo" "suggerimento" [-n per tastiera numerica]
+  termux-dialog text $3 -t "$1" -i "$2" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    if d.get("code") == -1:
+        print(d.get("text", ""))
+except Exception:
+    pass'
+}
+
 FRASE="${TESTO,,}"   # tutto minuscolo
 ESITO=0
 
@@ -32,25 +44,26 @@ case "$FRASE" in
     if [[ "$FRASE" =~ ripristin ]]; then
       python3 ~/info_turno.py ripristina
     elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
+      AVANZO=""
+      if ! python3 ~/info_turno.py aperto; then
+        ULTIMO=$(python3 ~/info_turno.py ultimo conteggio)
+        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50${ULTIMO:+ — ultimo conteggio: $ULTIMO}")
+      fi
       echo "🟢 TURNO APERTO"
-      python3 ~/info_turno.py apri turno
+      python3 ~/info_turno.py apri turno "$AVANZO"
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
       ORARIO=$(grep -oE '[0-9]+' <<< "$FRASE" | tr '\n' ' ')
       if [ -z "$ORARIO" ]; then
-        ORARIO=$(termux-dialog text -n -t "Orario terminale pompe" -i "ore minuti secondi, es. 140532" 2>/dev/null | python3 -c '
-import sys, json
-try:
-    d = json.load(sys.stdin)
-    if d.get("code") == -1:
-        print(d.get("text", ""))
-except Exception:
-    pass')
+        ORARIO=$(chiedi "Orario terminale pompe" "ore minuti secondi, es. 140532" -n)
       fi
+      # Quadratura: si possono lasciare vuoti
+      CONTATI=$(chiedi "Contanti contati in cassa (€)" "es. 455,50 — vuoto per saltare")
+      POS=$(chiedi "Totale POS / carte (€)" "es. 320,00 — vuoto per saltare")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS"
       pkill -x llama-server
       termux-wake-unlock
       sleep 1
@@ -77,6 +90,16 @@ except Exception:
     python3 ~/info_turno.py market ;;
   *"erogazion"*|*"quanto adblue"*|*"quante adblue"*)
     python3 ~/info_turno.py adblue ;;
+  *"correggi"*|*"correggere"*|*"modifica"*)
+    # "correggi ultima carta", "correggi penultima 25 euro", "correggi ultima gasolio"
+    if [[ "$FRASE" =~ penultima ]]; then QUALE=penultima; else QUALE=ultima; fi
+    python3 $CARTELLA/processa_ia.py --correggi $QUALE "$TESTO"
+    ESITO=$?
+    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+  *"avanzo"*)
+    python3 ~/info_turno.py avanzo "$FRASE"
+    ESITO=$?
+    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
   *"penultima"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
@@ -198,12 +221,18 @@ import json, re, csv, datetime, os, sys, subprocess, urllib.request
 # 2) Ogni voce si capisce con le regole e il listino (istantaneo).
 # 3) Solo una frase di carburante non capita va all'IA (llama-server sulla porta 8080).
 # 4) Salva una riga per voce su transazioni_turno.csv, con lo stesso numero di transazione.
+#
+# Correzioni: python3 processa_ia.py --correggi ultima|penultima "correggi ultima carta 25 euro"
 
 SERVER_URL = 'http://127.0.0.1:8080/completion'
 output_path = os.path.expanduser('~/.termux/tasker/output_ia.txt')
 prezzi_path = os.path.expanduser('~/prezzi.json')
 csv_file = os.path.expanduser('~/transazioni_turno.csv')
 
+CORREZIONE = None
+if len(sys.argv) > 3 and sys.argv[1] == '--correggi':
+    CORREZIONE = sys.argv[2]            # "ultima" o "penultima"
+    sys.argv = [sys.argv[0], sys.argv[3]]
 testo_originale = sys.argv[1] if len(sys.argv) > 1 else ""
 if not testo_originale.strip():
     print("❌ Nessuna frase ricevuta.")
@@ -464,6 +493,108 @@ def analisi_ia():
         return None
 
 
+def descrivi(v):
+    if 'quantita' not in v:
+        return f"{v['categoria']} {v['importo']} €"
+    unita = {'l': ' l', 'fogli': ' foglio' if v['quantita'] == 1 else ' fogli'}.get(v['unita'], ' ×')
+    q = f"{v['quantita']:g}{unita}"
+    return f"{q} {v['categoria']} {v['importo']} €"
+
+
+
+def avviso_ricevuta(voci, metodo):
+    # Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
+    # (non in contanti e non con la Cartissima/carta carburante)
+    da_stampare = [v for v in voci
+                   if v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')]
+    if not da_stampare or metodo in ('Contanti', 'Carta carburante'):
+        return
+    importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
+    print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
+    try:
+        subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
+                          '--title', '🧾 STAMPARE RICEVUTA',
+                          '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
+                          '--vibrate', '300,150,300'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception:
+        pass
+
+
+def pagamento_detto(testo):
+    """Metodo di pagamento solo se nominato (None se la frase non ne parla)."""
+    for metodo, parole in PAGAMENTI.items():
+        if any(contiene(p, testo) for p in parole):
+            return metodo
+    return None
+
+
+def correggi(quale):
+    """"correggi ultima carta" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
+    with open(csv_file, encoding='utf-8') as f:
+        tutte = list(csv.reader(f))
+    intestazione, righe = tutte[:1], [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
+    # righe raggruppate per transazione (una vendita mista ha più righe)
+    gruppi = []
+    for indice, r in enumerate(righe):
+        num = json.loads(r[1]).get('transazione')
+        if num and gruppi and gruppi[-1][0] == num:
+            gruppi[-1][1].append(indice)
+        else:
+            gruppi.append((num, [indice]))
+    posizione = -2 if quale == 'penultima' else -1
+    if len(gruppi) < -posizione:
+        print(f"❌ Non c'è una {quale} vendita da correggere.")
+        sys.exit(1)
+    indici = gruppi[posizione][1]
+    voci = [json.loads(righe[k][1]) for k in indici]
+    prima = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
+
+    nuovo_metodo = pagamento_detto(testo_basso)
+    nuovo_carburante = carburante_detto(testo_basso)
+    nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
+    if not (nuovo_metodo or nuovo_carburante or nuovo_importo):
+        print("❓ Cosa devo correggere? Es. \"correggi ultima carta\", \"correggi ultima 25 euro\", "
+              "\"correggi ultima gasolio\". Niente cambiato.")
+        sys.exit(1)
+    if (nuovo_carburante or nuovo_importo) and len(voci) > 1:
+        print("❌ È una vendita mista: posso cambiare solo il pagamento. "
+              "Per il resto cancellala e ridettala. Niente cambiato.")
+        sys.exit(1)
+
+    for v in voci:
+        if nuovo_metodo:
+            v['metodo_pagamento'] = nuovo_metodo
+        if nuovo_carburante:
+            if v.get('reparto') != 'Carburante':
+                print("❌ Non è un rifornimento: non posso cambiarlo in carburante. Niente cambiato.")
+                sys.exit(1)
+            v['categoria'] = nuovo_carburante
+        if nuovo_importo:
+            v['importo'] = f"{nuovo_importo:.2f}"
+            if v.get('prezzo_unitario'):
+                v['quantita'] = round(nuovo_importo / float(v['prezzo_unitario']), 2)
+        v['note'] = (v.get('note', '') + f" [corretta: {testo_originale}]").strip()
+    for k, v in zip(indici, voci):
+        righe[k] = [righe[k][0], json.dumps(v), float(v['importo'])]
+
+    tmp = csv_file + '.tmp'
+    with open(tmp, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerows(intestazione + righe)
+    os.replace(tmp, csv_file)
+
+    dopo = " + ".join(descrivi(v) for v in voci) + f" - {voci[0]['metodo_pagamento']}"
+    print(f"✏️ Corretta la {quale} vendita:\n   prima: {prima}\n   ora:   {dopo}")
+    if nuovo_metodo:
+        avviso_ricevuta(voci, nuovo_metodo)
+    sys.exit(0)
+
+
+if CORREZIONE:
+    correggi(CORREZIONE)
+
+
 # ---------- programma ----------
 
 metodo = metodo_pagamento(testo_basso)
@@ -530,14 +661,6 @@ except Exception as e:
     sys.exit(1)
 
 
-def descrivi(v):
-    if 'quantita' not in v:
-        return f"{v['categoria']} {v['importo']} €"
-    unita = {'l': ' l', 'fogli': ' foglio' if v['quantita'] == 1 else ' fogli'}.get(v['unita'], ' ×')
-    q = f"{v['quantita']:g}{unita}"
-    return f"{q} {v['categoria']} {v['importo']} €"
-
-
 totale = sum(float(v['importo']) for v in voci)
 simbolo = '⚠️' if origine == 'emergenza' else '✅'
 if len(voci) == 1:
@@ -546,21 +669,7 @@ else:
     print(f"{simbolo} Vendita salvata ({len(voci)} voci, {metodo}): "
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
-# Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
-# (non in contanti e non con la Cartissima/carta carburante)
-da_stampare = [v for v in voci
-               if v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
-if da_stampare and metodo not in ('Contanti', 'Carta carburante'):
-    importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
-    print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
-    try:
-        subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
-                          '--title', '🧾 STAMPARE RICEVUTA',
-                          '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
-                          '--vibrate', '300,150,300'],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    except Exception:
-        pass
+avviso_ricevuta(voci, metodo)
 
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)
@@ -643,6 +752,7 @@ import re
 
 PATH_CSV = os.path.expanduser("~/transazioni_turno.csv")
 PATH_TURNO = os.path.expanduser("~/turno_corrente.json")
+PATH_ULTIMO_CONTEGGIO = os.path.expanduser("~/ultimo_conteggio.txt")
 CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
@@ -713,6 +823,12 @@ def sigla(metodo):
     return SIGLE.get(metodo, metodo[:3].upper())
 
 
+def importo_da_testo(testo):
+    """'150', '150,50', '150.50 €' -> 150.5; None se vuoto o non valido."""
+    m = re.search(r'\d+(?:[.,]\d{1,2})?', (testo or "").replace(" ", ""))
+    return float(m.group(0).replace(",", ".")) if m else None
+
+
 def euro(x):
     return f"{x:.2f} €"
 
@@ -746,7 +862,11 @@ def descrivi_turno(t):
     return f"{t['tipo']} ({TURNI[t['tipo']][1]}) del {t['data']}, aperto alle {t['apertura'][-5:]}"
 
 
-def apri_turno():
+def turno_aperto():
+    return bool(leggi_turno() and leggi_csv())
+
+
+def apri_turno(avanzo_testo=""):
     esistente = leggi_turno()
     if esistente and leggi_csv():
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
@@ -756,8 +876,10 @@ def apri_turno():
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
     turno["documento"] = nuovo_documento(turno, adesso)
+    turno["avanzo"] = importo_da_testo(avanzo_testo)
     salva_turno(turno)
     print(f"📅 {descrivi_turno(turno)}")
+    print(f"💶 Avanzo cassa turno precedente: {euro(turno['avanzo']) if turno['avanzo'] is not None else '(non inserito)'}")
     print(salva_documento([], turno))
 
 
@@ -770,6 +892,18 @@ def nuovo_documento(turno, adesso):
     """Percorso del documento in Download: <data>_<turno>.txt (se esiste già, con l'ora)."""
     base = os.path.join(CARTELLA_CHIUSURE, f"{turno['data_file']}_{turno['tipo']}")
     return base + ".txt" if not os.path.exists(base + ".txt") else f"{base}_{adesso.strftime('%H%M')}.txt"
+
+
+def imposta_avanzo(testo):
+    """Comando "avanzo 150": inserisce o corregge l'avanzo del turno precedente."""
+    valore = importo_da_testo(testo)
+    if valore is None:
+        print("❓ Di' l'importo, es. \"avanzo 150\" o \"avanzo 150,50\".")
+        sys.exit(1)
+    t = turno_attuale(leggi_csv())
+    t["avanzo"] = valore
+    salva_turno(t)
+    print(f"💶 Avanzo cassa turno precedente: {euro(valore)}")
 
 
 def turno_attuale(righe):
@@ -807,7 +941,7 @@ def testo_documento(righe, t, finale=False, orario_terminale=""):
     if finale:
         testa.append(f"Terminale pompe: {orario_terminale or '(non inserito)'}")
     testa.append("")
-    corpo = prospetto_completo(righe, "RIEPILOGO")
+    corpo = prospetto_completo(righe, "RIEPILOGO", t)
     dettaglio = ["", "📋 TUTTE LE VENDITE"] + [
         f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<16} {v['note']}" for v in vendite(righe)]
     return "\n".join(testa + corpo + dettaglio) + "\n"
@@ -909,7 +1043,33 @@ def prospetto_adblue(vv, dettaglio=True):
     return out
 
 
-def prospetto_completo(righe, titolo):
+def prospetto_cassa(vv, t):
+    """Quadratura: avanzo + vendite in contanti = contanti attesi, confrontati con quelli contati."""
+    if not t or (t.get("avanzo") is None and t.get("contati") is None and t.get("pos") is None):
+        return []
+    contanti = sum(v["importo"] for v in vv if v["metodo"] == "Contanti")
+    elettronico = sum(v["importo"] for v in vv if v["metodo"] in ("Carta", "POS", "Bancomat"))
+    avanzo = t.get("avanzo") or 0.0
+
+    def differenza(atteso, contato):
+        d = round(contato - atteso, 2)
+        if abs(d) < 0.005:
+            return "✅ quadra"
+        return f"⚠️ {'in più' if d > 0 else 'mancano'} {euro(abs(d))}"
+
+    out = ["", "💶 QUADRATURA CASSA",
+           f"  {'Avanzo turno prec.':<20} {euro(avanzo) if t.get('avanzo') is not None else '(non inserito)':>12}",
+           f"  {'+ Vendite contanti':<20} {euro(contanti):>12}",
+           f"  {'= Contanti attesi':<20} {euro(avanzo + contanti):>12}"]
+    if t.get("contati") is not None:
+        out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(avanzo + contanti, t['contati'])}")
+    out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
+    if t.get("pos") is not None:
+        out.append(f"  {'Totale POS':<20} {euro(t['pos']):>12}   {differenza(elettronico, t['pos'])}")
+    return out
+
+
+def prospetto_completo(righe, titolo, t=None):
     vv = vendite(righe)
     totale = sum(v["importo"] for v in vv)
     per_metodo = totali_per(vv, "metodo")
@@ -941,6 +1101,7 @@ def prospetto_completo(righe, titolo):
         out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
     out.append("")
     out += prospetto_market(vv)
+    out += prospetto_cassa(vv, t)
     return out
 
 
@@ -1056,7 +1217,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale=""):
+def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
@@ -1067,6 +1228,11 @@ def chiudi_turno(orario_terminale=""):
         return
 
     t = turno_attuale(righe)
+    t["contati"] = importo_da_testo(contati_testo)
+    t["pos"] = importo_da_testo(pos_testo)
+    if t["contati"] is not None:
+        with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
+            f.write(f"{t['contati']:.2f}")
     adesso = datetime.now()
     testo = testo_documento(righe, t, finale=True, orario_terminale=orario_terminale)
     salvato = salva_documento(righe, t, finale=True, orario_terminale=orario_terminale)
@@ -1089,10 +1255,19 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        apri_turno()
+        apri_turno(sys.argv[3] if len(sys.argv) > 3 else "")
+    elif comando == "aperto":
+        sys.exit(0 if turno_aperto() else 1)
+    elif comando == "ultimo conteggio":
+        try:
+            print(open(PATH_ULTIMO_CONTEGGIO).read().strip().replace(".", ","))
+        except Exception:
+            pass
+    elif comando.startswith("avanzo"):
+        imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        orario = sys.argv[2] if len(sys.argv) > 2 else ""
-        chiudi_turno(orario)
+        argomenti = sys.argv[2:] + ["", "", ""]
+        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:
@@ -1102,7 +1277,7 @@ def main():
     else:
         righe = leggi_csv()
         if comando == "totali":
-            print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO")))
+            print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
         elif comando == "market":
             print("\n".join(prospetto_market(vendite(righe))))
         elif comando == "adblue":
@@ -1114,6 +1289,65 @@ def main():
 if __name__ == "__main__":
     main()
 FINE_FILE
+# Pulsanti per Termux:Widget (cartella ~/.shortcuts)
+mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts
+cat > ~/.shortcuts/"1 Apertura turno" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+bash ~/.termux/tasker/avvia_ia.sh "apertura turno"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"2 Chiusura turno" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+read -p "Chiudere il turno? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "chiusura turno"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"3 Totali" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+bash ~/.termux/tasker/avvia_ia.sh "totali"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"4 Market" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+bash ~/.termux/tasker/avvia_ia.sh "market"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"5 Erogazioni AdBlue" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+bash ~/.termux/tasker/avvia_ia.sh "erogazioni"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"6 Ultime vendite" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+python3 ~/info_turno.py notifica
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"7 Cancella ultima" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"8 Stato IA" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget
+bash ~/.termux/tasker/avvia_ia.sh "stato ia"
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+chmod +x ~/.shortcuts/*
 # Listino: nuovo formato e prodotti fissi (fax)
 python3 ~/.termux/tasker/migra_prezzi.py
 # File di Tasker da importare: li mettiamo nella cartella Download

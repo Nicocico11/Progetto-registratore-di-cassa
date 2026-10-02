@@ -1,0 +1,5 @@
+#!/bin/bash
+# Pulsante Termux:Widget
+bash ~/.termux/tasker/avvia_ia.sh "erogazioni"
+echo
+read -p "Premi Invio per chiudere… "

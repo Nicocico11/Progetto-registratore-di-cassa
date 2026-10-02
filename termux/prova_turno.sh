@@ -13,7 +13,16 @@ printf '#!/bin/bash\n' > $HOME/.termux/tasker/notifica.sh
 for c in termux-vibrate termux-wake-lock termux-wake-unlock termux-notification; do
   printf '#!/bin/bash\n' > $HOME/bin/$c; chmod +x $HOME/bin/$c
 done
-printf '#!/bin/bash\necho %s\n' "'{\"code\": -1, \"text\": \"140532\"}'" > $HOME/bin/termux-dialog
+cat > $HOME/bin/termux-dialog <<'EOF'
+#!/bin/bash
+# Popup finto: risponde in base al titolo
+case "$*" in
+  *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
+  *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
+  *Contanti*) echo '{"code": -1, "text": "200"}' ;;
+  *)          echo '{"code": -2, "text": ""}' ;;   # POS: annullato
+esac
+EOF
 printf '#!/bin/bash\nsleep 1\n' > $HOME/llama.cpp/build/bin/llama-server
 chmod +x $HOME/bin/termux-dialog $HOME/llama.cpp/build/bin/llama-server
 export PATH=$HOME/bin:$PATH
@@ -34,7 +43,7 @@ controlla() {  # controlla "descrizione" "frase" "testo atteso nella risposta"
 }
 
 echo "Prova turno completo:"
-controlla "apertura turno"            "apertura turno"                               "TURNO APERTO"
+controlla "apertura turno con avanzo" "apertura turno"                               "150.50"
 [ -f $D/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "vendita carburante"        "20 euro di gasolio carta"                     "Gasolio 20.00"
 controlla "numeri in lettere"         "trentacinque di verde col pos"                "Benzina 35.00"
@@ -47,13 +56,19 @@ controlla "frase senza importo"       "ciao"                                    
 controlla "totali"                    "totali"                                       "PER PAGAMENTO"
 controlla "market"                    "market"                                       "Red Bull"
 controlla "erogazioni adblue"         "erogazioni"                                   "litri erogati"
+controlla "correggi ultima pagamento"  "correggi ultima bancomat"                     "Bancomat"
+controlla "correggi penultima importo" "correggi penultima 7 fax"                    "ora:"
+controlla "correzione vendita mista"  "50 gasolio e 1 mars" "2 voci"
+controlla "mista: solo pagamento"     "correggi ultima 30 euro"                      "vendita mista"
+controlla "avanzo a voce"             "avanzo 160"                                   "160.00"
 controlla "cancella ultima"           "cancella ultima"                              "Cancellata"
 grep -q "Gasolio\|gasolio" $D/*_dati.csv && echo "  ok   copia dati aggiornata in Download" || { echo "  ERRORE copia dati"; ERRORI=$((ERRORI+1)); }
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
+grep -q "Contanti contati" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }
 
-rm -rf "$HOME"
+[ -n "${TIENI:-}" ] && cp $D/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
 if [ $ERRORI -eq 0 ]; then echo "✅ Tutto ok"; else echo "❌ $ERRORI errori"; exit 1; fi

@@ -13,6 +13,7 @@ import re
 
 PATH_CSV = os.path.expanduser("~/transazioni_turno.csv")
 PATH_TURNO = os.path.expanduser("~/turno_corrente.json")
+PATH_ULTIMO_CONTEGGIO = os.path.expanduser("~/ultimo_conteggio.txt")
 CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
@@ -83,6 +84,12 @@ def sigla(metodo):
     return SIGLE.get(metodo, metodo[:3].upper())
 
 
+def importo_da_testo(testo):
+    """'150', '150,50', '150.50 €' -> 150.5; None se vuoto o non valido."""
+    m = re.search(r'\d+(?:[.,]\d{1,2})?', (testo or "").replace(" ", ""))
+    return float(m.group(0).replace(",", ".")) if m else None
+
+
 def euro(x):
     return f"{x:.2f} €"
 
@@ -116,7 +123,11 @@ def descrivi_turno(t):
     return f"{t['tipo']} ({TURNI[t['tipo']][1]}) del {t['data']}, aperto alle {t['apertura'][-5:]}"
 
 
-def apri_turno():
+def turno_aperto():
+    return bool(leggi_turno() and leggi_csv())
+
+
+def apri_turno(avanzo_testo=""):
     esistente = leggi_turno()
     if esistente and leggi_csv():
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
@@ -126,8 +137,10 @@ def apri_turno():
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
     turno["documento"] = nuovo_documento(turno, adesso)
+    turno["avanzo"] = importo_da_testo(avanzo_testo)
     salva_turno(turno)
     print(f"📅 {descrivi_turno(turno)}")
+    print(f"💶 Avanzo cassa turno precedente: {euro(turno['avanzo']) if turno['avanzo'] is not None else '(non inserito)'}")
     print(salva_documento([], turno))
 
 
@@ -140,6 +153,18 @@ def nuovo_documento(turno, adesso):
     """Percorso del documento in Download: <data>_<turno>.txt (se esiste già, con l'ora)."""
     base = os.path.join(CARTELLA_CHIUSURE, f"{turno['data_file']}_{turno['tipo']}")
     return base + ".txt" if not os.path.exists(base + ".txt") else f"{base}_{adesso.strftime('%H%M')}.txt"
+
+
+def imposta_avanzo(testo):
+    """Comando "avanzo 150": inserisce o corregge l'avanzo del turno precedente."""
+    valore = importo_da_testo(testo)
+    if valore is None:
+        print("❓ Di' l'importo, es. \"avanzo 150\" o \"avanzo 150,50\".")
+        sys.exit(1)
+    t = turno_attuale(leggi_csv())
+    t["avanzo"] = valore
+    salva_turno(t)
+    print(f"💶 Avanzo cassa turno precedente: {euro(valore)}")
 
 
 def turno_attuale(righe):
@@ -177,7 +202,7 @@ def testo_documento(righe, t, finale=False, orario_terminale=""):
     if finale:
         testa.append(f"Terminale pompe: {orario_terminale or '(non inserito)'}")
     testa.append("")
-    corpo = prospetto_completo(righe, "RIEPILOGO")
+    corpo = prospetto_completo(righe, "RIEPILOGO", t)
     dettaglio = ["", "📋 TUTTE LE VENDITE"] + [
         f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<16} {v['note']}" for v in vendite(righe)]
     return "\n".join(testa + corpo + dettaglio) + "\n"
@@ -279,7 +304,33 @@ def prospetto_adblue(vv, dettaglio=True):
     return out
 
 
-def prospetto_completo(righe, titolo):
+def prospetto_cassa(vv, t):
+    """Quadratura: avanzo + vendite in contanti = contanti attesi, confrontati con quelli contati."""
+    if not t or (t.get("avanzo") is None and t.get("contati") is None and t.get("pos") is None):
+        return []
+    contanti = sum(v["importo"] for v in vv if v["metodo"] == "Contanti")
+    elettronico = sum(v["importo"] for v in vv if v["metodo"] in ("Carta", "POS", "Bancomat"))
+    avanzo = t.get("avanzo") or 0.0
+
+    def differenza(atteso, contato):
+        d = round(contato - atteso, 2)
+        if abs(d) < 0.005:
+            return "✅ quadra"
+        return f"⚠️ {'in più' if d > 0 else 'mancano'} {euro(abs(d))}"
+
+    out = ["", "💶 QUADRATURA CASSA",
+           f"  {'Avanzo turno prec.':<20} {euro(avanzo) if t.get('avanzo') is not None else '(non inserito)':>12}",
+           f"  {'+ Vendite contanti':<20} {euro(contanti):>12}",
+           f"  {'= Contanti attesi':<20} {euro(avanzo + contanti):>12}"]
+    if t.get("contati") is not None:
+        out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(avanzo + contanti, t['contati'])}")
+    out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
+    if t.get("pos") is not None:
+        out.append(f"  {'Totale POS':<20} {euro(t['pos']):>12}   {differenza(elettronico, t['pos'])}")
+    return out
+
+
+def prospetto_completo(righe, titolo, t=None):
     vv = vendite(righe)
     totale = sum(v["importo"] for v in vv)
     per_metodo = totali_per(vv, "metodo")
@@ -311,6 +362,7 @@ def prospetto_completo(righe, titolo):
         out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
     out.append("")
     out += prospetto_market(vv)
+    out += prospetto_cassa(vv, t)
     return out
 
 
@@ -426,7 +478,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale=""):
+def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
@@ -437,6 +489,11 @@ def chiudi_turno(orario_terminale=""):
         return
 
     t = turno_attuale(righe)
+    t["contati"] = importo_da_testo(contati_testo)
+    t["pos"] = importo_da_testo(pos_testo)
+    if t["contati"] is not None:
+        with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
+            f.write(f"{t['contati']:.2f}")
     adesso = datetime.now()
     testo = testo_documento(righe, t, finale=True, orario_terminale=orario_terminale)
     salvato = salva_documento(righe, t, finale=True, orario_terminale=orario_terminale)
@@ -459,10 +516,19 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        apri_turno()
+        apri_turno(sys.argv[3] if len(sys.argv) > 3 else "")
+    elif comando == "aperto":
+        sys.exit(0 if turno_aperto() else 1)
+    elif comando == "ultimo conteggio":
+        try:
+            print(open(PATH_ULTIMO_CONTEGGIO).read().strip().replace(".", ","))
+        except Exception:
+            pass
+    elif comando.startswith("avanzo"):
+        imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        orario = sys.argv[2] if len(sys.argv) > 2 else ""
-        chiudi_turno(orario)
+        argomenti = sys.argv[2:] + ["", "", ""]
+        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:
@@ -472,7 +538,7 @@ def main():
     else:
         righe = leggi_csv()
         if comando == "totali":
-            print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO")))
+            print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
         elif comando == "market":
             print("\n".join(prospetto_market(vendite(righe))))
         elif comando == "adblue":
