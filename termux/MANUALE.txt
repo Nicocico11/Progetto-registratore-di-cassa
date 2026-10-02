@@ -1,0 +1,132 @@
+🎙️ CASSA VOCALE Q8 – MANUALE D'USO
+
+Un registratore di cassa a voce: dici la vendita ad alta voce e il telefono la registra.
+A fine turno prepara da solo il riepilogo per la chiusura.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+1. COME SI USA
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Fai un DOPPIO TAP sul retro del telefono.
+• Parla subito, con frasi semplici: "20 euro di gasolio con carta".
+• Compaiono due messaggi a schermo:
+  🎙️ quello che il telefono ha capito
+  ✅ / ❓ / ❌ il risultato
+
+Vibrazioni (non serve guardare il telefono):
+• 1 vibrazione corta = tutto ok
+• 2 vibrazioni corte = salvato, ma controlla
+• 1 vibrazione lunga = errore, NIENTE salvato → ripeti
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+2. INIZIO TURNO
+━━━━━━━━━━━━━━━━━━━━━━━━
+Di': "APERTURA TURNO"
+• Compare un riquadro: scrivi l'AVANZO CASSA del turno precedente (es. 150,50).
+• Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
+• Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
+
+⚠️ Senza "apertura turno" le vendite NON vengono salvate.
+Se hai sbagliato l'avanzo: "avanzo 160".
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+3. REGISTRARE LE VENDITE
+━━━━━━━━━━━━━━━━━━━━━━━━
+CARBURANTE
+• "20 euro di gasolio"  •  "trentacinque di verde col pos"  •  "50 diesel bancomat"
+  (verde / senza piombo = Benzina, diesel = Gasolio)
+
+CENTESIMI
+• "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €
+
+ADBLUE
+• Sfuso, a litri: "adblue 20 litri" (20 × 1,30 €)  oppure  "adblue 13 euro"
+• Taniche: "2 taniche di adblue"
+
+MARKET
+• "2 red bull", "un mars bancomat": il prezzo lo calcola da solo dal listino.
+
+FAX / FOTOCOPIE (0,30 € a foglio)
+• "5 fax", "10 fotocopie", "2 lettere di vettura"
+
+PAGAMENTI (si dicono in fondo alla frase)
+• contanti (se non dici niente, è contanti)
+• carta  •  pos  •  bancomat
+• cartissima / carta carburante
+
+PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
+• "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
+
+🧾 Se market, fax o taniche vengono pagati con carta, POS o bancomat
+arriva la notifica "STAMPARE RICEVUTA". Con contanti e cartissima no.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+4. CORREGGERE E CANCELLARE
+━━━━━━━━━━━━━━━━━━━━━━━━
+• "cancella ultima" / "cancella penultima": toglie la vendita intera.
+• "correggi ultima bancomat": cambia il pagamento.
+• "correggi ultima 25 euro": cambia l'importo.
+• "correggi ultima gasolio": cambia il carburante.
+• Al posto di "ultima" puoi dire "penultima".
+• Nelle vendite con più cose si può correggere solo il pagamento:
+  per il resto cancellala e ridettala.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+5. CONTROLLARE DURANTE IL TURNO
+━━━━━━━━━━━━━━━━━━━━━━━━
+• "totali": riepilogo per pagamento e per prodotto, con la cassa.
+• "ultime vendite": le ultime registrazioni.
+• "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
+• "erogazioni": AdBlue erogato (litri sfuso e taniche).
+• "archivio": i turni passati.
+Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+6. FINE TURNO
+━━━━━━━━━━━━━━━━━━━━━━━━
+Di': "CHIUSURA TURNO". Compaiono tre riquadri:
+1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
+   140532 = 14:05:32
+2) CONTANTI CONTATI in cassa (si può lasciare vuoto)
+3) TOTALE POS / carte (si può lasciare vuoto)
+
+Il documento di chiusura viene salvato in:
+  Download → Chiusure_Turno → es. 2026-10-02_Mattina.txt
+Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
+(avanzo + contanti = attesi, confrontati con i contati) e l'elenco di tutte le vendite.
+
+Dopo la chiusura l'IA si spegne e le notifiche spariscono.
+Il conteggio dei contanti viene proposto come avanzo al turno successivo.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+7. LA NOTIFICA "IA"
+━━━━━━━━━━━━━━━━━━━━━━━━
+L'IA serve solo per le frasi "strane": tutto il resto funziona anche senza.
+• 🟢 accesa  •  🟡 in avvio  •  ⚫ spenta
+• Pulsanti: Accendi / Spegni / Aggiorna
+• A voce: "accendi ia", "spegni ia", "stato ia"
+Si accende da sola con l'apertura del turno e si spegne con la chiusura.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+8. PULSANTI SULLA SCHERMATA HOME (widget)
+━━━━━━━━━━━━━━━━━━━━━━━━
+Per quando non si può parlare:
+1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Market
+5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
+Si apre una finestra con il risultato: premi Invio per chiuderla.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+9. SICUREZZA DEI DATI
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Dopo ogni vendita il documento del turno in Download/Chiusure_Turno viene aggiornato.
+• Se le vendite in Termux vanno perse, di' "ripristina turno": vengono recuperate da lì.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+10. SE QUALCOSA NON VA
+━━━━━━━━━━━━━━━━━━━━━━━━
+• "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
+• "❌ Turno non aperto": di' prima "apertura turno".
+• "❌ IA spenta, la sto avviando": aspetta 30 secondi e ripeti la frase.
+• Il testo capito è tagliato o sbagliato: ripeti, parlando subito dopo il doppio tap.
+• Vendita sbagliata: "correggi ultima …" oppure "cancella ultima".
+• Per aggiornare il programma, in Termux:
+  curl -L -o ~/.termux/tasker/installa.sh https://raw.githubusercontent.com/Nicocico11/Progetto-registratore-di-cassa/claude/cash-register-ai-latency-n0e165/termux/installa.sh && bash ~/.termux/tasker/installa.sh
