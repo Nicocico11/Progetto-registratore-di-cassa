@@ -76,6 +76,13 @@ def vendite(righe):
     return [v for v in (vendita(r) for r in righe) if v]
 
 
+SIGLE = {"Contanti": "CON", "Carta": "CAR", "Carta carburante": "CCB", "POS": "POS", "Bancomat": "BAN"}
+
+
+def sigla(metodo):
+    return SIGLE.get(metodo, metodo[:3].upper())
+
+
 def euro(x):
     return f"{x:.2f} €"
 
@@ -180,7 +187,7 @@ def prospetto_adblue(vv, dettaglio=True):
     if dettaglio:
         for v in ad:
             q = f"{v['quantita']:.2f} l" if v["unita"] == "l" else f"{numero(v['quantita'])} ×"
-            out.append(f"  • {v['ora']} {q} {v['categoria']} {euro(v['importo'])} ({v['metodo'][:3].upper()})")
+            out.append(f"  • {v['ora']} {q} {v['categoria']} {euro(v['importo'])} ({sigla(v['metodo'])})")
     litri = sum(v["quantita"] for v in ad if v["unita"] == "l")
     euro_sfuso = sum(v["importo"] for v in ad if v["unita"] == "l")
     taniche = sum(v["quantita"] for v in ad if v["unita"] != "l")
@@ -200,9 +207,9 @@ def prospetto_completo(righe, titolo):
 
     out.append("💳 PER PAGAMENTO")
     for m, val in sorted(per_metodo.items()):
-        out.append(f"  {m:<12} {euro(val):>10}")
-    out.append(f"  {'= Contanti':<12} {euro(contanti):>10}")
-    out.append(f"  {'= Elettronico':<12} {euro(totale - contanti):>10}")
+        out.append(f"  {m:<16} {euro(val):>10}")
+    out.append(f"  {'= Contanti':<16} {euro(contanti):>10}")
+    out.append(f"  {'= Elettronico':<16} {euro(totale - contanti):>10}")
     out.append("")
 
     out.append("⛽ CARBURANTI")
@@ -211,8 +218,8 @@ def prospetto_completo(righe, titolo):
         if v["reparto"] == "Carburante":
             carb[v["categoria"]] += v["importo"]
     for nome, val in sorted(carb.items()):
-        out.append(f"  {nome:<12} {euro(val):>10}")
-    out.append(f"  {'= Carburanti':<12} {euro(sum(carb.values())):>10}")
+        out.append(f"  {nome:<16} {euro(val):>10}")
+    out.append(f"  {'= Carburanti':<16} {euro(sum(carb.values())):>10}")
     out.append("")
     out += prospetto_adblue(vv, dettaglio=False)
     out.append("")
@@ -246,7 +253,7 @@ def notifica_breve(righe):
     out.append("🔍 Ultime transazioni:")
     # Le vendite market non compaiono qui (solo nel totale sopra)
     for v in reversed([v for v in vv if v["reparto"] != "Market"][-5:]):
-        out.append(f"• {v['ora']} | {v['importo']:.2f}€ ({v['metodo'][:3].upper()}) {v['note']}")
+        out.append(f"• {v['ora']} | {v['importo']:.2f}€ ({sigla(v['metodo'])}) {v['note']}")
     print("\n".join(out))
 
 
@@ -267,48 +274,42 @@ def mostra_archivio():
 
 # ---------- modifiche ----------
 
+def transazioni(righe):
+    """Righe raggruppate per transazione (una vendita mista ha più righe con lo stesso numero)."""
+    gruppi = []
+    for r in righe:
+        try:
+            num = json.loads(r[1]).get("transazione")
+        except Exception:
+            num = None
+        if num and gruppi and gruppi[-1][0] == num:
+            gruppi[-1][1].append(r)
+        else:
+            gruppi.append((num, [r]))
+    return [g for _, g in gruppi]
+
+
 def cancella_ultima():
-    righe = leggi_csv()
-    if not righe:
+    gruppi = transazioni(leggi_csv())
+    if not gruppi:
         print("Totale: 0.00 € | Vendite: 0\nNessuna transazione da cancellare.")
         return
-    scrivi_csv(righe[:-1])
-    notifica_breve(righe[:-1])
-
-
-def cancella_penultima():
-    righe = leggi_csv()
-    if len(righe) < 2:
-        print("Servono almeno 2 transazioni.")
-        return
-    righe_aggiornate = righe[:-2] + [righe[-1]]
+    righe_aggiornate = [r for g in gruppi[:-1] for r in g]
     scrivi_csv(righe_aggiornate)
+    print(f"🗑️ Cancellata l'ultima vendita ({len(gruppi[-1])} voci)" if len(gruppi[-1]) > 1
+          else "🗑️ Cancellata l'ultima vendita")
     notifica_breve(righe_aggiornate)
 
 
-def normalizza_orario(grezzo):
-    """'14 05 32', '14:05:32', '140532' -> '14:05:32'. Vuoto se non inserito."""
-    gruppi = re.findall(r'\d+', grezzo or "")
-    if not gruppi:
-        return ""
-    if len(gruppi) == 1:  # tutto attaccato: 140532 / 60532 / 1405
-        cifre = gruppi[0]
-        if len(cifre) in (5, 6):
-            cifre = cifre.zfill(6)
-            gruppi = [cifre[:2], cifre[2:4], cifre[4:]]
-        elif len(cifre) in (3, 4):
-            cifre = cifre.zfill(4)
-            gruppi = [cifre[:2], cifre[2:]]
-    try:
-        h, m = int(gruppi[0]), int(gruppi[1])
-        sec = int(gruppi[2]) if len(gruppi) > 2 else None
-    except (ValueError, IndexError):
-        return f"(non valido: {grezzo})"
-    if h > 23 or m > 59 or (sec is not None and sec > 59):
-        return f"(non valido: {grezzo})"
-    if sec is None:
-        return f"{h:02d}:{m:02d} (secondi non inseriti)"
-    return f"{h:02d}:{m:02d}:{sec:02d}"
+def cancella_penultima():
+    gruppi = transazioni(leggi_csv())
+    if len(gruppi) < 2:
+        print("Servono almeno 2 transazioni.")
+        return
+    righe_aggiornate = [r for g in gruppi[:-2] + gruppi[-1:] for r in g]
+    scrivi_csv(righe_aggiornate)
+    print("🗑️ Cancellata la penultima vendita")
+    notifica_breve(righe_aggiornate)
 
 
 def chiudi_turno(orario_terminale=""):
@@ -334,7 +335,7 @@ def chiudi_turno(orario_terminale=""):
     ]
     corpo = prospetto_completo(righe, "RIEPILOGO")
     dettaglio = ["", "📋 TUTTE LE VENDITE"] + [
-        f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<9} {v['note']}" for v in vendite(righe)]
+        f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<16} {v['note']}" for v in vendite(righe)]
     testo = "\n".join(testa + corpo + dettaglio) + "\n"
 
     # Documento nella cartella Download/Chiusure_Turno

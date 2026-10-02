@@ -48,3 +48,10 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
     "AdBlue sfuso":  {"prezzo": 1.3,  "alias": ["adblue", "sfuso"],    "reparto": "AdBlue", "unita": "l"}
 
 "2 red bull" = 2 × prezzo; "adblue 20 litri" = 20 × 1,30; "adblue 13 euro" = importo 13 (10 litri).
+
+## Vendite miste e ricevute
+
+- Una frase può contenere più voci con un solo pagamento: "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
+  → 3 righe con lo stesso numero di transazione; "cancella ultima" le toglie tutte insieme.
+- Pagamenti: Contanti, Carta, Carta carburante (anche "carissimo"), POS, Bancomat.
+- Market o tanica AdBlue pagati non in contanti → notifica "🧾 STAMPA RICEVUTA".
