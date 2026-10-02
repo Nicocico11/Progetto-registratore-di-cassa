@@ -340,7 +340,8 @@ except Exception as e:
 def descrivi(v):
     if 'quantita' not in v:
         return f"{v['categoria']} {v['importo']} €"
-    q = f"{v['quantita']:g} l" if v['unita'] == 'l' else f"{v['quantita']:g} ×"
+    unita = {'l': ' l', 'fogli': ' foglio' if v['quantita'] == 1 else ' fogli'}.get(v['unita'], ' ×')
+    q = f"{v['quantita']:g}{unita}"
     return f"{q} {v['categoria']} {v['importo']} €"
 
 
@@ -352,16 +353,16 @@ else:
     print(f"{simbolo} Vendita salvata ({len(voci)} voci, {metodo}): "
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
-# Ricevuta da stampare: market o tanica AdBlue pagati con carta, POS o bancomat
+# Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
 # (non in contanti e non con la Cartissima/carta carburante)
 da_stampare = [v for v in voci
-               if v['reparto'] == 'Market' or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
+               if v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
 if da_stampare and metodo not in ('Contanti', 'Carta carburante'):
     importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
-    print(f"🧾 STAMPA RICEVUTA ({importo_ricevuta:.2f} €)")
+    print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
     try:
         subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
-                          '--title', '🧾 STAMPA RICEVUTA',
+                          '--title', '🧾 STAMPARE RICEVUTA',
                           '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
                           '--vibrate', '300,150,300'],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)

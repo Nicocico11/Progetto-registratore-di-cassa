@@ -222,6 +222,11 @@ def prospetto_completo(righe, titolo):
     out.append(f"  {'= Carburanti':<16} {euro(sum(carb.values())):>10}")
     out.append("")
     out += prospetto_adblue(vv, dettaglio=False)
+    fax = [v for v in vv if v["reparto"] == "Fax"]
+    if fax:
+        out.append("")
+        out.append("📠 FAX / FOTOCOPIE")
+        out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
     out.append("")
     out += prospetto_market(vv)
     return out
@@ -242,7 +247,7 @@ def notifica_breve(righe):
     parti = []
     for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
         parti.append(f"{nome.upper()}: {val:.2f}€")
-    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Market", "🛒 MARKET")):
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:
             parti.append(f"{icona}: {val:.2f}€")

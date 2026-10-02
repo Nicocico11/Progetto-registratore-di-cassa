@@ -449,7 +449,8 @@ except Exception as e:
 def descrivi(v):
     if 'quantita' not in v:
         return f"{v['categoria']} {v['importo']} €"
-    q = f"{v['quantita']:g} l" if v['unita'] == 'l' else f"{v['quantita']:g} ×"
+    unita = {'l': ' l', 'fogli': ' foglio' if v['quantita'] == 1 else ' fogli'}.get(v['unita'], ' ×')
+    q = f"{v['quantita']:g}{unita}"
     return f"{q} {v['categoria']} {v['importo']} €"
 
 
@@ -461,16 +462,16 @@ else:
     print(f"{simbolo} Vendita salvata ({len(voci)} voci, {metodo}): "
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
-# Ricevuta da stampare: market o tanica AdBlue pagati con carta, POS o bancomat
+# Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
 # (non in contanti e non con la Cartissima/carta carburante)
 da_stampare = [v for v in voci
-               if v['reparto'] == 'Market' or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
+               if v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
 if da_stampare and metodo not in ('Contanti', 'Carta carburante'):
     importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
-    print(f"🧾 STAMPA RICEVUTA ({importo_ricevuta:.2f} €)")
+    print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
     try:
         subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
-                          '--title', '🧾 STAMPA RICEVUTA',
+                          '--title', '🧾 STAMPARE RICEVUTA',
                           '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
                           '--vibrate', '300,150,300'],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
@@ -493,7 +494,7 @@ FINE_FILE
 cat > ~/.termux/tasker/migra_prezzi.py <<'FINE_FILE'
 # Converte ~/prezzi.json dal vecchio formato {"redbull": 3.0}
 # al nuovo {"Red Bull": {"prezzo": 3.0, "alias": [...], "reparto": "Market", "unita": "pz"}}.
-# Se è già nel nuovo formato non fa nulla.
+# Aggiunge anche i prodotti fissi che mancano (es. fax / fotocopie).
 import json, os, shutil
 
 p = os.path.expanduser('~/prezzi.json')
@@ -521,6 +522,26 @@ if os.path.exists(p):
         with open(p, 'w', encoding='utf-8') as f:
             json.dump(nuovo, f, indent=2, ensure_ascii=False)
         print('🔄 prezzi.json convertito al nuovo formato (copia in prezzi.json.vecchio)')
+
+# Prodotti fissi: aggiunti solo se mancano
+FISSI = {
+    'Fax / fotocopie': {'prezzo': 0.30, 'reparto': 'Fax', 'unita': 'fogli',
+                        'alias': ['fax', 'fotocopie', 'fotocopia', 'copie', 'fogli', 'foglio',
+                                  'lettera di vettura', 'lettere di vettura', 'cmr', 'delivery']},
+}
+if os.path.exists(p):
+    with open(p, encoding='utf-8') as f:
+        listino = json.load(f)
+else:
+    listino = {}
+mancanti = [n for n, v in FISSI.items()
+            if not any(isinstance(x, dict) and x.get('reparto') == v['reparto'] for x in listino.values())]
+if mancanti:
+    for n in mancanti:
+        listino[n] = FISSI[n]
+    with open(p, 'w', encoding='utf-8') as f:
+        json.dump(listino, f, indent=2, ensure_ascii=False)
+    print('➕ Aggiunto al listino: ' + ', '.join(mancanti))
 FINE_FILE
 cat > ~/info_turno.py <<'FINE_FILE'
 import csv
@@ -747,6 +768,11 @@ def prospetto_completo(righe, titolo):
     out.append(f"  {'= Carburanti':<16} {euro(sum(carb.values())):>10}")
     out.append("")
     out += prospetto_adblue(vv, dettaglio=False)
+    fax = [v for v in vv if v["reparto"] == "Fax"]
+    if fax:
+        out.append("")
+        out.append("📠 FAX / FOTOCOPIE")
+        out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
     out.append("")
     out += prospetto_market(vv)
     return out
@@ -767,7 +793,7 @@ def notifica_breve(righe):
     parti = []
     for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
         parti.append(f"{nome.upper()}: {val:.2f}€")
-    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Market", "🛒 MARKET")):
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:
             parti.append(f"{icona}: {val:.2f}€")
@@ -916,7 +942,7 @@ def main():
 if __name__ == "__main__":
     main()
 FINE_FILE
-# Listino nel nuovo formato (solo se è ancora nel vecchio)
+# Listino: nuovo formato e prodotti fissi (fax)
 python3 ~/.termux/tasker/migra_prezzi.py
 # File di Tasker da importare: li mettiamo nella cartella Download
 if [ -d ~/storage/downloads ]; then
