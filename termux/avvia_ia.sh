@@ -26,7 +26,9 @@ ESITO=0
 case "$FRASE" in
   *turno*)
     # Qualsiasi frase con "turno" è un comando, mai una vendita
-    if [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
+    if [[ "$FRASE" =~ ripristin ]]; then
+      python3 ~/info_turno.py ripristina
+    elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
       echo "🟢 TURNO APERTO"
       python3 ~/info_turno.py apri turno
       bash $CARTELLA/avvia_server.sh
@@ -84,7 +86,9 @@ except Exception:
     python3 ~/info_turno.py archivio ;;
   *)
     python3 $CARTELLA/processa_ia.py "$TESTO"
-    ESITO=$? ;;
+    ESITO=$?
+    # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
+    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
 esac
 
 case $ESITO in

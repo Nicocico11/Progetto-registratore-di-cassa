@@ -59,3 +59,14 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
 - Market, fax o tanica AdBlue pagati con carta, POS o bancomat (non contanti né Cartissima) → notifica "🧾 STAMPARE RICEVUTA".
 - Centesimi: "20 e 50", "20 euro e 50", "20 virgola 50" → 20,50 €.
 - Fax / fotocopie (lettere di vettura, delivery, CMR): 0,30 € a foglio, sezione a parte nei totali; "5 fax" = 1,50 €.
+
+## Copia di sicurezza del turno
+
+All'apertura nasce `Download/Chiusure_Turno/<data>_<turno>.txt` (con `_dati.csv`), riscritto dopo
+ogni vendita o cancellazione e sovrascritto con la versione finale alla chiusura.
+Se il file delle vendite in Termux va perso: comando vocale "ripristina turno".
+
+## Prova automatica
+
+`bash termux/prova_turno.sh` simula un turno completo (apertura, vendite, cancellazioni,
+ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiornamento.

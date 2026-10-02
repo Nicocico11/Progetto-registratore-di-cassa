@@ -125,23 +125,105 @@ def apri_turno():
     nome, data_inizio = tipo_turno(adesso)
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
+    turno["documento"] = nuovo_documento(turno, adesso)
+    salva_turno(turno)
+    print(f"📅 {descrivi_turno(turno)}")
+    print(salva_documento([], turno))
+
+
+def salva_turno(turno):
     with open(PATH_TURNO, 'w', encoding='utf-8') as f:
         json.dump(turno, f)
-    print(f"📅 {descrivi_turno(turno)}")
+
+
+def nuovo_documento(turno, adesso):
+    """Percorso del documento in Download: <data>_<turno>.txt (se esiste già, con l'ora)."""
+    base = os.path.join(CARTELLA_CHIUSURE, f"{turno['data_file']}_{turno['tipo']}")
+    return base + ".txt" if not os.path.exists(base + ".txt") else f"{base}_{adesso.strftime('%H%M')}.txt"
 
 
 def turno_attuale(righe):
-    """Turno aperto a voce; se manca, lo si ricava dalla prima vendita."""
+    """Turno aperto a voce; se manca, lo si ricava dalla prima vendita e lo si memorizza."""
     t = leggi_turno()
-    if t:
-        return t
+    if not t:
+        try:
+            primo = datetime.strptime(righe[0][0][:16], "%Y-%m-%d %H:%M")
+        except Exception:
+            primo = datetime.now()
+        nome, data_inizio = tipo_turno(primo)
+        t = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
+             "data_file": data_inizio.isoformat(), "apertura": "(non registrata)"}
+    if not t.get("documento"):
+        t["documento"] = nuovo_documento(t, datetime.now())
+        salva_turno(t)
+    return t
+
+
+def testo_documento(righe, t, finale=False, orario_terminale=""):
+    adesso = datetime.now()
+    apertura = t['apertura'][-5:] if t['apertura'][0].isdigit() else t['apertura']
+    if finale:
+        testa = ["🧾 CHIUSURA TURNO"]
+        chiusura = adesso.strftime('%H:%M')
+    else:
+        testa = [f"⏳ TURNO IN CORSO - aggiornato alle {adesso.strftime('%H:%M:%S')}"]
+        chiusura = "(turno ancora aperto)"
+    testa += [
+        f"Data:      {t['data']}",
+        f"Turno:     {t['tipo']} ({TURNI[t['tipo']][1]})",
+        f"Apertura:  {apertura}",
+        f"Chiusura:  {chiusura}",
+    ]
+    if finale:
+        testa.append(f"Terminale pompe: {orario_terminale or '(non inserito)'}")
+    testa.append("")
+    corpo = prospetto_completo(righe, "RIEPILOGO")
+    dettaglio = ["", "📋 TUTTE LE VENDITE"] + [
+        f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<16} {v['note']}" for v in vendite(righe)]
+    return "\n".join(testa + corpo + dettaglio) + "\n"
+
+
+def scrivi_sicuro(path, contenuto):
+    # Prima un file temporaneo, poi lo scambio: il documento non resta mai scritto a metà
+    tmp = path + ".tmp"
+    with open(tmp, 'w', encoding='utf-8', newline='') as f:
+        f.write(contenuto)
+    os.replace(tmp, path)
+
+
+def salva_documento(righe, t, finale=False, orario_terminale=""):
+    """Scrive (o riscrive) in Download il documento del turno e la copia dei dati (_dati.csv)."""
     try:
-        primo = datetime.strptime(righe[0][0][:16], "%Y-%m-%d %H:%M")
-    except Exception:
-        primo = datetime.now()
-    nome, data_inizio = tipo_turno(primo)
-    return {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
-            "data_file": data_inizio.isoformat(), "apertura": "(non registrata)"}
+        os.makedirs(CARTELLA_CHIUSURE, exist_ok=True)
+        path_doc = t["documento"]
+        scrivi_sicuro(path_doc, testo_documento(righe, t, finale, orario_terminale))
+        dati = [",".join(INTESTAZIONE)] + [
+            ",".join('"' + c.replace('"', '""') + '"' for c in r) for r in righe]
+        scrivi_sicuro(path_doc[:-4] + "_dati.csv", "\n".join(dati) + "\n")
+        return f"💾 Download/Chiusure_Turno/{os.path.basename(path_doc)}"
+    except Exception as e:
+        return f"⚠️ Copia in Download non riuscita ({e})"
+
+
+def salva_copia():
+    """Aggiorna il documento in Download con le vendite attuali (dopo ogni transazione)."""
+    righe = leggi_csv()
+    if not righe and not leggi_turno():
+        return
+    print(salva_documento(righe, turno_attuale(righe)))
+
+
+def ripristina():
+    """Se il file delle vendite in Termux è vuoto, lo ricostruisce dalla copia in Download."""
+    if leggi_csv():
+        print("ℹ️ Ci sono già vendite nel turno: niente da ripristinare.")
+        return
+    copie = sorted(glob.glob(os.path.join(CARTELLA_CHIUSURE, "*_dati.csv")), key=os.path.getmtime)
+    if not copie:
+        print("📭 Nessuna copia trovata in Download/Chiusure_Turno.")
+        return
+    shutil.copy(copie[-1], PATH_CSV)
+    print(f"♻️ Ripristinate {len(leggi_csv())} vendite da {os.path.basename(copie[-1])}")
 
 
 # ---------- prospetti ----------
@@ -301,6 +383,7 @@ def cancella_ultima():
         return
     righe_aggiornate = [r for g in gruppi[:-1] for r in g]
     scrivi_csv(righe_aggiornate)
+    salva_copia()
     print(f"🗑️ Cancellata l'ultima vendita ({len(gruppi[-1])} voci)" if len(gruppi[-1]) > 1
           else "🗑️ Cancellata l'ultima vendita")
     notifica_breve(righe_aggiornate)
@@ -313,8 +396,34 @@ def cancella_penultima():
         return
     righe_aggiornate = [r for g in gruppi[:-2] + gruppi[-1:] for r in g]
     scrivi_csv(righe_aggiornate)
+    salva_copia()
     print("🗑️ Cancellata la penultima vendita")
     notifica_breve(righe_aggiornate)
+
+
+def normalizza_orario(grezzo):
+    """'14 05 32', '14:05:32', '140532' -> '14:05:32'. Vuoto se non inserito."""
+    gruppi = re.findall(r'\d+', grezzo or "")
+    if not gruppi:
+        return ""
+    if len(gruppi) == 1:  # tutto attaccato: 140532 / 60532 / 1405
+        cifre = gruppi[0]
+        if len(cifre) in (5, 6):
+            cifre = cifre.zfill(6)
+            gruppi = [cifre[:2], cifre[2:4], cifre[4:]]
+        elif len(cifre) in (3, 4):
+            cifre = cifre.zfill(4)
+            gruppi = [cifre[:2], cifre[2:]]
+    try:
+        h, m = int(gruppi[0]), int(gruppi[1])
+        sec = int(gruppi[2]) if len(gruppi) > 2 else None
+    except (ValueError, IndexError):
+        return f"(non valido: {grezzo})"
+    if h > 23 or m > 59 or (sec is not None and sec > 59):
+        return f"(non valido: {grezzo})"
+    if sec is None:
+        return f"{h:02d}:{m:02d} (secondi non inseriti)"
+    return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
 def chiudi_turno(orario_terminale=""):
@@ -329,33 +438,8 @@ def chiudi_turno(orario_terminale=""):
 
     t = turno_attuale(righe)
     adesso = datetime.now()
-    testa = [
-        "🧾 CHIUSURA TURNO",
-        f"Data:      {t['data']}",
-        f"Turno:     {t['tipo']} ({TURNI[t['tipo']][1]})",
-        f"Apertura:  {t['apertura'][-5:] if t['apertura'][0].isdigit() else t['apertura']}",
-        f"Chiusura:  {adesso.strftime('%H:%M')}",
-        f"Terminale pompe: {orario_terminale or '(non inserito)'}",
-        "",
-    ]
-    corpo = prospetto_completo(righe, "RIEPILOGO")
-    dettaglio = ["", "📋 TUTTE LE VENDITE"] + [
-        f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<16} {v['note']}" for v in vendite(righe)]
-    testo = "\n".join(testa + corpo + dettaglio) + "\n"
-
-    # Documento nella cartella Download/Chiusure_Turno
-    salvato = ""
-    try:
-        os.makedirs(CARTELLA_CHIUSURE, exist_ok=True)
-        base = os.path.join(CARTELLA_CHIUSURE, f"{t['data_file']}_{t['tipo']}")
-        path_doc = base + ".txt"
-        if os.path.exists(path_doc):
-            path_doc = f"{base}_{adesso.strftime('%H%M')}.txt"
-        with open(path_doc, 'w', encoding='utf-8') as f:
-            f.write(testo)
-        salvato = f"💾 Salvato in Download/Chiusure_Turno/{os.path.basename(path_doc)}"
-    except Exception as e:
-        salvato = f"⚠️ Documento non salvato in Download ({e})"
+    testo = testo_documento(righe, t, finale=True, orario_terminale=orario_terminale)
+    salvato = salva_documento(righe, t, finale=True, orario_terminale=orario_terminale)
 
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
     shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
@@ -379,6 +463,10 @@ def main():
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
         orario = sys.argv[2] if len(sys.argv) > 2 else ""
         chiudi_turno(orario)
+    elif comando == "salva":
+        salva_copia()
+    elif "ripristin" in comando:
+        ripristina()
     elif "archivio" in comando or "storico" in comando:
         mostra_archivio()
     else:
