@@ -60,8 +60,8 @@ CARBURANTI = {
 }
 # L'ordine conta: "carta carburante" va controllata prima di "carta"
 PAGAMENTI = {
-    'Carta carburante': ['carta carburante', 'carte carburante', 'carissimo', 'carissima',
-                         'fuel card', 'carta q8'],
+    'Carta carburante': ['carta carburante', 'carte carburante', 'cartissima', 'cartissimo',
+                         'carta cartissima', 'carissima', 'carissimo', 'fuel card', 'carta q8'],
     'Carta': ['carta', 'credito'],
     'POS': ['pos'],
     'Bancomat': ['bancomat'],
