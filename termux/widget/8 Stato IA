@@ -1,5 +1,11 @@
 #!/bin/bash
-# Pulsante Termux:Widget
+# Pulsante Termux:Widget: stato dell'IA, con accensione e spegnimento a mano
 bash ~/.termux/tasker/avvia_ia.sh "stato ia"
+echo
+read -p "a = accendi, s = spegni, Invio = esci: " R
+case "$R" in
+  a) bash ~/.termux/tasker/avvia_ia.sh "accendi ia" ;;
+  s) bash ~/.termux/tasker/avvia_ia.sh "spegni ia" ;;
+esac
 echo
 read -p "Premi Invio per chiudere… "

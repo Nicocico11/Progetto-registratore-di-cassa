@@ -1,5 +1,5 @@
 # Copia di sicurezza dei file attuali (solo la prima volta: le copie .vecchio non vengono sovrascritte)
-for f in ~/.termux/tasker/avvia_ia.sh ~/.termux/tasker/avvia_server.sh ~/.termux/tasker/processa_ia.py ~/info_turno.py; do [ -f "$f" ] && [ ! -f "$f.vecchio" ] && cp "$f" "$f.vecchio"; done
+for f in ~/.termux/tasker/avvia_ia.sh ~/.termux/tasker/avvia_server.sh ~/.termux/tasker/processa_ia.py ~/.termux/tasker/notifica.sh ~/info_turno.py; do [ -f "$f" ] && [ ! -f "$f.vecchio" ] && cp "$f" "$f.vecchio"; done
 cat > ~/.termux/tasker/avvia_ia.sh <<'FINE_FILE'
 #!/bin/bash
 # Unico punto d'ingresso da Tasker: riceve tutto quello che dici.
@@ -9,6 +9,7 @@ cat > ~/.termux/tasker/avvia_ia.sh <<'FINE_FILE'
 #   1 vibrazione corta = tutto ok
 #   2 vibrazioni corte = salvato, ma controlla
 #   1 vibrazione lunga = errore, niente salvato
+# A turno chiuso: niente vendite, niente notifiche, IA spenta.
 
 CARTELLA=~/.termux/tasker
 
@@ -33,6 +34,22 @@ try:
         print(d.get("text", ""))
 except Exception:
     pass'
+}
+
+# Vero se il turno è aperto; altrimenti avvisa e segna l'errore
+turno_aperto() {
+  if python3 ~/info_turno.py aperto; then
+    return 0
+  fi
+  echo "❌ Turno non aperto: di' prima \"apertura turno\". Niente salvato."
+  ESITO=1
+  return 1
+}
+
+spegni_ia() {
+  pkill -x llama-server
+  pkill -f "stato_ia.sh attendi"
+  termux-wake-unlock
 }
 
 FRASE="${TESTO,,}"   # tutto minuscolo
@@ -64,9 +81,7 @@ case "$FRASE" in
       POS=$(chiedi "Totale POS / carte (€)" "es. 320,00 — vuoto per saltare")
       echo "🔴 TURNO CHIUSO - IA spenta"
       python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS"
-      pkill -x llama-server
-      termux-wake-unlock
-      sleep 1
+      spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1
@@ -74,10 +89,9 @@ case "$FRASE" in
   "ia"|*" ia"|"ia "*|*" ia "*|*"server"*|*"intelligenza"*)
     # "accendi ia", "spegni ia", "stato ia"
     if [[ "$FRASE" =~ (accendi|avvia|attiva) ]]; then
-      bash $CARTELLA/avvia_server.sh
+      turno_aperto && bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (spegni|ferma|disattiva) ]]; then
-      pkill -x llama-server
-      termux-wake-unlock
+      spegni_ia
       echo "⚫ IA spenta"
       sleep 1
     else
@@ -97,9 +111,11 @@ case "$FRASE" in
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
   *"avanzo"*)
-    python3 ~/info_turno.py avanzo "$FRASE"
-    ESITO=$?
-    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+    if turno_aperto; then
+      python3 ~/info_turno.py avanzo "$FRASE"
+      ESITO=$?
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+    fi ;;
   *"penultima"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
@@ -111,10 +127,13 @@ case "$FRASE" in
   *"archivio"*|*"storico"*)
     python3 ~/info_turno.py archivio ;;
   *)
-    python3 $CARTELLA/processa_ia.py "$TESTO"
-    ESITO=$?
-    # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
-    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+    # Una vendita: solo a turno aperto
+    if turno_aperto; then
+      python3 $CARTELLA/processa_ia.py "$TESTO"
+      ESITO=$?
+      # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+    fi ;;
 esac
 
 case $ESITO in
@@ -124,7 +143,7 @@ case $ESITO in
 esac
 
 # Vibrazione subito (non in sottofondo: in sottofondo Android poteva bloccarla),
-# notifica in sottofondo per non far aspettare Tasker
+# notifiche in sottofondo per non far aspettare Tasker (a turno chiuso si tolgono da sole)
 bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
 nohup bash $CARTELLA/stato_ia.sh aggiorna > /dev/null 2>&1 &
@@ -135,8 +154,14 @@ FINE_FILE
 cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
 # Avvia llama-server una sola volta, a inizio turno.
-termux-wake-lock
 CARTELLA=~/.termux/tasker
+
+# A turno chiuso l'IA resta spenta
+if ! python3 ~/info_turno.py aperto; then
+  echo "❌ Turno non aperto: l'IA si accende con \"apertura turno\""
+  exit 1
+fi
+termux-wake-lock
 
 # Percorso esplicito del modello: cambia solo questa riga per provare un altro modello.
 MODELLO=~/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf
@@ -161,7 +186,8 @@ nohup bash $CARTELLA/stato_ia.sh attendi > /dev/null 2>&1 &
 FINE_FILE
 cat > ~/.termux/tasker/stato_ia.sh <<'FINE_FILE'
 #!/bin/bash
-# Notifica fissa "🤖 IA" con lo stato del server e i pulsanti Accendi / Spegni / Aggiorna.
+# Notifica fissa "IA" con lo stato del server e i pulsanti Accendi / Spegni / Aggiorna.
+# Solo con il turno aperto: a turno chiuso niente notifica e IA sempre spenta.
 # Uso: stato_ia.sh [aggiorna | accendi | spegni | attendi]
 #   attendi = ricontrolla ogni 3 secondi finché l'IA è pronta (massimo 2 minuti)
 
@@ -169,6 +195,9 @@ CARTELLA=/data/data/com.termux/files/home/.termux/tasker
 [ -d "$CARTELLA" ] || CARTELLA=~/.termux/tasker
 BASH_BIN=$(command -v bash)
 QUESTO="$BASH_BIN $CARTELLA/stato_ia.sh"
+
+# Traccia nel log ogni comando (serve a capire se i pulsanti della notifica arrivano)
+[ "${1:-aggiorna}" != "attendi" ] && echo "$(date '+%H:%M:%S') stato_ia ${1:-aggiorna}" >> ~/debug_tasker.log
 
 stato() {
   if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q '"ok"'; then
@@ -178,6 +207,11 @@ stato() {
   else
     echo spenta
   fi
+}
+
+spegni_ia() {
+  pkill -x llama-server
+  termux-wake-unlock
 }
 
 mostra() {
@@ -193,13 +227,20 @@ mostra() {
     --button3 "Aggiorna" --button3-action "$QUESTO aggiorna" > /dev/null 2>&1
 }
 
+# Turno chiuso: IA spenta e nessuna notifica
+if ! python3 ~/info_turno.py aperto; then
+  pgrep -x llama-server > /dev/null && spegni_ia
+  termux-notification-remove stato_ia 2>/dev/null
+  [ "${1:-}" = "accendi" ] && echo "❌ Turno non aperto: di' \"apertura turno\""
+  exit 0
+fi
+
 case "${1:-aggiorna}" in
   accendi)
     bash $CARTELLA/avvia_server.sh > /dev/null 2>&1   # avvia_server.sh lancia anche "attendi"
     mostra "$(stato)" ;;
   spegni)
-    pkill -x llama-server
-    termux-wake-unlock
+    spegni_ia
     sleep 1
     mostra "$(stato)" ;;
   attendi)
@@ -212,6 +253,22 @@ case "${1:-aggiorna}" in
   *)
     mostra "$(stato)" ;;
 esac
+FINE_FILE
+cat > ~/.termux/tasker/notifica.sh <<'FINE_FILE'
+#!/bin/bash
+# Notifica fissa "Stato Turno" nella tendina: solo con il turno aperto.
+if ! python3 ~/info_turno.py aperto; then
+  termux-notification-remove distributore_turno 2>/dev/null
+  exit 0
+fi
+TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
+termux-notification \
+  --id "distributore_turno" \
+  --title "📊 Stato Turno Q8" \
+  --content "$TESTO_NOTIFICA" \
+  --ongoing \
+  --alert-once \
+  --priority high
 FINE_FILE
 cat > ~/.termux/tasker/processa_ia.py <<'FINE_FILE'
 import json, re, csv, datetime, os, sys, subprocess, urllib.request
@@ -863,12 +920,13 @@ def descrivi_turno(t):
 
 
 def turno_aperto():
-    return bool(leggi_turno() and leggi_csv())
+    # Aperto a voce, oppure vendite già presenti (turni iniziati con le versioni precedenti)
+    return bool(leggi_turno() or leggi_csv())
 
 
 def apri_turno(avanzo_testo=""):
     esistente = leggi_turno()
-    if esistente and leggi_csv():
+    if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
         return
     adesso = datetime.now()
@@ -971,9 +1029,9 @@ def salva_documento(righe, t, finale=False, orario_terminale=""):
 
 def salva_copia():
     """Aggiorna il documento in Download con le vendite attuali (dopo ogni transazione)."""
-    righe = leggi_csv()
-    if not righe and not leggi_turno():
+    if not turno_aperto():
         return
+    righe = leggi_csv()
     print(salva_documento(righe, turno_attuale(righe)))
 
 
@@ -1342,8 +1400,14 @@ read -p "Premi Invio per chiudere… "
 FINE_FILE
 cat > ~/.shortcuts/"8 Stato IA" <<'FINE_FILE'
 #!/bin/bash
-# Pulsante Termux:Widget
+# Pulsante Termux:Widget: stato dell'IA, con accensione e spegnimento a mano
 bash ~/.termux/tasker/avvia_ia.sh "stato ia"
+echo
+read -p "a = accendi, s = spegni, Invio = esci: " R
+case "$R" in
+  a) bash ~/.termux/tasker/avvia_ia.sh "accendi ia" ;;
+  s) bash ~/.termux/tasker/avvia_ia.sh "spegni ia" ;;
+esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
@@ -1647,8 +1711,9 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 FINE_FILE
 fi
 chmod +x ~/.termux/tasker/*.sh
-# Copia del turno in corso in Download (se c'è un turno aperto)
+# Copia del turno in Download e notifiche: solo se il turno è aperto
 python3 ~/info_turno.py salva > /dev/null 2>&1
-# Notifica fissa con lo stato dell'IA
+bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
+if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
 echo "✅ INSTALLAZIONE COMPLETATA"

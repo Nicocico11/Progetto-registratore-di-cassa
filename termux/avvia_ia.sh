@@ -6,6 +6,7 @@
 #   1 vibrazione corta = tutto ok
 #   2 vibrazioni corte = salvato, ma controlla
 #   1 vibrazione lunga = errore, niente salvato
+# A turno chiuso: niente vendite, niente notifiche, IA spenta.
 
 CARTELLA=~/.termux/tasker
 
@@ -30,6 +31,22 @@ try:
         print(d.get("text", ""))
 except Exception:
     pass'
+}
+
+# Vero se il turno è aperto; altrimenti avvisa e segna l'errore
+turno_aperto() {
+  if python3 ~/info_turno.py aperto; then
+    return 0
+  fi
+  echo "❌ Turno non aperto: di' prima \"apertura turno\". Niente salvato."
+  ESITO=1
+  return 1
+}
+
+spegni_ia() {
+  pkill -x llama-server
+  pkill -f "stato_ia.sh attendi"
+  termux-wake-unlock
 }
 
 FRASE="${TESTO,,}"   # tutto minuscolo
@@ -61,9 +78,7 @@ case "$FRASE" in
       POS=$(chiedi "Totale POS / carte (€)" "es. 320,00 — vuoto per saltare")
       echo "🔴 TURNO CHIUSO - IA spenta"
       python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS"
-      pkill -x llama-server
-      termux-wake-unlock
-      sleep 1
+      spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1
@@ -71,10 +86,9 @@ case "$FRASE" in
   "ia"|*" ia"|"ia "*|*" ia "*|*"server"*|*"intelligenza"*)
     # "accendi ia", "spegni ia", "stato ia"
     if [[ "$FRASE" =~ (accendi|avvia|attiva) ]]; then
-      bash $CARTELLA/avvia_server.sh
+      turno_aperto && bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (spegni|ferma|disattiva) ]]; then
-      pkill -x llama-server
-      termux-wake-unlock
+      spegni_ia
       echo "⚫ IA spenta"
       sleep 1
     else
@@ -94,9 +108,11 @@ case "$FRASE" in
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
   *"avanzo"*)
-    python3 ~/info_turno.py avanzo "$FRASE"
-    ESITO=$?
-    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+    if turno_aperto; then
+      python3 ~/info_turno.py avanzo "$FRASE"
+      ESITO=$?
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+    fi ;;
   *"penultima"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
@@ -108,10 +124,13 @@ case "$FRASE" in
   *"archivio"*|*"storico"*)
     python3 ~/info_turno.py archivio ;;
   *)
-    python3 $CARTELLA/processa_ia.py "$TESTO"
-    ESITO=$?
-    # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
-    python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+    # Una vendita: solo a turno aperto
+    if turno_aperto; then
+      python3 $CARTELLA/processa_ia.py "$TESTO"
+      ESITO=$?
+      # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+    fi ;;
 esac
 
 case $ESITO in
@@ -121,7 +140,7 @@ case $ESITO in
 esac
 
 # Vibrazione subito (non in sottofondo: in sottofondo Android poteva bloccarla),
-# notifica in sottofondo per non far aspettare Tasker
+# notifiche in sottofondo per non far aspettare Tasker (a turno chiuso si tolgono da sole)
 bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
 nohup bash $CARTELLA/stato_ia.sh aggiorna > /dev/null 2>&1 &

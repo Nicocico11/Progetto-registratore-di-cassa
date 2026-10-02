@@ -9,10 +9,13 @@ export HOME=$(mktemp -d)
 mkdir -p $HOME/.termux/tasker $HOME/bin $HOME/storage/downloads $HOME/llama.cpp/build/bin
 cp $QUI/*.sh $QUI/processa_ia.py $QUI/migra_prezzi.py $HOME/.termux/tasker/
 cp $QUI/info_turno.py $HOME/
-printf '#!/bin/bash\n' > $HOME/.termux/tasker/notifica.sh
-for c in termux-vibrate termux-wake-lock termux-wake-unlock termux-notification; do
+for c in termux-vibrate termux-wake-lock termux-wake-unlock; do
   printf '#!/bin/bash\n' > $HOME/bin/$c; chmod +x $HOME/bin/$c
 done
+# Notifiche finte: annotano cosa viene mostrato o tolto
+printf '#!/bin/bash\necho "mostra $*" >> ~/notifiche.log\n' > $HOME/bin/termux-notification
+printf '#!/bin/bash\necho "togli $*" >> ~/notifiche.log\n' > $HOME/bin/termux-notification-remove
+chmod +x $HOME/bin/termux-notification $HOME/bin/termux-notification-remove
 cat > $HOME/bin/termux-dialog <<'EOF'
 #!/bin/bash
 # Popup finto: risponde in base al titolo
@@ -43,6 +46,9 @@ controlla() {  # controlla "descrizione" "frase" "testo atteso nella risposta"
 }
 
 echo "Prova turno completo:"
+controlla "vendita a turno chiuso"    "20 euro di gasolio"                           "Turno non aperto"
+controlla "accendi ia a turno chiuso" "accendi ia"                                   "Turno non aperto"
+sleep 1; grep -q "^mostra" $HOME/notifiche.log 2>/dev/null && { echo "  ERRORE notifiche a turno chiuso"; ERRORI=$((ERRORI+1)); } || echo "  ok   nessuna notifica a turno chiuso"
 controlla "apertura turno con avanzo" "apertura turno"                               "150.50"
 [ -f $D/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "vendita carburante"        "20 euro di gasolio carta"                     "Gasolio 20.00"
@@ -66,6 +72,7 @@ grep -q "Gasolio\|gasolio" $D/*_dati.csv && echo "  ok   copia dati aggiornata i
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
+sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
 grep -q "Contanti contati" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }

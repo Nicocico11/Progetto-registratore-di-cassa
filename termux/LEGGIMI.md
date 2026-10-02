@@ -84,3 +84,10 @@ ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiorn
 
 `installa.sh` crea in `~/.shortcuts` i pulsanti (cartella `widget/`): Apertura, Chiusura,
 Totali, Market, Erogazioni AdBlue, Ultime vendite, Cancella ultima (con conferma), Stato IA.
+
+## Turno chiuso
+
+Senza turno aperto: le vendite non vengono salvate (messaggio e vibrazione lunga),
+nessuna notifica nella tendina, IA spenta (anche "accendi ia" viene rifiutato).
+I pulsanti della notifica IA scrivono in `~/debug_tasker.log` ("stato_ia spegni"):
+se il pulsante non lascia traccia, Android non lo sta facendo arrivare a Termux.

@@ -124,12 +124,13 @@ def descrivi_turno(t):
 
 
 def turno_aperto():
-    return bool(leggi_turno() and leggi_csv())
+    # Aperto a voce, oppure vendite già presenti (turni iniziati con le versioni precedenti)
+    return bool(leggi_turno() or leggi_csv())
 
 
 def apri_turno(avanzo_testo=""):
     esistente = leggi_turno()
-    if esistente and leggi_csv():
+    if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
         return
     adesso = datetime.now()
@@ -232,9 +233,9 @@ def salva_documento(righe, t, finale=False, orario_terminale=""):
 
 def salva_copia():
     """Aggiorna il documento in Download con le vendite attuali (dopo ogni transazione)."""
-    righe = leggi_csv()
-    if not righe and not leggi_turno():
+    if not turno_aperto():
         return
+    righe = leggi_csv()
     print(salva_documento(righe, turno_attuale(righe)))
 
 

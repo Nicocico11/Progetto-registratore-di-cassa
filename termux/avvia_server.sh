@@ -1,7 +1,13 @@
 #!/bin/bash
 # Avvia llama-server una sola volta, a inizio turno.
-termux-wake-lock
 CARTELLA=~/.termux/tasker
+
+# A turno chiuso l'IA resta spenta
+if ! python3 ~/info_turno.py aperto; then
+  echo "❌ Turno non aperto: l'IA si accende con \"apertura turno\""
+  exit 1
+fi
+termux-wake-lock
 
 # Percorso esplicito del modello: cambia solo questa riga per provare un altro modello.
 MODELLO=~/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf
