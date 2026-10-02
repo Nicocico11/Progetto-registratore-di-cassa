@@ -53,6 +53,42 @@ if not testo_originale.strip():
     sys.exit(1)
 testo_basso = testo_originale.lower()
 
+
+def numeri_in_lettere():
+    # Costruisce {"venti": 20, "trentacinque": 35, "centoventi": 120, ...} da 1 a 999
+    unita = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove']
+    dieci_19 = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici',
+                'sedici', 'diciassette', 'diciotto', 'diciannove']
+    decine = ['venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta']
+    parole = {}
+    for n in range(1, 100):
+        if n < 10:
+            nomi = [unita[n]]
+        elif n < 20:
+            nomi = [dieci_19[n - 10]]
+        else:
+            d, u = decine[n // 10 - 2], unita[n % 10]
+            nomi = [d[:-1] + u if u in ('uno', 'otto') else d + u]
+            if u == 'tre':
+                nomi.append(d + 'tré')
+        for nome in nomi:
+            parole[nome] = n
+    for c in range(1, 10):
+        cento = 'cento' if c == 1 else unita[c] + 'cento'
+        parole[cento] = c * 100
+        for nome, n in list(parole.items()):
+            if n < 100:
+                parole[cento + nome] = c * 100 + n
+                if nome.startswith('o'):
+                    parole[cento[:-1] + nome] = c * 100 + n  # centotto
+    return parole
+
+
+# "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
+_NUMERI = numeri_in_lettere()
+testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b',
+                     lambda m: str(_NUMERI[m.group(1)]), testo_basso)
+
 # Parole che identificano carburanti e metodi di pagamento
 CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
@@ -108,15 +144,18 @@ def metodo_pagamento():
 
 
 # --- PASSO 1: regole veloci, senza IA ---
+def carburante_detto():
+    for nome, parole in CARBURANTI.items():
+        if any(contiene(p) for p in parole):
+            return nome
+    return None
+
+
 def analisi_veloce():
     numero = trova_numero()
     if not numero:
         return None
-    categoria = None
-    for nome, parole in CARBURANTI.items():
-        if any(contiene(p) for p in parole):
-            categoria = nome
-            break
+    categoria = carburante_detto()
     if not categoria and trova_prodotto_listino():
         categoria = 'Listino'
     if not categoria:
@@ -127,7 +166,8 @@ def analisi_veloce():
 # --- PASSO 2: IA, solo se le regole non bastano ---
 SISTEMA = (
     "Sei il registratore di cassa di un distributore Q8. "
-    "Dalla frase dell'operatore estrai: categoria (prodotto, es. Benzina, Gasolio, AdBlue), "
+    "Dalla frase dell'operatore estrai: categoria (prodotto, es. Benzina, Gasolio, AdBlue; "
+    "verde e senza piombo sono Benzina, diesel è Gasolio), "
     "metodo_pagamento (Contanti, Carta, POS o Bancomat; se non detto: Contanti) "
     "e importo (numero in euro, es. venti -> 20). Rispondi solo con il JSON."
 )
@@ -192,6 +232,9 @@ origine = 'regole'
 if data is None:
     data = analisi_ia()
     origine = 'IA'
+    # Se nella frase c'è una parola chiara (verde, diesel...), vale più dell'IA
+    if data and carburante_detto():
+        data['categoria'] = carburante_detto()
 
 # Ultimo tentativo d'emergenza: numero nella frase + parole chiave
 if not data or 'importo' not in data:
