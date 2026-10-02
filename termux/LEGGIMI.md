@@ -54,4 +54,5 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
 - Una frase può contenere più voci con un solo pagamento: "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
   → 3 righe con lo stesso numero di transazione; "cancella ultima" le toglie tutte insieme.
 - Pagamenti: Contanti, Carta, Carta carburante (anche "cartissima"), POS, Bancomat.
-- Market o tanica AdBlue pagati non in contanti → notifica "🧾 STAMPA RICEVUTA".
+- Market o tanica AdBlue pagati con carta, POS o bancomat (non contanti né Cartissima) → notifica "🧾 STAMPA RICEVUTA".
+- Centesimi: "20 e 50", "20 euro e 50", "20 virgola 50" → 20,50 €.

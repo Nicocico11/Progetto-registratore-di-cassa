@@ -270,25 +270,43 @@ def voce(testo):
     return voce_carburante(testo)
 
 
+def ha_voce(testo):
+    return bool(trova_prodotto_listino(testo) or carburante_detto(testo))
+
+
 def dividi_in_pezzi(testo):
     # "50 gasolio, 20 litri adblue e 2 red bull" -> 3 pezzi.
-    # Un pezzo senza prodotto ("20" in "20 e 50 di gasolio", "con carta") resta attaccato al vicino.
-    grezzi = [p.strip() for p in re.split(r',|\s+e\s+|\s+ed\s+|\s+più\s+|\s+poi\s+', testo) if p.strip()]
-    pezzi = []
-    sospeso = ""
+    # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
+    testo = re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo)
+    grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+più\s+|\s+poi\s+', testo) if p.strip()]
+
+    # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
+    #    ma non "gasolio 50 e 20 litri di adblue" (lì sono due voci diverse)
+    uniti = []
     for p in grezzi:
-        if trova_prodotto_listino(p) or carburante_detto(p):
-            pezzi.append((sospeso + " e " + p).strip(" e") if sospeso else p)
-            sospeso = ""
+        fine = re.search(r'(\d+)(\s*(?:euro|€))?$', uniti[-1]) if uniti else None
+        cent = re.match(r'(\d{2})\b(.*)$', p)
+        if fine and cent and not (ha_voce(uniti[-1]) and ha_voce(p)):
+            prima = uniti[-1][:fine.start()]
+            uniti[-1] = f"{prima}{fine.group(1)}.{cent.group(1)}{fine.group(2) or ''}{cent.group(2)}"
+        else:
+            uniti.append(p)
+
+    # 2) Un pezzo senza prodotto ("con carta", un numero da solo) resta attaccato al vicino
+    pezzi, sospesi = [], []
+    for p in uniti:
+        if ha_voce(p):
+            pezzi.append(" e ".join(sospesi + [p]))
+            sospesi = []
         elif pezzi and not re.search(r'\d', p):
-            pezzi[-1] += " " + p          # es. "con carta": va col pezzo prima
+            pezzi[-1] += " " + p
         else:
-            sospeso = (sospeso + " e " + p).strip(" e") if sospeso else p
-    if sospeso:
+            sospesi.append(p)
+    if sospesi:
         if pezzi:
-            pezzi[-1] += " e " + sospeso
+            pezzi[-1] += " e " + " e ".join(sospesi)
         else:
-            pezzi.append(sospeso)
+            pezzi.append(" e ".join(sospesi))
     return pezzi or [testo]
 
 
@@ -443,10 +461,11 @@ else:
     print(f"{simbolo} Vendita salvata ({len(voci)} voci, {metodo}): "
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
-# Ricevuta da stampare: market o tanica AdBlue pagati non in contanti
+# Ricevuta da stampare: market o tanica AdBlue pagati con carta, POS o bancomat
+# (non in contanti e non con la Cartissima/carta carburante)
 da_stampare = [v for v in voci
                if v['reparto'] == 'Market' or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')]
-if da_stampare and metodo != 'Contanti':
+if da_stampare and metodo not in ('Contanti', 'Carta carburante'):
     importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
     print(f"🧾 STAMPA RICEVUTA ({importo_ricevuta:.2f} €)")
     try:
