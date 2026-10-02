@@ -31,16 +31,37 @@ case "$FRASE" in
     # Qualsiasi frase con "turno" è un comando, mai una vendita
     if [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
       echo "🟢 TURNO APERTO"
+      python3 ~/info_turno.py apri turno
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
+      # Orario del terminale pompe: detto nella frase ("chiusura turno 14:05")
+      # oppure inserito nel popup
+      ORARIO=""
+      if [[ "$FRASE" =~ ([0-9]{1,2})[:.\ ]([0-9]{2}) ]]; then
+        ORARIO=$(printf "%02d:%s" "$((10#${BASH_REMATCH[1]}))" "${BASH_REMATCH[2]}")
+      else
+        ORARIO=$(termux-dialog time -t "Orario chiusura terminale pompe" 2>/dev/null | python3 -c '
+import sys, json, re
+try:
+    d = json.load(sys.stdin)
+    m = re.search(r"(\d{1,2}):(\d{2})", d.get("text", ""))
+    if d.get("code") == -1 and m:
+        print(f"{int(m.group(1)):02d}:{m.group(2)}")
+except Exception:
+    pass')
+      fi
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO"
       pkill -x llama-server
       termux-wake-unlock
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1
     fi ;;
+  *"market"*|*"danea"*|*"negozio"*)
+    python3 ~/info_turno.py market ;;
+  *"erogazion"*|*"quanto adblue"*|*"quante adblue"*)
+    python3 ~/info_turno.py adblue ;;
   *"penultima"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
@@ -147,7 +168,6 @@ testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) +
 CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
     'Benzina': ['benzina', 'verde', 'senza piombo'],
-    'AdBlue': ['adblue', 'ad blue'],
 }
 PAGAMENTI = {
     'Carta': ['carta', 'credito'],
@@ -156,11 +176,16 @@ PAGAMENTI = {
     'Contanti': ['contanti', 'cash'],
 }
 
+# Listino: {"Red Bull": {"prezzo": 3.0, "alias": ["red bull", "redbull"], "reparto": "Market", "unita": "pz"}}
+# (accetta anche il vecchio formato {"redbull": 3.0})
 listino = {}
 if os.path.exists(prezzi_path):
     try:
         with open(prezzi_path, 'r', encoding='utf-8') as pf:
-            listino = json.load(pf)
+            for nome, valore in json.load(pf).items():
+                if not isinstance(valore, dict):
+                    valore = {"prezzo": valore, "alias": [nome.replace('_', ' ')]}
+                listino[nome] = valore
     except Exception as e:
         print(f"⚠️ Errore lettura prezzi.json: {e}")
 
@@ -170,24 +195,50 @@ def contiene(parola):
 
 
 def trova_prodotto_listino():
-    # Sceglie il prodotto con più parole presenti nella frase
-    # ("acqua grande" batte "acqua piccola" se hai detto "grande").
+    # Vince il nome/alias più lungo trovato nella frase
+    # ("taniche adblue" batte "adblue", "acqua grande" batte "acqua").
     testo_unito = testo_basso.replace(' ', '')
-    migliore, punti_migliori = None, 0
-    for prod_key in listino:
-        parole = prod_key.split('_')
-        punti = sum(1 for p in parole if contiene(p) or p in testo_unito)
-        if punti > punti_migliori:
-            migliore, punti_migliori = prod_key, punti
+    migliore, lunghezza = None, 0
+    for nome, p in listino.items():
+        for alias in [nome] + p.get('alias', []):
+            alias = alias.lower()
+            if contiene(alias) or (len(alias) >= 5 and alias.replace(' ', '') in testo_unito):
+                if len(alias) > lunghezza:
+                    migliore, lunghezza = nome, len(alias)
     return migliore
 
 
-def trova_numero():
-    # Prima cerca un numero vicino a "euro"/"€" (così "pompa 3, 20 euro" dà 20), poi il primo numero
+def numero_in_euro():
+    # Numero detto insieme a "euro"/"€" (es. "20 euro", "€ 20")
     m = (re.search(r'(\d+(?:[.,]\d+)?)\s*(?:euro|€)', testo_basso)
-         or re.search(r'€\s*(\d+(?:[.,]\d+)?)', testo_basso)
-         or re.search(r'(\d+(?:[.,]\d+)?)', testo_basso))
+         or re.search(r'€\s*(\d+(?:[.,]\d+)?)', testo_basso))
     return m.group(1).replace(',', '.') if m else None
+
+
+def trova_numero():
+    # Prima un numero vicino a "euro"/"€" (così "pompa 3, 20 euro" dà 20), poi il primo numero
+    m = re.search(r'(\d+(?:[.,]\d+)?)', testo_basso)
+    return numero_in_euro() or (m.group(1).replace(',', '.') if m else None)
+
+
+def vendita_listino(nome):
+    # "2 red bull" = 2 x prezzo; "adblue 20 litri" = 20 x 1,30; "adblue 20 euro" = importo 20
+    p = listino[nome]
+    prezzo = float(p['prezzo'])
+    euro = numero_in_euro()
+    m = re.search(r'(\d+(?:[.,]\d+)?)', testo_basso)
+    if euro:
+        importo = float(euro)
+        quantita = importo / prezzo
+    else:
+        quantita = float(m.group(1).replace(',', '.')) if m else 1.0  # "red bull" da solo = 1
+        importo = quantita * prezzo
+    return {
+        "categoria": nome, "prodotto": nome,
+        "reparto": p.get('reparto', 'Market'), "unita": p.get('unita', 'pz'),
+        "quantita": round(quantita, 2), "prezzo_unitario": prezzo,
+        "metodo_pagamento": metodo_pagamento(), "importo": f"{importo:.2f}",
+    }
 
 
 def metodo_pagamento():
@@ -210,8 +261,6 @@ def analisi_veloce():
     if not numero:
         return None
     categoria = carburante_detto()
-    if not categoria and trova_prodotto_listino():
-        categoria = 'Listino'
     if not categoria:
         return None
     return {"categoria": categoria, "metodo_pagamento": metodo_pagamento(), "importo": numero}
@@ -220,7 +269,7 @@ def analisi_veloce():
 # --- PASSO 2: IA, solo se le regole non bastano ---
 SISTEMA = (
     "Sei il registratore di cassa di un distributore Q8. "
-    "Dalla frase dell'operatore estrai: categoria (prodotto, es. Benzina, Gasolio, AdBlue; "
+    "Dalla frase dell'operatore estrai: categoria (Benzina o Gasolio; "
     "verde e senza piombo sono Benzina, diesel è Gasolio), "
     "metodo_pagamento (Contanti, Carta, POS o Bancomat; se non detto: Contanti) "
     "e importo (numero in euro, es. venti -> 20). Rispondi solo con il JSON."
@@ -229,7 +278,7 @@ SISTEMA = (
 SCHEMA = {
     "type": "object",
     "properties": {
-        "categoria": {"type": "string"},
+        "categoria": {"type": "string", "enum": ["Benzina", "Gasolio"]},
         "metodo_pagamento": {"type": "string", "enum": ["Contanti", "Carta", "POS", "Bancomat"]},
         "importo": {"type": "number"},
     },
@@ -288,12 +337,17 @@ def analisi_ia():
 # Senza un numero nella frase l'importo non si può sapere: non salviamo nulla
 # (evita che l'IA inventi importi, es. "apertura turno")
 numeri_detti = [float(n.replace(',', '.')) for n in re.findall(r'\d+(?:[.,]\d+)?', testo_basso)]
-if not numeri_detti:
+prodotto = trova_prodotto_listino()
+if not numeri_detti and not prodotto:
     print(f"❓ Non ho capito \"{testo_originale}\": nessun importo. Niente salvato.")
     sys.exit(1)
 
-data = analisi_veloce()
-origine = 'regole'
+if prodotto:
+    # Prodotto del listino (market, AdBlue): prezzo noto, niente IA
+    data, origine = vendita_listino(prodotto), 'listino'
+else:
+    data = analisi_veloce()
+    origine = 'regole'
 if data is None:
     data = analisi_ia()
     origine = 'IA'
@@ -320,15 +374,7 @@ if not data or 'importo' not in data:
     origine = 'emergenza'
 
 data['note'] = testo_originale
-
-# --- INTEGRAZIONE LISTINO PREZZI.JSON: quantità x prezzo unitario ---
-prod_key = trova_prodotto_listino()
-if prod_key:
-    qta = trova_numero()
-    if qta:
-        data['importo'] = f"{float(qta) * float(listino[prod_key]):.2f}"
-        data['categoria'] = prod_key.replace('_', ' ').title()
-# ----------------------------------------
+data.setdefault('reparto', 'Carburante')
 
 try:
     importo_numerico = re.sub(r'[^0-9.]', '', str(data.get('importo', '0')))
@@ -346,7 +392,13 @@ try:
         writer.writerow([now, json.dumps(data), float(importo_numerico)])
 
     simbolo = '⚠️' if origine == 'emergenza' else '✅'
-    print(f"{simbolo} Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
+    if origine == 'listino':
+        q = data['quantita']
+        q_txt = f"{q:g} l" if data['unita'] == 'l' else f"{q:g} ×"
+        descrizione = f"{q_txt} {data['categoria']}"
+    else:
+        descrizione = data['categoria']
+    print(f"{simbolo} Vendita salvata ({origine}): {descrizione} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
 except Exception as e:
     print('❌ Errore fatale nel salvataggio:', e)
     sys.exit(1)
@@ -364,23 +416,61 @@ case "$1" in
   errore)     termux-vibrate -f -d 900 ;;
 esac
 FINE_FILE
+cat > ~/.termux/tasker/migra_prezzi.py <<'FINE_FILE'
+# Converte ~/prezzi.json dal vecchio formato {"redbull": 3.0}
+# al nuovo {"Red Bull": {"prezzo": 3.0, "alias": [...], "reparto": "Market", "unita": "pz"}}.
+# Se è già nel nuovo formato non fa nulla.
+import json, os, shutil
+
+p = os.path.expanduser('~/prezzi.json')
+if os.path.exists(p):
+    with open(p, encoding='utf-8') as f:
+        vecchio = json.load(f)
+    if vecchio and not any(isinstance(v, dict) for v in vecchio.values()):
+        shutil.copy(p, p + '.vecchio')
+        nuovo = {}
+        for chiave, prezzo in vecchio.items():
+            nome, alias = chiave.replace('_', ' ').title(), [chiave.replace('_', ' ')]
+            reparto, unita = 'Market', 'pz'
+            if 'adblue' in chiave:
+                reparto = 'AdBlue'
+                if 'sfuso' in chiave:
+                    nome, unita = 'AdBlue sfuso', 'l'
+                    alias = ['adblue', 'ad blue', 'adblue sfuso', 'sfuso']
+                elif 'tanica' in chiave:
+                    nome = 'AdBlue tanica'
+                    alias = ['tanica', 'taniche', 'tanica adblue', 'taniche adblue', 'adblue tanica',
+                             'adblue taniche', 'tanica di adblue', 'taniche di adblue']
+            elif chiave == 'redbull':
+                nome, alias = 'Red Bull', ['red bull', 'redbull']
+            nuovo[nome] = {'prezzo': float(prezzo), 'alias': alias, 'reparto': reparto, 'unita': unita}
+        with open(p, 'w', encoding='utf-8') as f:
+            json.dump(nuovo, f, indent=2, ensure_ascii=False)
+        print('🔄 prezzi.json convertito al nuovo formato (copia in prezzi.json.vecchio)')
+FINE_FILE
 cat > ~/info_turno.py <<'FINE_FILE'
 import csv
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import shutil
 import glob
 
-# Uso: python3 info_turno.py [notifica | ultimi | totali | cancella ultima |
-#                             cancella penultima | chiudi turno | archivio]
+# Uso: python3 info_turno.py [notifica | ultimi | totali | market | adblue |
+#                             apri turno | chiudi turno [HH:MM] |
+#                             cancella ultima | cancella penultima | archivio]
 
 PATH_CSV = os.path.expanduser("~/transazioni_turno.csv")
+PATH_TURNO = os.path.expanduser("~/turno_corrente.json")
+CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
 CARBURANTI = ("BENZINA", "GASOLIO")
+TURNI = {'Mattina': (6, "06-14"), 'Pomeriggio': (14, "14-22"), 'Notte': (22, "22-06")}
 
+
+# ---------- lettura e scrittura ----------
 
 def leggi_csv(path=PATH_CSV):
     if not os.path.exists(path):
@@ -403,121 +493,232 @@ def scrivi_csv(righe):
 
 
 def vendita(r):
-    """Restituisce (importo, categoria, metodo, note) di una riga, o None se illeggibile."""
+    """Dati di una riga del CSV, o None se illeggibile."""
     try:
         data = json.loads(r[1])
-        imp = float(data.get("importo", 0.0))
-        cat = str(data.get("categoria", "altro")).replace("_", " ").upper()
+        cat = str(data.get("categoria", "altro")).replace("_", " ")
         metodo = str(data.get("metodo_pagamento", "altro")).capitalize()
         if metodo == "Pos":
             metodo = "POS"
-        return imp, cat, metodo, str(data.get("note", "")).strip()
+        reparto = data.get("reparto")
+        if not reparto:  # vendite salvate prima dei reparti
+            if cat.upper() in CARBURANTI:
+                reparto = "Carburante"
+            elif "ADBLUE" in cat.upper().replace(" ", ""):
+                reparto = "AdBlue"
+            else:
+                reparto = "Market"
+        return {
+            "ora": r[0].split()[-1][:5],
+            "importo": float(data.get("importo", 0.0)),
+            "categoria": cat,
+            "metodo": metodo,
+            "note": str(data.get("note", "")).strip(),
+            "reparto": reparto,
+            "quantita": float(data.get("quantita", 1) or 1),
+            "unita": data.get("unita", "pz"),
+        }
     except Exception:
         return None
 
 
-def calcola_totali(righe):
-    totale, per_categoria, per_metodo = 0.0, {}, {}
-    for r in righe:
-        v = vendita(r)
-        if not v:
+def vendite(righe):
+    return [v for v in (vendita(r) for r in righe) if v]
+
+
+def euro(x):
+    return f"{x:.2f} €"
+
+
+# ---------- turno ----------
+
+def tipo_turno(momento):
+    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio."""
+    minuti = momento.hour * 60 + momento.minute
+
+    def distanza(nome):
+        d = abs(minuti - TURNI[nome][0] * 60)
+        return min(d, 1440 - d)
+
+    nome = min(TURNI, key=distanza)
+    data_inizio = momento.date()
+    if nome == 'Notte' and momento.hour < 12:  # aperto dopo mezzanotte: la notte è iniziata ieri
+        data_inizio -= timedelta(days=1)
+    return nome, data_inizio
+
+
+def leggi_turno():
+    try:
+        with open(PATH_TURNO, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def descrivi_turno(t):
+    return f"{t['tipo']} ({TURNI[t['tipo']][1]}) del {t['data']}, aperto alle {t['apertura'][-5:]}"
+
+
+def apri_turno():
+    esistente = leggi_turno()
+    if esistente and leggi_csv():
+        print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
+        return
+    adesso = datetime.now()
+    nome, data_inizio = tipo_turno(adesso)
+    turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
+             "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
+    with open(PATH_TURNO, 'w', encoding='utf-8') as f:
+        json.dump(turno, f)
+    print(f"📅 {descrivi_turno(turno)}")
+
+
+def turno_attuale(righe):
+    """Turno aperto a voce; se manca, lo si ricava dalla prima vendita."""
+    t = leggi_turno()
+    if t:
+        return t
+    try:
+        primo = datetime.strptime(righe[0][0][:16], "%Y-%m-%d %H:%M")
+    except Exception:
+        primo = datetime.now()
+    nome, data_inizio = tipo_turno(primo)
+    return {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
+            "data_file": data_inizio.isoformat(), "apertura": "(non registrata)"}
+
+
+# ---------- prospetti ----------
+
+def totali_per(vv, chiave):
+    out = {}
+    for v in vv:
+        out[v[chiave]] = out.get(v[chiave], 0.0) + v["importo"]
+    return out
+
+
+def righe_market(vv):
+    """Prodotti del market raggruppati: [(nome, quantità, importo)]."""
+    gruppi = {}
+    for v in vv:
+        if v["reparto"] != "Market":
             continue
-        imp, cat, metodo, _ = v
-        totale += imp
-        per_categoria[cat] = per_categoria.get(cat, 0.0) + imp
-        per_metodo[metodo] = per_metodo.get(metodo, 0.0) + imp
-    return totale, per_categoria, per_metodo
+        q, imp = gruppi.get(v["categoria"], (0.0, 0.0))
+        gruppi[v["categoria"]] = (q + v["quantita"], imp + v["importo"])
+    return sorted(((n, q, i) for n, (q, i) in gruppi.items()), key=lambda x: -x[2])
+
+
+def numero(q):
+    return f"{q:g}"
+
+
+def prospetto_market(vv):
+    gruppi = righe_market(vv)
+    out = ["🛒 MARKET (Danea)"]
+    if not gruppi:
+        return out + ["  Nessuna vendita market."]
+    for nome, q, imp in gruppi:
+        out.append(f"  {numero(q):>3} × {nome:<18} {euro(imp):>10}")
+    out.append(f"  {'= Totale market':<24} {euro(sum(i for _, _, i in gruppi)):>10}")
+    return out
+
+
+def prospetto_adblue(vv, dettaglio=True):
+    ad = [v for v in vv if v["reparto"] == "AdBlue"]
+    out = [f"🧪 ADBLUE ({len(ad)} erogazioni)"]
+    if not ad:
+        return out + ["  Nessuna erogazione."]
+    if dettaglio:
+        for v in ad:
+            q = f"{v['quantita']:.2f} l" if v["unita"] == "l" else f"{numero(v['quantita'])} ×"
+            out.append(f"  • {v['ora']} {q} {v['categoria']} {euro(v['importo'])} ({v['metodo'][:3].upper()})")
+    litri = sum(v["quantita"] for v in ad if v["unita"] == "l")
+    euro_sfuso = sum(v["importo"] for v in ad if v["unita"] == "l")
+    taniche = sum(v["quantita"] for v in ad if v["unita"] != "l")
+    euro_taniche = sum(v["importo"] for v in ad if v["unita"] != "l")
+    out.append(f"  Sfuso: {litri:.2f} litri erogati ({euro(euro_sfuso)})")
+    out.append(f"  Taniche: {numero(taniche)} ({euro(euro_taniche)})")
+    return out
+
+
+def prospetto_completo(righe, titolo):
+    vv = vendite(righe)
+    totale = sum(v["importo"] for v in vv)
+    per_metodo = totali_per(vv, "metodo")
+    contanti = per_metodo.get("Contanti", 0.0)
+    out = [titolo, "─────────────────────────",
+           f"Vendite: {len(vv)}    TOTALE: {euro(totale)}", ""]
+
+    out.append("💳 PER PAGAMENTO")
+    for m, val in sorted(per_metodo.items()):
+        out.append(f"  {m:<12} {euro(val):>10}")
+    out.append(f"  {'= Contanti':<12} {euro(contanti):>10}")
+    out.append(f"  {'= Elettronico':<12} {euro(totale - contanti):>10}")
+    out.append("")
+
+    out.append("⛽ CARBURANTI")
+    carb = {v["categoria"]: 0.0 for v in vv if v["reparto"] == "Carburante"}
+    for v in vv:
+        if v["reparto"] == "Carburante":
+            carb[v["categoria"]] += v["importo"]
+    for nome, val in sorted(carb.items()):
+        out.append(f"  {nome:<12} {euro(val):>10}")
+    out.append(f"  {'= Carburanti':<12} {euro(sum(carb.values())):>10}")
+    out.append("")
+    out += prospetto_adblue(vv, dettaglio=False)
+    out.append("")
+    out += prospetto_market(vv)
+    return out
 
 
 def notifica_breve(righe):
-    if not righe:
-        print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nNessuna transazione registrata.")
+    t = leggi_turno()
+    intest = f"🕐 {t['tipo']} dalle {t['apertura'][-5:]}" if t else "🕐 Turno non aperto"
+    vv = vendite(righe)
+    if not vv:
+        print(f"📊 Totale: 0.00 € | Vendite: 0  {intest}\n────────────────\nNessuna transazione registrata.")
         return
 
-    totale, per_categoria, per_metodo = calcola_totali(righe)
+    totale = sum(v["importo"] for v in vv)
+    out = [f"📊 Tot: {euro(totale)} ({len(vv)} vendite)  {intest}"]
 
-    # Testata con totale, categorie e metodi di pagamento
-    out = [f"📊 Tot: {totale:.2f} € ({len(righe)} vendite)"]
-    cats_str = " | ".join(f"{cat}: {val:.2f}€" for cat, val in per_categoria.items())
-    if cats_str:
-        out.append(f"⛽ {cats_str}")
-    metodi_str = " | ".join(f"{m}: {val:.2f}€" for m, val in per_metodo.items())
-    if metodi_str:
-        out.append(f"💳 {metodi_str}")
+    # Carburanti per tipo; AdBlue e Market solo come totale
+    parti = []
+    for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
+        parti.append(f"{nome.upper()}: {val:.2f}€")
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Market", "🛒 MARKET")):
+        val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
+        if val:
+            parti.append(f"{icona}: {val:.2f}€")
+    out.append("⛽ " + " | ".join(parti))
+    out.append("💳 " + " | ".join(f"{m}: {val:.2f}€" for m, val in totali_per(vv, "metodo").items()))
 
     out.append("────────────────")
     out.append("🔍 Ultime transazioni:")
-
-    # Ultime 5 transazioni, la più recente in cima
-    for r in reversed(righe[-5:]):
-        ora = r[0].split()[-1] if " " in r[0] else r[0]
-        ora_breve = ora[:5]  # 05:30:22 -> 05:30
-        v = vendita(r)
-        if v:
-            imp, _, metodo, note = v
-            riga_txt = f"• {ora_breve} | {imp:.2f}€ ({metodo[:3].upper()})"
-            if note:
-                riga_txt += f" {note}"
-            out.append(riga_txt)
+    for v in reversed(vv[-5:]):
+        if v["reparto"] == "Market":
+            descr = "🛒 market"
         else:
-            out.append(f"• {ora_breve} | {r[2] if len(r) > 2 else '?'}")
-
+            descr = v["note"]
+        out.append(f"• {v['ora']} | {v['importo']:.2f}€ ({v['metodo'][:3].upper()}) {descr}")
     print("\n".join(out))
-
-
-def riepilogo_chiusura(righe, titolo="🧾 RIEPILOGO TURNO"):
-    """Il prospetto da usare per la chiusura: totali per pagamento e per prodotto."""
-    totale, per_categoria, per_metodo = calcola_totali(righe)
-    out = [titolo, "─────────────────────────",
-           f"Vendite: {len(righe)}    TOTALE: {totale:.2f} €", ""]
-
-    out.append("💳 PER PAGAMENTO")
-    contanti = per_metodo.get("Contanti", 0.0)
-    for m, val in sorted(per_metodo.items()):
-        out.append(f"  {m:<10} {val:>9.2f} €")
-    out.append(f"  {'= Contanti':<10} {contanti:>9.2f} €")
-    out.append(f"  {'= Elettron.':<10} {totale - contanti:>9.2f} €")
-    out.append("")
-
-    out.append("⛽ PER PRODOTTO")
-    carburanti = 0.0
-    for cat, val in sorted(per_categoria.items()):
-        out.append(f"  {cat:<14} {val:>9.2f} €")
-        if cat in CARBURANTI:
-            carburanti += val
-    out.append(f"  {'= Carburanti':<14} {carburanti:>9.2f} €")
-    out.append(f"  {'= Market/altro':<14} {totale - carburanti:>9.2f} €")
-
-    print("\n".join(out))
-
-
-def mostra_ultimi(righe):
-    notifica_breve(righe)
-
-
-def mostra_totali(righe):
-    riepilogo_chiusura(righe)
 
 
 def mostra_archivio():
     pattern = os.path.expanduser("~/turno_archivio_*.csv")
-    file_archiviati = sorted(glob.glob(pattern), reverse=True)
-
     out = ["📂 STORICO TURNI ARCHIVIATI:", "─────────────────────────"]
-    for path_arc in file_archiviati:
-        righe = leggi_csv(path_arc)
-        if not righe:
+    for path_arc in sorted(glob.glob(pattern), reverse=True):
+        vv = vendite(leggi_csv(path_arc))
+        if not vv:
             continue  # turni vuoti: non li mostriamo
-        nome_file = os.path.basename(path_arc)
-        data_str = nome_file.replace("turno_archivio_", "").replace(".csv", "").replace("_", " ")
-        totale_turno, _, _ = calcola_totali(righe)
-        out.append(f"• 📅 {data_str} | 💰 {totale_turno:.2f} € ({len(righe)} vendite)")
-
+        data_str = os.path.basename(path_arc).replace("turno_archivio_", "").replace(".csv", "").replace("_", " ")
+        out.append(f"• 📅 {data_str} | 💰 {euro(sum(v['importo'] for v in vv))} ({len(vv)} vendite)")
     if len(out) == 2:
         print("📭 Nessun turno precedente archiviato.")
         return
     print("\n".join(out))
 
+
+# ---------- modifiche ----------
 
 def cancella_ultima():
     righe = leggi_csv()
@@ -538,38 +739,77 @@ def cancella_penultima():
     notifica_breve(righe_aggiornate)
 
 
-def chiudi_turno():
+def chiudi_turno(orario_terminale=""):
     righe = leggi_csv()
     if not righe:
         # Niente da archiviare: evita di creare file d'archivio vuoti
+        if os.path.exists(PATH_TURNO):
+            os.remove(PATH_TURNO)
         print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nNessuna vendita: niente da archiviare.")
         return
 
-    timestamp_backup = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    path_backup = os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv")
-    shutil.copy(PATH_CSV, path_backup)
-    scrivi_csv([])
+    t = turno_attuale(righe)
+    adesso = datetime.now()
+    testa = [
+        "🧾 CHIUSURA TURNO",
+        f"Data:      {t['data']}",
+        f"Turno:     {t['tipo']} ({TURNI[t['tipo']][1]})",
+        f"Apertura:  {t['apertura'][-5:] if t['apertura'][0].isdigit() else t['apertura']}",
+        f"Chiusura:  {adesso.strftime('%H:%M')}",
+        f"Terminale pompe: {orario_terminale or '(non inserito)'}",
+        "",
+    ]
+    corpo = prospetto_completo(righe, "RIEPILOGO")
+    dettaglio = ["", "📋 TUTTE LE VENDITE"] + [
+        f"  {v['ora']} {euro(v['importo']):>10} {v['metodo']:<9} {v['note']}" for v in vendite(righe)]
+    testo = "\n".join(testa + corpo + dettaglio) + "\n"
 
-    riepilogo_chiusura(righe, titolo="🧾 TURNO CHIUSO E ARCHIVIATO")
+    # Documento nella cartella Download/Chiusure_Turno
+    salvato = ""
+    try:
+        os.makedirs(CARTELLA_CHIUSURE, exist_ok=True)
+        base = os.path.join(CARTELLA_CHIUSURE, f"{t['data_file']}_{t['tipo']}")
+        path_doc = base + ".txt"
+        if os.path.exists(path_doc):
+            path_doc = f"{base}_{adesso.strftime('%H%M')}.txt"
+        with open(path_doc, 'w', encoding='utf-8') as f:
+            f.write(testo)
+        salvato = f"💾 Salvato in Download/Chiusure_Turno/{os.path.basename(path_doc)}"
+    except Exception as e:
+        salvato = f"⚠️ Documento non salvato in Download ({e})"
+
+    timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
+    shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
+    scrivi_csv([])
+    if os.path.exists(PATH_TURNO):
+        os.remove(PATH_TURNO)
+
+    print(testo.split("\n📋")[0])
+    print(salvato)
 
 
 def main():
-    comando = sys.argv[1].lower() if len(sys.argv) > 1 else "notifica"
+    comando = " ".join(sys.argv[1:]).lower() if len(sys.argv) > 1 else "notifica"
 
     if "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima()
     elif "penultima" in comando:
         cancella_penultima()
+    elif comando.startswith("apri turno"):
+        apri_turno()
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        chiudi_turno()
+        orario = sys.argv[2] if len(sys.argv) > 2 else ""
+        chiudi_turno(orario)
     elif "archivio" in comando or "storico" in comando:
         mostra_archivio()
     else:
         righe = leggi_csv()
-        if comando == "ultimi":
-            mostra_ultimi(righe)
-        elif comando == "totali":
-            mostra_totali(righe)
+        if comando == "totali":
+            print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO")))
+        elif comando == "market":
+            print("\n".join(prospetto_market(vendite(righe))))
+        elif comando == "adblue":
+            print("\n".join(prospetto_adblue(vendite(righe))))
         else:
             notifica_breve(righe)
 
@@ -577,7 +817,9 @@ def main():
 if __name__ == "__main__":
     main()
 FINE_FILE
-# Task di Tasker da importare: lo mettiamo nella cartella Download
+# Listino nel nuovo formato (solo se è ancora nel vecchio)
+python3 ~/.termux/tasker/migra_prezzi.py
+# File di Tasker da importare: li mettiamo nella cartella Download
 if [ -d ~/storage/downloads ]; then
 cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'
 <TaskerData sr="" dvi="1" tv="6.6.20">
@@ -681,7 +923,6 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 	</Task>
 </TaskerData>
 FINE_FILE
-echo "📥 Cassa_Vocale.tsk.xml salvato in Download"
 cat > ~/storage/downloads/Continuazione.prf.xml <<'FINE_FILE'
 <TaskerData sr="" dvi="1" tv="6.6.20">
 	<Profile sr="prof11" ve="2">
@@ -873,6 +1114,5 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 	</Task>
 </TaskerData>
 FINE_FILE
-echo "📥 Continuazione.prf.xml salvato in Download"
 fi
 chmod +x ~/.termux/tasker/*.sh && echo "✅ INSTALLAZIONE COMPLETATA"

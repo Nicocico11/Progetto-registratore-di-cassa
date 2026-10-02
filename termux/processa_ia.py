@@ -56,7 +56,6 @@ testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) +
 CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
     'Benzina': ['benzina', 'verde', 'senza piombo'],
-    'AdBlue': ['adblue', 'ad blue'],
 }
 PAGAMENTI = {
     'Carta': ['carta', 'credito'],
@@ -65,11 +64,16 @@ PAGAMENTI = {
     'Contanti': ['contanti', 'cash'],
 }
 
+# Listino: {"Red Bull": {"prezzo": 3.0, "alias": ["red bull", "redbull"], "reparto": "Market", "unita": "pz"}}
+# (accetta anche il vecchio formato {"redbull": 3.0})
 listino = {}
 if os.path.exists(prezzi_path):
     try:
         with open(prezzi_path, 'r', encoding='utf-8') as pf:
-            listino = json.load(pf)
+            for nome, valore in json.load(pf).items():
+                if not isinstance(valore, dict):
+                    valore = {"prezzo": valore, "alias": [nome.replace('_', ' ')]}
+                listino[nome] = valore
     except Exception as e:
         print(f"⚠️ Errore lettura prezzi.json: {e}")
 
@@ -79,24 +83,50 @@ def contiene(parola):
 
 
 def trova_prodotto_listino():
-    # Sceglie il prodotto con più parole presenti nella frase
-    # ("acqua grande" batte "acqua piccola" se hai detto "grande").
+    # Vince il nome/alias più lungo trovato nella frase
+    # ("taniche adblue" batte "adblue", "acqua grande" batte "acqua").
     testo_unito = testo_basso.replace(' ', '')
-    migliore, punti_migliori = None, 0
-    for prod_key in listino:
-        parole = prod_key.split('_')
-        punti = sum(1 for p in parole if contiene(p) or p in testo_unito)
-        if punti > punti_migliori:
-            migliore, punti_migliori = prod_key, punti
+    migliore, lunghezza = None, 0
+    for nome, p in listino.items():
+        for alias in [nome] + p.get('alias', []):
+            alias = alias.lower()
+            if contiene(alias) or (len(alias) >= 5 and alias.replace(' ', '') in testo_unito):
+                if len(alias) > lunghezza:
+                    migliore, lunghezza = nome, len(alias)
     return migliore
 
 
-def trova_numero():
-    # Prima cerca un numero vicino a "euro"/"€" (così "pompa 3, 20 euro" dà 20), poi il primo numero
+def numero_in_euro():
+    # Numero detto insieme a "euro"/"€" (es. "20 euro", "€ 20")
     m = (re.search(r'(\d+(?:[.,]\d+)?)\s*(?:euro|€)', testo_basso)
-         or re.search(r'€\s*(\d+(?:[.,]\d+)?)', testo_basso)
-         or re.search(r'(\d+(?:[.,]\d+)?)', testo_basso))
+         or re.search(r'€\s*(\d+(?:[.,]\d+)?)', testo_basso))
     return m.group(1).replace(',', '.') if m else None
+
+
+def trova_numero():
+    # Prima un numero vicino a "euro"/"€" (così "pompa 3, 20 euro" dà 20), poi il primo numero
+    m = re.search(r'(\d+(?:[.,]\d+)?)', testo_basso)
+    return numero_in_euro() or (m.group(1).replace(',', '.') if m else None)
+
+
+def vendita_listino(nome):
+    # "2 red bull" = 2 x prezzo; "adblue 20 litri" = 20 x 1,30; "adblue 20 euro" = importo 20
+    p = listino[nome]
+    prezzo = float(p['prezzo'])
+    euro = numero_in_euro()
+    m = re.search(r'(\d+(?:[.,]\d+)?)', testo_basso)
+    if euro:
+        importo = float(euro)
+        quantita = importo / prezzo
+    else:
+        quantita = float(m.group(1).replace(',', '.')) if m else 1.0  # "red bull" da solo = 1
+        importo = quantita * prezzo
+    return {
+        "categoria": nome, "prodotto": nome,
+        "reparto": p.get('reparto', 'Market'), "unita": p.get('unita', 'pz'),
+        "quantita": round(quantita, 2), "prezzo_unitario": prezzo,
+        "metodo_pagamento": metodo_pagamento(), "importo": f"{importo:.2f}",
+    }
 
 
 def metodo_pagamento():
@@ -119,8 +149,6 @@ def analisi_veloce():
     if not numero:
         return None
     categoria = carburante_detto()
-    if not categoria and trova_prodotto_listino():
-        categoria = 'Listino'
     if not categoria:
         return None
     return {"categoria": categoria, "metodo_pagamento": metodo_pagamento(), "importo": numero}
@@ -129,7 +157,7 @@ def analisi_veloce():
 # --- PASSO 2: IA, solo se le regole non bastano ---
 SISTEMA = (
     "Sei il registratore di cassa di un distributore Q8. "
-    "Dalla frase dell'operatore estrai: categoria (prodotto, es. Benzina, Gasolio, AdBlue; "
+    "Dalla frase dell'operatore estrai: categoria (Benzina o Gasolio; "
     "verde e senza piombo sono Benzina, diesel è Gasolio), "
     "metodo_pagamento (Contanti, Carta, POS o Bancomat; se non detto: Contanti) "
     "e importo (numero in euro, es. venti -> 20). Rispondi solo con il JSON."
@@ -138,7 +166,7 @@ SISTEMA = (
 SCHEMA = {
     "type": "object",
     "properties": {
-        "categoria": {"type": "string"},
+        "categoria": {"type": "string", "enum": ["Benzina", "Gasolio"]},
         "metodo_pagamento": {"type": "string", "enum": ["Contanti", "Carta", "POS", "Bancomat"]},
         "importo": {"type": "number"},
     },
@@ -197,12 +225,17 @@ def analisi_ia():
 # Senza un numero nella frase l'importo non si può sapere: non salviamo nulla
 # (evita che l'IA inventi importi, es. "apertura turno")
 numeri_detti = [float(n.replace(',', '.')) for n in re.findall(r'\d+(?:[.,]\d+)?', testo_basso)]
-if not numeri_detti:
+prodotto = trova_prodotto_listino()
+if not numeri_detti and not prodotto:
     print(f"❓ Non ho capito \"{testo_originale}\": nessun importo. Niente salvato.")
     sys.exit(1)
 
-data = analisi_veloce()
-origine = 'regole'
+if prodotto:
+    # Prodotto del listino (market, AdBlue): prezzo noto, niente IA
+    data, origine = vendita_listino(prodotto), 'listino'
+else:
+    data = analisi_veloce()
+    origine = 'regole'
 if data is None:
     data = analisi_ia()
     origine = 'IA'
@@ -229,15 +262,7 @@ if not data or 'importo' not in data:
     origine = 'emergenza'
 
 data['note'] = testo_originale
-
-# --- INTEGRAZIONE LISTINO PREZZI.JSON: quantità x prezzo unitario ---
-prod_key = trova_prodotto_listino()
-if prod_key:
-    qta = trova_numero()
-    if qta:
-        data['importo'] = f"{float(qta) * float(listino[prod_key]):.2f}"
-        data['categoria'] = prod_key.replace('_', ' ').title()
-# ----------------------------------------
+data.setdefault('reparto', 'Carburante')
 
 try:
     importo_numerico = re.sub(r'[^0-9.]', '', str(data.get('importo', '0')))
@@ -255,7 +280,13 @@ try:
         writer.writerow([now, json.dumps(data), float(importo_numerico)])
 
     simbolo = '⚠️' if origine == 'emergenza' else '✅'
-    print(f"{simbolo} Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
+    if origine == 'listino':
+        q = data['quantita']
+        q_txt = f"{q:g} l" if data['unita'] == 'l' else f"{q:g} ×"
+        descrizione = f"{q_txt} {data['categoria']}"
+    else:
+        descrizione = data['categoria']
+    print(f"{simbolo} Vendita salvata ({origine}): {descrizione} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
 except Exception as e:
     print('❌ Errore fatale nel salvataggio:', e)
     sys.exit(1)
