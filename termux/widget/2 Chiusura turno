@@ -1,0 +1,5 @@
+#!/bin/bash
+# Pulsante Termux:Widget
+read -p "Chiudere il turno? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "chiusura turno"
+echo
+read -p "Premi Invio per chiudere… "
