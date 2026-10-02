@@ -7,6 +7,7 @@
 | `processa_ia.py` | `~/.termux/tasker/processa_ia.py` |
 | `info_turno.py` | `~/info_turno.py` |
 | `vibra.sh` | `~/.termux/tasker/vibra.sh` |
+| `stato_ia.sh` | `~/.termux/tasker/stato_ia.sh` (notifica fissa IA con Accendi / Spegni / Aggiorna) |
 | `migra_prezzi.py` | `~/.termux/tasker/` (converte `~/prezzi.json` al nuovo formato) |
 | `Cassa_Vocale.tsk.xml` | Download → da importare in Tasker (Task) |
 | `Continuazione.prf.xml` | Download → da importare in Tasker (Profilo AutoVoice + Task) |
@@ -29,6 +30,7 @@ limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transaz
 | apri turno / apertura turno / inizio turno | accende l'IA |
 | apertura turno | registra orario e tipo di turno (Mattina 6-14, Pomeriggio 14-22, Notte 22-6) |
 | chiudi turno / chiusura turno / fine turno [HH MM SS] | popup orario terminale pompe (con secondi, es. 140532), documento in Download/Chiusure_Turno, archivia, spegne l'IA |
+| accendi ia / spegni ia / stato ia | gestione manuale del server IA |
 | market / danea / negozio | prodotti market venduti, raggruppati con quantità |
 | erogazioni / quanto adblue | elenco erogazioni AdBlue, litri sfuso e taniche |
 | cancella ultima / annulla ultima | elimina l'ultima vendita |

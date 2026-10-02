@@ -51,9 +51,25 @@ except Exception:
       python3 ~/info_turno.py "chiudi turno" "$ORARIO"
       pkill -x llama-server
       termux-wake-unlock
+      sleep 1
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1
+    fi ;;
+  "ia"|*" ia"|"ia "*|*" ia "*|*"server"*|*"intelligenza"*)
+    # "accendi ia", "spegni ia", "stato ia"
+    if [[ "$FRASE" =~ (accendi|avvia|attiva) ]]; then
+      bash $CARTELLA/avvia_server.sh
+    elif [[ "$FRASE" =~ (spegni|ferma|disattiva) ]]; then
+      pkill -x llama-server
+      termux-wake-unlock
+      echo "⚫ IA spenta"
+      sleep 1
+    else
+      case "$(curl -s --max-time 2 http://127.0.0.1:8080/health)" in
+        *'"ok"'*) echo "🟢 IA accesa e pronta" ;;
+        *) if pgrep -x llama-server > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
+      esac
     fi ;;
   *"market"*|*"danea"*|*"negozio"*)
     python3 ~/info_turno.py market ;;
@@ -84,6 +100,7 @@ esac
 # notifica in sottofondo per non far aspettare Tasker
 bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
+nohup bash $CARTELLA/stato_ia.sh aggiorna > /dev/null 2>&1 &
 
 # Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task
 exit 0
@@ -92,6 +109,7 @@ cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
 # Avvia llama-server una sola volta, a inizio turno.
 termux-wake-lock
+CARTELLA=~/.termux/tasker
 
 # Percorso esplicito del modello: cambia solo questa riga per provare un altro modello.
 MODELLO=~/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf
@@ -100,11 +118,73 @@ SERVER_BIN=~/llama.cpp/build/bin/llama-server
 # Se il server risponde già, non ne avviamo un secondo (sprecherebbe RAM e CPU)
 if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q ok; then
   echo "✅ IA già accesa e pronta"
+  nohup bash $CARTELLA/stato_ia.sh aggiorna > /dev/null 2>&1 &
+  exit 0
+fi
+# Già partito e ancora in caricamento: aspettiamo quello
+if pgrep -x llama-server > /dev/null; then
+  echo "🟡 IA già in avvio: pronta tra pochi secondi"
   exit 0
 fi
 
 nohup "$SERVER_BIN" -m "$MODELLO" --host 127.0.0.1 --port 8080 --ctx-size 1024 -t 4 > ~/llama_server.log 2>&1 &
 echo "🚀 IA in avvio: pronta tra circa 30 secondi"
+# La notifica "IA" passa da gialla a verde quando il modello è caricato
+nohup bash $CARTELLA/stato_ia.sh attendi > /dev/null 2>&1 &
+FINE_FILE
+cat > ~/.termux/tasker/stato_ia.sh <<'FINE_FILE'
+#!/bin/bash
+# Notifica fissa "🤖 IA" con lo stato del server e i pulsanti Accendi / Spegni / Aggiorna.
+# Uso: stato_ia.sh [aggiorna | accendi | spegni | attendi]
+#   attendi = ricontrolla ogni 3 secondi finché l'IA è pronta (massimo 2 minuti)
+
+CARTELLA=/data/data/com.termux/files/home/.termux/tasker
+[ -d "$CARTELLA" ] || CARTELLA=~/.termux/tasker
+BASH_BIN=$(command -v bash)
+QUESTO="$BASH_BIN $CARTELLA/stato_ia.sh"
+
+stato() {
+  if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q '"ok"'; then
+    echo accesa
+  elif pgrep -x llama-server > /dev/null; then
+    echo avvio   # il processo c'è ma sta ancora caricando il modello
+  else
+    echo spenta
+  fi
+}
+
+mostra() {
+  case "$1" in
+    accesa) TITOLO="🟢 IA accesa e pronta"; TESTO="Le frasi difficili vengono capite dall'IA" ;;
+    avvio)  TITOLO="🟡 IA in avvio…"; TESTO="Pronta tra pochi secondi" ;;
+    *)      TITOLO="⚫ IA spenta"; TESTO="Le vendite normali funzionano lo stesso. Tocca Accendi per l'IA" ;;
+  esac
+  termux-notification --id stato_ia --ongoing --alert-once --priority low \
+    --title "$TITOLO" --content "$TESTO" \
+    --button1 "Accendi" --button1-action "$QUESTO accendi" \
+    --button2 "Spegni"  --button2-action "$QUESTO spegni" \
+    --button3 "Aggiorna" --button3-action "$QUESTO aggiorna" > /dev/null 2>&1
+}
+
+case "${1:-aggiorna}" in
+  accendi)
+    bash $CARTELLA/avvia_server.sh > /dev/null 2>&1   # avvia_server.sh lancia anche "attendi"
+    mostra "$(stato)" ;;
+  spegni)
+    pkill -x llama-server
+    termux-wake-unlock
+    sleep 1
+    mostra "$(stato)" ;;
+  attendi)
+    for i in $(seq 1 40); do
+      S=$(stato)
+      mostra "$S"
+      [ "$S" = "avvio" ] || exit 0
+      sleep 3
+    done ;;
+  *)
+    mostra "$(stato)" ;;
+esac
 FINE_FILE
 cat > ~/.termux/tasker/processa_ia.py <<'FINE_FILE'
 import json, re, csv, datetime, os, sys, subprocess, urllib.request
@@ -1240,4 +1320,7 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 </TaskerData>
 FINE_FILE
 fi
-chmod +x ~/.termux/tasker/*.sh && echo "✅ INSTALLAZIONE COMPLETATA"
+chmod +x ~/.termux/tasker/*.sh
+# Notifica fissa con lo stato dell'IA
+bash ~/.termux/tasker/stato_ia.sh aggiorna
+echo "✅ INSTALLAZIONE COMPLETATA"

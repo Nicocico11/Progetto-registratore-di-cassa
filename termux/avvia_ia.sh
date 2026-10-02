@@ -48,9 +48,25 @@ except Exception:
       python3 ~/info_turno.py "chiudi turno" "$ORARIO"
       pkill -x llama-server
       termux-wake-unlock
+      sleep 1
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1
+    fi ;;
+  "ia"|*" ia"|"ia "*|*" ia "*|*"server"*|*"intelligenza"*)
+    # "accendi ia", "spegni ia", "stato ia"
+    if [[ "$FRASE" =~ (accendi|avvia|attiva) ]]; then
+      bash $CARTELLA/avvia_server.sh
+    elif [[ "$FRASE" =~ (spegni|ferma|disattiva) ]]; then
+      pkill -x llama-server
+      termux-wake-unlock
+      echo "⚫ IA spenta"
+      sleep 1
+    else
+      case "$(curl -s --max-time 2 http://127.0.0.1:8080/health)" in
+        *'"ok"'*) echo "🟢 IA accesa e pronta" ;;
+        *) if pgrep -x llama-server > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
+      esac
     fi ;;
   *"market"*|*"danea"*|*"negozio"*)
     python3 ~/info_turno.py market ;;
@@ -81,6 +97,7 @@ esac
 # notifica in sottofondo per non far aspettare Tasker
 bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
+nohup bash $CARTELLA/stato_ia.sh aggiorna > /dev/null 2>&1 &
 
 # Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task
 exit 0
