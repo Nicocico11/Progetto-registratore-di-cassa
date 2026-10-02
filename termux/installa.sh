@@ -47,9 +47,8 @@ turno_aperto() {
 }
 
 spegni_ia() {
-  pkill -x llama-server
-  pkill -f "stato_ia.sh attendi"
-  termux-wake-unlock
+  # stato_ia.sh aspetta che l'IA sia davvero spenta e aggiorna (o toglie) la notifica
+  bash $CARTELLA/stato_ia.sh spegni
 }
 
 FRASE="${TESTO,,}"   # tutto minuscolo
@@ -93,11 +92,10 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (spegni|ferma|disattiva) ]]; then
       spegni_ia
       echo "⚫ IA spenta"
-      sleep 1
     else
       case "$(curl -s --max-time 2 http://127.0.0.1:8080/health)" in
         *'"ok"'*) echo "🟢 IA accesa e pronta" ;;
-        *) if pgrep -x llama-server > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
+        *) if pgrep -x llama-server > /dev/null || pgrep -f "llama-server -m" > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
       esac
     fi ;;
   *"market"*|*"danea"*|*"negozio"*)
@@ -199,10 +197,14 @@ QUESTO="$BASH_BIN $CARTELLA/stato_ia.sh"
 # Traccia nel log ogni comando (serve a capire se i pulsanti della notifica arrivano)
 [ "${1:-aggiorna}" != "attendi" ] && echo "$(date '+%H:%M:%S') stato_ia ${1:-aggiorna}" >> ~/debug_tasker.log
 
+ia_in_esecuzione() {
+  pgrep -x llama-server > /dev/null || pgrep -f "llama-server -m" > /dev/null
+}
+
 stato() {
   if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q '"ok"'; then
     echo accesa
-  elif pgrep -x llama-server > /dev/null; then
+  elif ia_in_esecuzione; then
     echo avvio   # il processo c'è ma sta ancora caricando il modello
   else
     echo spenta
@@ -210,14 +212,26 @@ stato() {
 }
 
 spegni_ia() {
-  pkill -x llama-server
+  pkill -f "stato_ia.sh attendi"
+  pkill -x llama-server; pkill -f "llama-server -m"
+  # Aspetta che si chiuda davvero (fino a 10 secondi), poi la chiude a forza
+  for i in $(seq 1 10); do
+    ia_in_esecuzione || break
+    sleep 1
+  done
+  if ia_in_esecuzione; then
+    pkill -9 -x llama-server; pkill -9 -f "llama-server -m"
+    sleep 1
+  fi
   termux-wake-unlock
+  echo "$(date '+%H:%M:%S') IA spenta ($(ia_in_esecuzione && echo 'ANCORA ATTIVA' || echo ok))" >> ~/debug_tasker.log
 }
 
 mostra() {
   case "$1" in
     accesa) TITOLO="🟢 IA accesa e pronta"; TESTO="Le frasi difficili vengono capite dall'IA" ;;
     avvio)  TITOLO="🟡 IA in avvio…"; TESTO="Pronta tra pochi secondi" ;;
+    avvio_spegnimento) TITOLO="⏳ Spegnimento IA…"; TESTO="Qualche secondo" ;;
     *)      TITOLO="⚫ IA spenta"; TESTO="Le vendite normali funzionano lo stesso. Tocca Accendi per l'IA" ;;
   esac
   termux-notification --id stato_ia --ongoing --alert-once --priority low \
@@ -229,7 +243,7 @@ mostra() {
 
 # Turno chiuso: IA spenta e nessuna notifica
 if ! python3 ~/info_turno.py aperto; then
-  pgrep -x llama-server > /dev/null && spegni_ia
+  ia_in_esecuzione && spegni_ia
   termux-notification-remove stato_ia 2>/dev/null
   [ "${1:-}" = "accendi" ] && echo "❌ Turno non aperto: di' \"apertura turno\""
   exit 0
@@ -240,8 +254,8 @@ case "${1:-aggiorna}" in
     bash $CARTELLA/avvia_server.sh > /dev/null 2>&1   # avvia_server.sh lancia anche "attendi"
     mostra "$(stato)" ;;
   spegni)
+    mostra avvio_spegnimento 2>/dev/null
     spegni_ia
-    sleep 1
     mostra "$(stato)" ;;
   attendi)
     for i in $(seq 1 40); do

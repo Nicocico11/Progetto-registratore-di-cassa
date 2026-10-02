@@ -44,9 +44,8 @@ turno_aperto() {
 }
 
 spegni_ia() {
-  pkill -x llama-server
-  pkill -f "stato_ia.sh attendi"
-  termux-wake-unlock
+  # stato_ia.sh aspetta che l'IA sia davvero spenta e aggiorna (o toglie) la notifica
+  bash $CARTELLA/stato_ia.sh spegni
 }
 
 FRASE="${TESTO,,}"   # tutto minuscolo
@@ -90,11 +89,10 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (spegni|ferma|disattiva) ]]; then
       spegni_ia
       echo "⚫ IA spenta"
-      sleep 1
     else
       case "$(curl -s --max-time 2 http://127.0.0.1:8080/health)" in
         *'"ok"'*) echo "🟢 IA accesa e pronta" ;;
-        *) if pgrep -x llama-server > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
+        *) if pgrep -x llama-server > /dev/null || pgrep -f "llama-server -m" > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
       esac
     fi ;;
   *"market"*|*"danea"*|*"negozio"*)
