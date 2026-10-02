@@ -7,7 +7,8 @@
 | `processa_ia.py` | `~/.termux/tasker/processa_ia.py` |
 | `info_turno.py` | `~/info_turno.py` |
 | `vibra.sh` | `~/.termux/tasker/vibra.sh` |
-| `Cassa_Vocale.tsk.xml` | Download → da importare in Tasker |
+| `Cassa_Vocale.tsk.xml` | Download → da importare in Tasker (Task) |
+| `Continuazione.prf.xml` | Download → da importare in Tasker (Profilo AutoVoice + Task) |
 
 Installazione/aggiornamento (una riga in Termux):
 

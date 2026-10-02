@@ -682,5 +682,197 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 </TaskerData>
 FINE_FILE
 echo "📥 Cassa_Vocale.tsk.xml salvato in Download"
+cat > ~/storage/downloads/Continuazione.prf.xml <<'FINE_FILE'
+<TaskerData sr="" dvi="1" tv="6.6.20">
+	<Profile sr="prof11" ve="2">
+		<cdate>1790817319956</cdate>
+		<edate>1790820844120</edate>
+		<flags>8</flags>
+		<id>11</id>
+		<mid0>90</mid0>
+		<nme>Continuazione</nme>
+		<Event sr="con0" ve="2">
+			<code>41628340</code>
+			<pri>0</pri>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<Contains>false</Contains>
+					<Contains-type>java.lang.Boolean</Contains-type>
+					<LastCommandIdInvert>false</LastCommandIdInvert>
+					<LastCommandIdInvert-type>java.lang.Boolean</LastCommandIdInvert-type>
+					<LastCommandIdRegex>false</LastCommandIdRegex>
+					<LastCommandIdRegex-type>java.lang.Boolean</LastCommandIdRegex-type>
+					<NotCancelSearchGoogleNow>false</NotCancelSearchGoogleNow>
+					<NotCancelSearchGoogleNow-type>java.lang.Boolean</NotCancelSearchGoogleNow-type>
+					<NotOnContinuous>false</NotOnContinuous>
+					<NotOnContinuous-type>java.lang.Boolean</NotOnContinuous-type>
+					<NotOnNormal>false</NotOnNormal>
+					<NotOnNormal-type>java.lang.Boolean</NotOnNormal-type>
+					<Precision>&lt;null&gt;</Precision>
+					<Precision-type>java.lang.String</Precision-type>
+					<ProfileName>&lt;null&gt;</ProfileName>
+					<ProfileName-type>java.lang.String</ProfileName-type>
+					<Responses>&lt;null&gt;</Responses>
+					<Responses-type>java.lang.String</Responses-type>
+					<Source>&lt;null&gt;</Source>
+					<Source-type>java.lang.String</Source-type>
+					<Substitutions>&lt;null&gt;</Substitutions>
+					<Substitutions-type>java.lang.String</Substitutions-type>
+					<TriggerWord>&lt;null&gt;</TriggerWord>
+					<TriggerWord-type>java.lang.String</TriggerWord-type>
+					<TriggerWordExact>false</TriggerWordExact>
+					<TriggerWordExact-type>java.lang.Boolean</TriggerWordExact-type>
+					<TriggerWordRegex>false</TriggerWordRegex>
+					<TriggerWordRegex-type>java.lang.Boolean</TriggerWordRegex-type>
+					<VariableNames>&lt;null&gt;</VariableNames>
+					<VariableNames-type>java.lang.String</VariableNames-type>
+					<VariableValues>&lt;null&gt;</VariableValues>
+					<VariableValues-type>java.lang.String</VariableValues-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>Easy Commands: *</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<config_easy_commands>*</config_easy_commands>
+					<config_easy_commands-type>java.lang.String</config_easy_commands-type>
+					<configcommand>&lt;null&gt;</configcommand>
+					<configcommand-type>java.lang.String</configcommand-type>
+					<configcommandid>&lt;null&gt;</configcommandid>
+					<configcommandid-type>java.lang.String</configcommandid-type>
+					<configcommandinvert>false</configcommandinvert>
+					<configcommandinvert-type>java.lang.Boolean</configcommandinvert-type>
+					<configexactsub>false</configexactsub>
+					<configexactsub-type>java.lang.Boolean</configexactsub-type>
+					<configlastcommand>&lt;null&gt;</configlastcommand>
+					<configlastcommand-type>java.lang.String</configlastcommand-type>
+					<configregexsub>false</configregexsub>
+					<configregexsub-type>java.lang.Boolean</configregexsub-type>
+					<net.dinglisch.android.tasker.EXTRA_NSR_DEPRECATED>true</net.dinglisch.android.tasker.EXTRA_NSR_DEPRECATED>
+					<net.dinglisch.android.tasker.EXTRA_NSR_DEPRECATED-type>java.lang.Boolean</net.dinglisch.android.tasker.EXTRA_NSR_DEPRECATED-type>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES>&lt;StringArray sr=""&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;%avcomm
+First recognized Command
+&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;%avcomms()
+All recognized commands
+&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;%avsource
+Source of the Voice Command
+Can be normal, continuous, test or googlenow&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES3&gt;%avword()
+Word Array
+&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES3&gt;&lt;/StringArray&gt;</net.dinglisch.android.tasker.RELEVANT_VARIABLES>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>[Ljava.lang.String;</net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>
+					<net.dinglisch.android.tasker.extras.REQUESTED_TIMEOUT>10000</net.dinglisch.android.tasker.extras.REQUESTED_TIMEOUT>
+					<net.dinglisch.android.tasker.extras.REQUESTED_TIMEOUT-type>java.lang.Integer</net.dinglisch.android.tasker.extras.REQUESTED_TIMEOUT-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>config_easy_commands plugininstanceid plugintypeid </net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+					<plugininstanceid>7be6f8e7-afce-40d0-9e06-b7fa3a68ed6e</plugininstanceid>
+					<plugininstanceid-type>java.lang.String</plugininstanceid-type>
+					<plugintypeid>com.joaomgcd.autovoice.intent.IntentReceiveVoiceEvent</plugintypeid>
+					<plugintypeid-type>java.lang.String</plugintypeid-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.joaomgcd.autovoice</Str>
+			<Str sr="arg2" ve="3">com.joaomgcd.autovoice.activity.ActivityConfigReceiveVoiceEvent</Str>
+			<Int sr="arg3" val="1"/>
+		</Event>
+	</Profile>
+	<Task sr="task90">
+		<cdate>1790920000000</cdate>
+		<edate>1790920000000</edate>
+		<id>90</id>
+		<nme>Cassa Vocale</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">🎙️ %avcomm</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+		<Action sr="act1" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>"%avcomm"</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>avvia_ia.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>true</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>avvia_ia.sh "%avcomm"
+
+Working Directory ✕
+Stdin ✕
+Custom Log Level null
+Terminal Session ✕
+Wait For Result ✓</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES>&lt;StringArray sr=""&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;%stdout
+Standard Output
+The &amp;lt;B&amp;gt;stdout&amp;lt;/B&amp;gt; of the command.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;%stdout_original_length
+Standard Output Original Length
+The original length of &amp;lt;B&amp;gt;stdout&amp;lt;/B&amp;gt;.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;%stderr
+Standard Error
+The &amp;lt;B&amp;gt;stderr&amp;lt;/B&amp;gt; of the command.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES3&gt;%stderr_original_length
+Standard Error Original Length
+The original length of &amp;lt;B&amp;gt;stderr&amp;lt;/B&amp;gt;.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES3&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES4&gt;%result
+Exit Code
+The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means success and anything else is usually a failure of some sort.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES4&gt;&lt;/StringArray&gt;</net.dinglisch.android.tasker.RELEVANT_VARIABLES>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>[Ljava.lang.String;</net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="30"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+		<Action sr="act2" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">%stdout</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+	</Task>
+</TaskerData>
+FINE_FILE
+echo "📥 Continuazione.prf.xml salvato in Download"
 fi
 chmod +x ~/.termux/tasker/*.sh && echo "✅ INSTALLAZIONE COMPLETATA"
