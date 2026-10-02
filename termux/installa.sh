@@ -27,13 +27,20 @@ FRASE="${TESTO,,}"   # tutto minuscolo
 ESITO=0
 
 case "$FRASE" in
-  *"apri turno"*|*"inizio turno"*|*"inizia turno"*)
-    bash $CARTELLA/avvia_server.sh ;;
-  *"chiudi turno"*|*"fine turno"*)
-    python3 ~/info_turno.py "chiudi turno"
-    pkill -f llama-server
-    termux-wake-unlock
-    echo "💤 IA spenta fino al prossimo turno" ;;
+  *turno*)
+    # Qualsiasi frase con "turno" è un comando, mai una vendita
+    if [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
+      echo "🟢 TURNO APERTO"
+      bash $CARTELLA/avvia_server.sh
+    elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
+      echo "🔴 TURNO CHIUSO - IA spenta"
+      python3 ~/info_turno.py "chiudi turno"
+      pkill -x llama-server
+      termux-wake-unlock
+    else
+      echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
+      ESITO=1
+    fi ;;
   *"penultima"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
@@ -55,9 +62,10 @@ case $ESITO in
   *) VIBRAZIONE=errore ;;
 esac
 
-# Notifica e vibrazione in sottofondo, senza far aspettare Tasker
+# Vibrazione subito (non in sottofondo: in sottofondo Android poteva bloccarla),
+# notifica in sottofondo per non far aspettare Tasker
+bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
-nohup bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1 &
 
 # Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task
 exit 0
@@ -73,12 +81,12 @@ SERVER_BIN=~/llama.cpp/build/bin/llama-server
 
 # Se il server risponde già, non ne avviamo un secondo (sprecherebbe RAM e CPU)
 if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q ok; then
-  echo "✅ Server già attivo"
+  echo "✅ IA già accesa e pronta"
   exit 0
 fi
 
 nohup "$SERVER_BIN" -m "$MODELLO" --host 127.0.0.1 --port 8080 --ctx-size 1024 -t 4 > ~/llama_server.log 2>&1 &
-echo "🚀 Server in avvio (pronto tra qualche secondo)"
+echo "🚀 IA in avvio: pronta tra circa 30 secondi"
 FINE_FILE
 cat > ~/.termux/tasker/processa_ia.py <<'FINE_FILE'
 import json, re, csv, datetime, os, sys, subprocess, urllib.request
@@ -277,11 +285,26 @@ def analisi_ia():
         return None
 
 
+# Senza un numero nella frase l'importo non si può sapere: non salviamo nulla
+# (evita che l'IA inventi importi, es. "apertura turno")
+numeri_detti = [float(n.replace(',', '.')) for n in re.findall(r'\d+(?:[.,]\d+)?', testo_basso)]
+if not numeri_detti:
+    print(f"❓ Non ho capito \"{testo_originale}\": nessun importo. Niente salvato.")
+    sys.exit(1)
+
 data = analisi_veloce()
 origine = 'regole'
 if data is None:
     data = analisi_ia()
     origine = 'IA'
+    # L'importo dato dall'IA deve essere uno dei numeri detti, altrimenti se l'è inventato
+    try:
+        importo_ia = float(str(data.get('importo')).replace(',', '.')) if data else None
+    except ValueError:
+        importo_ia = None
+    if data and importo_ia not in numeri_detti:
+        print(f"❓ Non sono sicuro di \"{testo_originale}\": ripeti più chiaramente. Niente salvato.")
+        sys.exit(1)
     # Se nella frase c'è una parola chiara (verde, diesel...), vale più dell'IA
     if data and carburante_detto():
         data['categoria'] = carburante_detto()
@@ -565,6 +588,25 @@ cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'
 		<nme>Cassa Vocale</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">🎙️ %avcomm</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+		<Action sr="act1" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
@@ -617,7 +659,7 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 			<Int sr="arg3" val="30"/>
 			<Int sr="arg4" val="1"/>
 		</Action>
-		<Action sr="act1" ve="7">
+		<Action sr="act2" ve="7">
 			<code>548</code>
 			<Str sr="arg0" ve="3">%stdout</Str>
 			<Int sr="arg1" val="0"/>

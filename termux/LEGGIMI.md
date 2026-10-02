@@ -24,8 +24,8 @@ limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transaz
 
 | Frase | Cosa fa |
 |---|---|
-| apri turno / inizio turno | avvia il server IA |
-| chiudi turno / fine turno | archivia, mostra il riepilogo, spegne l'IA |
+| apri turno / apertura turno / inizio turno | accende l'IA |
+| chiudi turno / chiusura turno / fine turno | archivia, mostra il riepilogo, spegne l'IA |
 | cancella ultima / annulla ultima | elimina l'ultima vendita |
 | cancella penultima | elimina la penultima |
 | totali / riepilogo | prospetto per la chiusura |
@@ -34,3 +34,5 @@ limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transaz
 | qualsiasi altra frase | vendita |
 
 Vibrazioni: 1 corta = ok · 2 corte = salvata ma da controllare · 1 lunga = errore, niente salvato.
+
+Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone un importo che non è tra i numeri detti, la vendita viene scartata.

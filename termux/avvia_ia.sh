@@ -24,13 +24,20 @@ FRASE="${TESTO,,}"   # tutto minuscolo
 ESITO=0
 
 case "$FRASE" in
-  *"apri turno"*|*"inizio turno"*|*"inizia turno"*)
-    bash $CARTELLA/avvia_server.sh ;;
-  *"chiudi turno"*|*"fine turno"*)
-    python3 ~/info_turno.py "chiudi turno"
-    pkill -f llama-server
-    termux-wake-unlock
-    echo "💤 IA spenta fino al prossimo turno" ;;
+  *turno*)
+    # Qualsiasi frase con "turno" è un comando, mai una vendita
+    if [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
+      echo "🟢 TURNO APERTO"
+      bash $CARTELLA/avvia_server.sh
+    elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
+      echo "🔴 TURNO CHIUSO - IA spenta"
+      python3 ~/info_turno.py "chiudi turno"
+      pkill -x llama-server
+      termux-wake-unlock
+    else
+      echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
+      ESITO=1
+    fi ;;
   *"penultima"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
@@ -52,9 +59,10 @@ case $ESITO in
   *) VIBRAZIONE=errore ;;
 esac
 
-# Notifica e vibrazione in sottofondo, senza far aspettare Tasker
+# Vibrazione subito (non in sottofondo: in sottofondo Android poteva bloccarla),
+# notifica in sottofondo per non far aspettare Tasker
+bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
-nohup bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1 &
 
 # Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task
 exit 0

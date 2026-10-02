@@ -194,11 +194,26 @@ def analisi_ia():
         return None
 
 
+# Senza un numero nella frase l'importo non si può sapere: non salviamo nulla
+# (evita che l'IA inventi importi, es. "apertura turno")
+numeri_detti = [float(n.replace(',', '.')) for n in re.findall(r'\d+(?:[.,]\d+)?', testo_basso)]
+if not numeri_detti:
+    print(f"❓ Non ho capito \"{testo_originale}\": nessun importo. Niente salvato.")
+    sys.exit(1)
+
 data = analisi_veloce()
 origine = 'regole'
 if data is None:
     data = analisi_ia()
     origine = 'IA'
+    # L'importo dato dall'IA deve essere uno dei numeri detti, altrimenti se l'è inventato
+    try:
+        importo_ia = float(str(data.get('importo')).replace(',', '.')) if data else None
+    except ValueError:
+        importo_ia = None
+    if data and importo_ia not in numeri_detti:
+        print(f"❓ Non sono sicuro di \"{testo_originale}\": ripeti più chiaramente. Niente salvato.")
+        sys.exit(1)
     # Se nella frase c'è una parola chiara (verde, diesel...), vale più dell'IA
     if data and carburante_detto():
         data['categoria'] = carburante_detto()

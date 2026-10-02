@@ -8,9 +8,9 @@ SERVER_BIN=~/llama.cpp/build/bin/llama-server
 
 # Se il server risponde già, non ne avviamo un secondo (sprecherebbe RAM e CPU)
 if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q ok; then
-  echo "✅ Server già attivo"
+  echo "✅ IA già accesa e pronta"
   exit 0
 fi
 
 nohup "$SERVER_BIN" -m "$MODELLO" --host 127.0.0.1 --port 8080 --ctx-size 1024 -t 4 > ~/llama_server.log 2>&1 &
-echo "🚀 Server in avvio (pronto tra qualche secondo)"
+echo "🚀 IA in avvio: pronta tra circa 30 secondi"
