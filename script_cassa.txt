@@ -1,0 +1,170 @@
+===== avvia_ia.sh =====
+#!/bin/bash
+
+# Log di debug per Tasker
+echo "$(date) - Ricevuto da Tasker: '$1'" >> ~/debug_tasker.log
+
+TESTO_VOCALE="$1"
+
+if [ -z "$TESTO_VOCALE" ] || [[ "$TESTO_VOCALE" == %* ]]; then
+  echo "❌ Errore: Testo vocale non valido o variabile Tasker non espansa ($TESTO_VOCALE)" >> ~/debug_tasker.log
+  exit 1
+fi
+
+# Definiamo il prompt per l'estrazione dati
+PROMPT="Sei un assistente per il distributore Q8. Estrai i dati dalla frase dell'operatore e restituisci SOLO un JSON valido con queste chiavi esatte:
+- \"categoria\": il prodotto (es: Benzina, Gasolio, AdBlue)
+- \"metodo_pagamento\": il metodo (es: Contanti, POS, Bancomat, Carta)
+- \"importo\": il valore numerico della cifra (es: 20.00)
+- \"note\": il testo originale della vendita.
+
+Esempio:
+{\"categoria\": \"Gasolio\", \"metodo_pagamento\": \"Carta\", \"importo\": \"20.00\", \"note\": \"venti euro di gasolio con carta\"}
+
+Frase da analizzare: \"$TESTO_VOCALE\"
+Rispondi SOLO con il JSON."
+
+# Puliamo il vecchio output
+rm -f ~/.termux/tasker/output_ia.txt
+
+# Inviamo la richiesta HTTP POST al server locale llama.cpp in background/ascolto su porta 8080
+RESPONSE=$(curl -s http://127.0.0.1:8080/completion \
+  -H "Content-Type: application/json" \
+  -d @- <<EOF
+{
+  "prompt": $(python3 -c 'import json, sys; print(json.dumps(sys.argv[1]))' "$PROMPT"),
+  "n_predict": 300,
+  "temperature": 0.0
+}
+
+===== avvia_server.sh =====
+#!/bin/bash
+termux-wake-lock
+MODELLO=$(find ~/ -type f -name "*.gguf" ! -name "*vocab*" | head -n 1)
+SERVER_BIN=$(find ~/ -type f -name "llama-server" | head -n 1)
+nohup "$SERVER_BIN" -m "$MODELLO" --port 8080 --ctx-size 2048 -t 4 > ~/llama_server.log 2>&1 &
+
+===== notifica.sh =====
+#!/bin/bash
+# Generiamo il testo tramite lo script Python
+TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
+
+# Inviamo la notifica persistente alla tendina Android tramite Termux
+termux-notification \
+  --id "distributore_turno" \
+  --title "📊 Stato Turno Q8" \
+  --content "$TESTO_NOTIFICA" \
+  --ongoing \
+  --priority high
+
+===== run_llama.sh =====
+echo "/exit" | "/data/data/com.termux/files/home/llama.cpp/build/bin/llama-cli" -m "/data/data/com.termux/files/home/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf" -f ~/.termux/tasker/prompt.txt -n 300 --temp 0.0
+
+===== totali.sh =====
+#!/bin/bash
+python3 ~/info_turno.py totali
+
+===== ultimi.sh =====
+#!/bin/bash
+python3 ~/info_turno.py ultimi
+
+===== processa_ia.py =====
+import json, re, csv, datetime, os, sys
+
+file_path = os.path.expanduser('~/.termux/tasker/output_ia.txt')
+testo_originale = sys.argv[1] if len(sys.argv) > 1 else "Non specificato"
+
+if not os.path.exists(file_path):
+    print("❌ File output non trovato.")
+    sys.exit(1)
+
+with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+    text = f.read()
+
+text_clean = text.replace('```json', '').replace('```', '')
+matches = re.findall(r'\{.*?\}', text_clean, re.DOTALL)
+
+data = {}
+importo_numerico = None
+
+# Tentativo 1: Parsing JSON standard dall'ultimo blocco valido
+if matches:
+    raw = matches[-1]
+    clean = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', raw)
+    clean = clean.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    clean = "".join(c for c in clean if ord(c) >= 32)
+    try:
+        data = json.loads(clean)
+    except:
+        pass
+
+# Tentativo 2 (Fallback d'emergenza): Estrazione via Regex se il JSON fallisce o è troncato
+if not data or 'importo' not in data:
+    importo_match = re.search(r'["\']?importo["\']?\s*:\s*["\']?([0-9]+\.?[0-9]*)["\']?', text_clean)
+    if importo_match:
+        imp_str = importo_match.group(1)
+    else:
+        num_match = re.search(r'\d+', testo_originale)
+        imp_str = num_match.group(0) if num_match else "0"
+
+    data = {
+        "categoria": "Gasolio" if "gasolio" in testo_originale.lower() else "Benzina",
+        "metodo_pagamento": "Carta" if "carta" in testo_originale.lower() or "pos" in testo_originale.lower() else "Contanti",
+        "importo": imp_str,
+        "note": testo_originale
+    }
+
+# --- INTEGRAZIONE LISTINO PREZZI.JSON ---
+prezzi_path = os.path.expanduser('~/prezzi.json')
+if os.path.exists(prezzi_path):
+    try:
+        with open(prezzi_path, 'r', encoding='utf-8') as pf:
+            listino = json.load(pf)
+            testo_basso = testo_originale.lower()
+            
+            for prod_key, prezzo_unitario in listino.items():
+                parole_chiave = prod_key.replace('_', ' ').split()
+                if any(parola in testo_basso for parola in parole_chiave):
+                    m_num = re.search(r'(\d+(?:[.,]\d+)?)', testo_basso)
+                    if m_num:
+                        qta_str = m_num.group(1).replace(',', '.')
+                        qta = float(qta_str)
+                        calcolato = qta * float(prezzo_unitario)
+                        data['importo'] = f"{calcolato:.2f}"
+                        data['categoria'] = prod_key.replace('_', ' ').title()
+                        break
+    except Exception as e:
+        print(f"⚠️ Errore lettura prezzi.json: {e}")
+# ----------------------------------------
+
+try:
+    importo_str = str(data.get('importo', '0'))
+    importo_numerico = re.sub(r'[^0-9.]', '', importo_str)
+
+    if not importo_numerico or float(importo_numerico) == 0 or '123.45' in importo_numerico:
+        print("❌ Transazione scartata: Nessun importo valido rilevato.")
+        sys.exit(1)
+
+    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    csv_file = os.path.expanduser('~/transazioni_turno.csv')
+
+    file_exists = os.path.isfile(csv_file)
+    with open(csv_file, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['data_ora', 'dettagli_json', 'importo'])
+        writer.writerow([now, json.dumps(data), float(importo_numerico)])
+
+    print('✅ Vendita salvata:', data)
+except Exception as e:
+    print('❌ Errore fatale nel salvataggio:', e)
+
+===== prezzi.json (inizio) =====
+{
+  "adblue_sfuso": 1.30,
+  "adblue_tanica": 26.00,
+  "acqua_piccola": 1.50,
+  "acqua_grande": 2.50,
+  "redbull": 3.00,
+  "mars": 2.00
+}
