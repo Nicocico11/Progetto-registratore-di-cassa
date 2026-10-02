@@ -13,3 +13,9 @@ if [ -z "$TESTO_VOCALE" ] || [[ "$TESTO_VOCALE" == %* ]]; then
 fi
 
 python3 ~/.termux/tasker/processa_ia.py "$TESTO_VOCALE"
+ESITO=$?
+
+# Aggiorna la notifica del turno in sottofondo, senza far aspettare Tasker
+nohup bash ~/.termux/tasker/notifica.sh > /dev/null 2>&1 &
+
+exit $ESITO
