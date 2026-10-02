@@ -1,0 +1,4 @@
+Pixel 10
+8
+MemTotal:       11840768 kB
+-rw-------. 1 u0_a399 u0_a399 2.0G Oct  1 01:56 /data/data/com.termux/files/home/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf
