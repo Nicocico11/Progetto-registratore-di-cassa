@@ -34,19 +34,16 @@ case "$FRASE" in
       python3 ~/info_turno.py apri turno
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
-      # Orario del terminale pompe: detto nella frase ("chiusura turno 14:05")
-      # oppure inserito nel popup
-      ORARIO=""
-      if [[ "$FRASE" =~ ([0-9]{1,2})[:.\ ]([0-9]{2}) ]]; then
-        ORARIO=$(printf "%02d:%s" "$((10#${BASH_REMATCH[1]}))" "${BASH_REMATCH[2]}")
-      else
-        ORARIO=$(termux-dialog time -t "Orario chiusura terminale pompe" 2>/dev/null | python3 -c '
-import sys, json, re
+      # Orario del terminale pompe con i secondi: detto nella frase
+      # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
+      ORARIO=$(grep -oE '[0-9]+' <<< "$FRASE" | tr '\n' ' ')
+      if [ -z "$ORARIO" ]; then
+        ORARIO=$(termux-dialog text -n -t "Orario terminale pompe" -i "ore minuti secondi, es. 140532" 2>/dev/null | python3 -c '
+import sys, json
 try:
     d = json.load(sys.stdin)
-    m = re.search(r"(\d{1,2}):(\d{2})", d.get("text", ""))
-    if d.get("code") == -1 and m:
-        print(f"{int(m.group(1)):02d}:{m.group(2)}")
+    if d.get("code") == -1:
+        print(d.get("text", ""))
 except Exception:
     pass')
       fi
@@ -456,6 +453,7 @@ import sys
 from datetime import datetime, timedelta
 import shutil
 import glob
+import re
 
 # Uso: python3 info_turno.py [notifica | ultimi | totali | market | adblue |
 #                             apri turno | chiudi turno [HH:MM] |
@@ -694,12 +692,9 @@ def notifica_breve(righe):
 
     out.append("────────────────")
     out.append("🔍 Ultime transazioni:")
-    for v in reversed(vv[-5:]):
-        if v["reparto"] == "Market":
-            descr = "🛒 market"
-        else:
-            descr = v["note"]
-        out.append(f"• {v['ora']} | {v['importo']:.2f}€ ({v['metodo'][:3].upper()}) {descr}")
+    # Le vendite market non compaiono qui (solo nel totale sopra)
+    for v in reversed([v for v in vv if v["reparto"] != "Market"][-5:]):
+        out.append(f"• {v['ora']} | {v['importo']:.2f}€ ({v['metodo'][:3].upper()}) {v['note']}")
     print("\n".join(out))
 
 
@@ -739,7 +734,33 @@ def cancella_penultima():
     notifica_breve(righe_aggiornate)
 
 
+def normalizza_orario(grezzo):
+    """'14 05 32', '14:05:32', '140532' -> '14:05:32'. Vuoto se non inserito."""
+    gruppi = re.findall(r'\d+', grezzo or "")
+    if not gruppi:
+        return ""
+    if len(gruppi) == 1:  # tutto attaccato: 140532 / 60532 / 1405
+        cifre = gruppi[0]
+        if len(cifre) in (5, 6):
+            cifre = cifre.zfill(6)
+            gruppi = [cifre[:2], cifre[2:4], cifre[4:]]
+        elif len(cifre) in (3, 4):
+            cifre = cifre.zfill(4)
+            gruppi = [cifre[:2], cifre[2:]]
+    try:
+        h, m = int(gruppi[0]), int(gruppi[1])
+        sec = int(gruppi[2]) if len(gruppi) > 2 else None
+    except (ValueError, IndexError):
+        return f"(non valido: {grezzo})"
+    if h > 23 or m > 59 or (sec is not None and sec > 59):
+        return f"(non valido: {grezzo})"
+    if sec is None:
+        return f"{h:02d}:{m:02d} (secondi non inseriti)"
+    return f"{h:02d}:{m:02d}:{sec:02d}"
+
+
 def chiudi_turno(orario_terminale=""):
+    orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
         # Niente da archiviare: evita di creare file d'archivio vuoti

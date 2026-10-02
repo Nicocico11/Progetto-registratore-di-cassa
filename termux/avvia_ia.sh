@@ -31,19 +31,16 @@ case "$FRASE" in
       python3 ~/info_turno.py apri turno
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
-      # Orario del terminale pompe: detto nella frase ("chiusura turno 14:05")
-      # oppure inserito nel popup
-      ORARIO=""
-      if [[ "$FRASE" =~ ([0-9]{1,2})[:.\ ]([0-9]{2}) ]]; then
-        ORARIO=$(printf "%02d:%s" "$((10#${BASH_REMATCH[1]}))" "${BASH_REMATCH[2]}")
-      else
-        ORARIO=$(termux-dialog time -t "Orario chiusura terminale pompe" 2>/dev/null | python3 -c '
-import sys, json, re
+      # Orario del terminale pompe con i secondi: detto nella frase
+      # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
+      ORARIO=$(grep -oE '[0-9]+' <<< "$FRASE" | tr '\n' ' ')
+      if [ -z "$ORARIO" ]; then
+        ORARIO=$(termux-dialog text -n -t "Orario terminale pompe" -i "ore minuti secondi, es. 140532" 2>/dev/null | python3 -c '
+import sys, json
 try:
     d = json.load(sys.stdin)
-    m = re.search(r"(\d{1,2}):(\d{2})", d.get("text", ""))
-    if d.get("code") == -1 and m:
-        print(f"{int(m.group(1)):02d}:{m.group(2)}")
+    if d.get("code") == -1:
+        print(d.get("text", ""))
 except Exception:
     pass')
       fi

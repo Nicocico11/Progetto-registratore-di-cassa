@@ -28,7 +28,7 @@ limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transaz
 |---|---|
 | apri turno / apertura turno / inizio turno | accende l'IA |
 | apertura turno | registra orario e tipo di turno (Mattina 6-14, Pomeriggio 14-22, Notte 22-6) |
-| chiudi turno / chiusura turno / fine turno [HH MM] | popup orario terminale pompe, documento in Download/Chiusure_Turno, archivia, spegne l'IA |
+| chiudi turno / chiusura turno / fine turno [HH MM SS] | popup orario terminale pompe (con secondi, es. 140532), documento in Download/Chiusure_Turno, archivia, spegne l'IA |
 | market / danea / negozio | prodotti market venduti, raggruppati con quantità |
 | erogazioni / quanto adblue | elenco erogazioni AdBlue, litri sfuso e taniche |
 | cancella ultima / annulla ultima | elimina l'ultima vendita |
