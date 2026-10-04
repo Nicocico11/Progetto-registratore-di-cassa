@@ -154,16 +154,16 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
     try:
         import excel_turno
         stato = excel_turno.leggi_stato()
-        # Valori scritti nei riquadri dell'apertura (vuoto = restano quelli del turno prima)
+        # Valori scritti nei riquadri dell'apertura. Quelli rimasti dal mio turno precedente
+        # non valgono: nel frattempo ci sono stati i turni degli altri. Vuoto = non inserito.
         ora = normalizza_orario(ora_prec_testo)
-        if re.fullmatch(r'\d\d:\d\d:\d\d', ora):
-            stato["orario_chiusura"] = ora
-        elif ora:
+        stato["orario_chiusura"] = ora if re.fullmatch(r'\d\d:\d\d:\d\d', ora) else None
+        if ora and not stato["orario_chiusura"]:
             print(f"⚠️ Ora chiusura precedente {ora}: scrivila a mano nell'Excel")
-        if importo_da_testo(contatore_testo) is not None:
-            stato["contatore"] = float(re.search(r'\d+(?:[.,]\d+)?', contatore_testo).group(0).replace(",", "."))
-        if importo_da_testo(taniche_testo) is not None:
-            stato["taniche"] = int(importo_da_testo(taniche_testo))
+        contatore = re.search(r'\d+(?:[.,]\d+)?', contatore_testo or "")
+        stato["contatore"] = float(contatore.group(0).replace(",", ".")) if contatore else None
+        taniche = importo_da_testo(taniche_testo)
+        stato["taniche"] = int(taniche) if taniche is not None else None
         excel_turno.salva_stato(stato)
         o, c, tn = stato.get("orario_chiusura"), stato.get("contatore"), stato.get("taniche")
         print(f"🕐 Ora chiusura turno precedente: {o}" if o else "🕐 Ora chiusura precedente non inserita")

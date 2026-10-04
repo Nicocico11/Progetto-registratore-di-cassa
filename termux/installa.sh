@@ -64,16 +64,12 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
       AVANZO=""; ORA_PREC=""; CONTATORE=""; TANICHE=""
       if ! python3 ~/info_turno.py aperto; then
-        # Valori del turno prima: lasciando vuoto il riquadro restano quelli
-        ULTIMO=$(python3 ~/info_turno.py ultimo conteggio)
-        S_ORA=$(python3 ~/info_turno.py stato orario_chiusura)
-        S_CONT=$(python3 ~/info_turno.py stato contatore)
-        S_TAN=$(python3 ~/info_turno.py stato taniche)
-        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "${ULTIMO:+vuoto = $ULTIMO}${ULTIMO:-es. 150,50}")
-        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "${S_ORA:+vuoto = $S_ORA}${S_ORA:-tutto attaccato, es. 140532}" -n)
-        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "${S_CONT:+vuoto = $S_CONT}${S_CONT:-es. 68624,4}")
-        TANICHE=$(chiedi "Taniche AdBlue presenti" "${S_TAN:+vuoto = $S_TAN}${S_TAN:-es. 59}" -n)
-        [ -z "$AVANZO" ] && AVANZO="$ULTIMO"
+        # Valori del turno PRECEDENTE (di un altro operatore): si scrivono sempre a mano,
+        # vuoto = non inserito (nell'Excel restano da scrivere)
+        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50")
+        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "tutto attaccato, es. 140532" -n)
+        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "numero sulla colonnina, es. 68624,4")
+        TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
       fi
       echo "🟢 TURNO APERTO"
       python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE"
@@ -1530,16 +1526,16 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
     try:
         import excel_turno
         stato = excel_turno.leggi_stato()
-        # Valori scritti nei riquadri dell'apertura (vuoto = restano quelli del turno prima)
+        # Valori scritti nei riquadri dell'apertura. Quelli rimasti dal mio turno precedente
+        # non valgono: nel frattempo ci sono stati i turni degli altri. Vuoto = non inserito.
         ora = normalizza_orario(ora_prec_testo)
-        if re.fullmatch(r'\d\d:\d\d:\d\d', ora):
-            stato["orario_chiusura"] = ora
-        elif ora:
+        stato["orario_chiusura"] = ora if re.fullmatch(r'\d\d:\d\d:\d\d', ora) else None
+        if ora and not stato["orario_chiusura"]:
             print(f"⚠️ Ora chiusura precedente {ora}: scrivila a mano nell'Excel")
-        if importo_da_testo(contatore_testo) is not None:
-            stato["contatore"] = float(re.search(r'\d+(?:[.,]\d+)?', contatore_testo).group(0).replace(",", "."))
-        if importo_da_testo(taniche_testo) is not None:
-            stato["taniche"] = int(importo_da_testo(taniche_testo))
+        contatore = re.search(r'\d+(?:[.,]\d+)?', contatore_testo or "")
+        stato["contatore"] = float(contatore.group(0).replace(",", ".")) if contatore else None
+        taniche = importo_da_testo(taniche_testo)
+        stato["taniche"] = int(taniche) if taniche is not None else None
         excel_turno.salva_stato(stato)
         o, c, tn = stato.get("orario_chiusura"), stato.get("contatore"), stato.get("taniche")
         print(f"🕐 Ora chiusura turno precedente: {o}" if o else "🕐 Ora chiusura precedente non inserita")
@@ -7639,8 +7635,8 @@ Di': "APERTURA TURNO". Compaiono quattro riquadri:
 2) ORA CHIUSURA del turno precedente, tutto attaccato (es. 140532)
 3) CONTATORE ADBLUE iniziale (numero sulla colonnina, es. 68624,4)
 4) TANICHE ADBLUE presenti in magazzino (es. 59)
-Nei riquadri è scritto il valore che il telefono già conosce dal turno prima
-("vuoto = 59"): se è giusto premi OK senza scrivere niente.
+Sono i valori lasciati dal collega del turno prima: vanno scritti ogni volta.
+Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
@@ -7839,4 +7835,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 01:46"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 01:54"

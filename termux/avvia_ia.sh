@@ -59,16 +59,12 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
       AVANZO=""; ORA_PREC=""; CONTATORE=""; TANICHE=""
       if ! python3 ~/info_turno.py aperto; then
-        # Valori del turno prima: lasciando vuoto il riquadro restano quelli
-        ULTIMO=$(python3 ~/info_turno.py ultimo conteggio)
-        S_ORA=$(python3 ~/info_turno.py stato orario_chiusura)
-        S_CONT=$(python3 ~/info_turno.py stato contatore)
-        S_TAN=$(python3 ~/info_turno.py stato taniche)
-        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "${ULTIMO:+vuoto = $ULTIMO}${ULTIMO:-es. 150,50}")
-        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "${S_ORA:+vuoto = $S_ORA}${S_ORA:-tutto attaccato, es. 140532}" -n)
-        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "${S_CONT:+vuoto = $S_CONT}${S_CONT:-es. 68624,4}")
-        TANICHE=$(chiedi "Taniche AdBlue presenti" "${S_TAN:+vuoto = $S_TAN}${S_TAN:-es. 59}" -n)
-        [ -z "$AVANZO" ] && AVANZO="$ULTIMO"
+        # Valori del turno PRECEDENTE (di un altro operatore): si scrivono sempre a mano,
+        # vuoto = non inserito (nell'Excel restano da scrivere)
+        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50")
+        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "tutto attaccato, es. 140532" -n)
+        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "numero sulla colonnina, es. 68624,4")
+        TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
       fi
       echo "🟢 TURNO APERTO"
       python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE"
