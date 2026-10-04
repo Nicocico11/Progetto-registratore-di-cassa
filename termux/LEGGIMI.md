@@ -61,7 +61,7 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
   Petrolifere ("petrolifere"/"cartissima" → D9), POS cassa ("in cassa" → scontrini S27:V32, uno per vendita).
   Solo "carta"/"pos"/"bancomat" → popup "su quale POS?" (annullato = niente salvato).
 - "credito cliente NOME N" → I8:K15 (nome) / L8:L15; "credito riscosso NOME N [pagamento]" → M8:N15 / O8:O15.
-  "anticipo cartissima N" → +N Petrolifere (D9), -N contanti. Widget "9 …" per tutti e tre.
+  "anticipo cartissima N" → +N Petrolifere (D9), -N contanti. Widget 09, 10, 11.
 - Caselle finite (telefax, scontrini, sconti, litri, crediti): si riparte dalla prima sommando, con avviso.
 - Pagato "in cassa" → notifica "🧾 STAMPARE RICEVUTA" con l'importo della vendita.
 - Centesimi: "20 e 50", "20 euro e 50", "20 virgola 50" → 20,50 €.

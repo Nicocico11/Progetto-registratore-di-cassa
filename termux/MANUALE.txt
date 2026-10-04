@@ -173,7 +173,7 @@ Si accende da sola con l'apertura del turno e si spegne con la chiusura.
 Per quando non si può parlare:
 1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Market
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
-9 Anticipo Cartissima · 9 Credito cliente · 9 Credito riscosso
+9 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
   (scrivi nome e importo, poi Invio)
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 

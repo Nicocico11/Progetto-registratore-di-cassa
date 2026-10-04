@@ -7057,56 +7057,58 @@ fi
 python3 ~/.termux/tasker/migra_prezzi.py
 # Pulsanti per Termux:Widget (cartella ~/.shortcuts)
 mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts
-cat > ~/.shortcuts/"1 Apertura turno" <<'FINE_FILE'
+# Vecchi nomi a una cifra ("1 Apertura turno", "9 Credito cliente"...): ora sono 01, 02... 11
+rm -f ~/.shortcuts/[0-9]\ *
+cat > ~/.shortcuts/"01 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "apertura turno"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"2 Chiusura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"02 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 read -p "Chiudere il turno? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "chiusura turno"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"3 Totali" <<'FINE_FILE'
+cat > ~/.shortcuts/"03 Totali" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "totali"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"4 Market" <<'FINE_FILE'
+cat > ~/.shortcuts/"04 Market" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "market"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"5 Erogazioni AdBlue" <<'FINE_FILE'
+cat > ~/.shortcuts/"05 Erogazioni AdBlue" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "erogazioni"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"6 Ultime vendite" <<'FINE_FILE'
+cat > ~/.shortcuts/"06 Ultime vendite" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 python3 ~/info_turno.py notifica
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"7 Cancella ultima" <<'FINE_FILE'
+cat > ~/.shortcuts/"07 Cancella ultima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"8 Stato IA" <<'FINE_FILE'
+cat > ~/.shortcuts/"08 Stato IA" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: stato dell'IA, con accensione e spegnimento a mano
 bash ~/.termux/tasker/avvia_ia.sh "stato ia"
@@ -7119,20 +7121,7 @@ esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"9 Anticipo Cartissima" <<'FINE_FILE'
-#!/bin/bash
-# Pulsante Termux:Widget: il cliente paga con Cartissima (come gasolio, senza rifornimento)
-# e riceve lo stesso importo in contanti
-read -p "Importo pagato con Cartissima e dato in contanti (€): " IMPORTO
-if [ -n "$IMPORTO" ]; then
-  bash ~/.termux/tasker/avvia_ia.sh "anticipo cartissima $IMPORTO euro"
-else
-  echo "Niente salvato (importo vuoto)."
-fi
-echo
-read -p "Premi Invio per chiudere… "
-FINE_FILE
-cat > ~/.shortcuts/"9 Credito cliente" <<'FINE_FILE'
+cat > ~/.shortcuts/"09 Credito cliente" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: credito cliente (il cliente prende e paga più avanti)
 read -p "Nome cliente: " NOME
@@ -7145,7 +7134,7 @@ fi
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"9 Credito riscosso" <<'FINE_FILE'
+cat > ~/.shortcuts/"10 Credito riscosso" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: credito riscosso (il cliente paga un vecchio credito)
 read -p "Nome cliente: " NOME
@@ -7163,6 +7152,19 @@ if [ -n "$NOME" ] && [ -n "$IMPORTO" ]; then
   bash ~/.termux/tasker/avvia_ia.sh "credito riscosso $NOME $IMPORTO euro $PAGATO"
 else
   echo "Niente salvato (nome o importo vuoto)."
+fi
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"11 Anticipo Cartissima" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget: il cliente paga con Cartissima (come gasolio, senza rifornimento)
+# e riceve lo stesso importo in contanti
+read -p "Importo pagato con Cartissima e dato in contanti (€): " IMPORTO
+if [ -n "$IMPORTO" ]; then
+  bash ~/.termux/tasker/avvia_ia.sh "anticipo cartissima $IMPORTO euro"
+else
+  echo "Niente salvato (importo vuoto)."
 fi
 echo
 read -p "Premi Invio per chiudere… "
@@ -7640,7 +7642,7 @@ Si accende da sola con l'apertura del turno e si spegne con la chiusura.
 Per quando non si può parlare:
 1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Market
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
-9 Anticipo Cartissima · 9 Credito cliente · 9 Credito riscosso
+9 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
   (scrivi nome e importo, poi Invio)
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 
