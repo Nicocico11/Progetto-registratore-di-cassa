@@ -533,6 +533,7 @@ def registra_speciale(tipo):
                   "cliente": cliente or "", "importo": importo, "metodo_pagamento": metodo}
         salva_voci([voce_c], [testo_basso], metodo)
         titolo = f"Credito riscosso ({metodo})"
+        avviso_ricevuta([voce_c], metodo)
     if not cliente:
         print(f"⚠️ {titolo}: {importo:.2f} € salvato SENZA NOME: scrivilo a mano nell'Excel "
               "(oppure \"cancella ultima\" e ridillo con il nome)")
@@ -609,6 +610,12 @@ else:
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
 avviso_ricevuta(voci, metodo)
+
+# Vendita mista con carburante pagata in cassa: di solito non succede (si usa il POS nero o bianco)
+if metodo == 'POS cassa' and len(voci) > 1 and any(v['reparto'] == 'Carburante' for v in voci):
+    print("⚠️ Vendita con carburante pagata IN CASSA: di solito è sul nero o sul bianco. "
+          "Se è sbagliato: \"correggi ultima sul nero\".")
+    sys.exit(2)
 
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)

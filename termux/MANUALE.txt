@@ -79,6 +79,8 @@ PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 
 🧾 Se paghi "in cassa" (POS della cassa) arriva la notifica
 "STAMPARE RICEVUTA" con l'importo da battere. Con gli altri pagamenti no.
+⚠️ Una vendita mista con carburante detta "in cassa" si salva, ma con
+2 vibrazioni: di solito è "sul nero" o "sul bianco" → "correggi ultima sul nero".
 
 CREDITI CLIENTI (il cliente prende ora e paga più avanti)
 • "credito cliente Rossi 50 euro"
@@ -88,6 +90,7 @@ CREDITI RISCOSSI (il cliente paga un vecchio credito)
 • "credito riscosso Rossi 50 euro"            (contanti)
 • "credito riscosso Rossi 50 euro sul nero"   (o sul bianco, in cassa, petrolifere)
   → casella CREDITI RISCOSSI (nome + importo).
+  Se paga "in cassa" arriva anche la notifica STAMPARE RICEVUTA.
 Se il nome non viene capito il credito si salva lo stesso, con 2 vibrazioni:
 il nome lo scrivi a mano nell'Excel.
 
