@@ -51,7 +51,7 @@ controlla "vendita a turno chiuso"    "20 euro di gasolio"                      
 controlla "accendi ia a turno chiuso" "accendi ia"                                   "Turno non aperto"
 sleep 1; grep -q "^mostra" $HOME/notifiche.log 2>/dev/null && { echo "  ERRORE notifiche a turno chiuso"; ERRORI=$((ERRORI+1)); } || echo "  ok   nessuna notifica a turno chiuso"
 controlla "apertura turno con avanzo" "apertura turno"                               "150.50"
-[ -f $D/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
+[ -f $D/*/Documenti/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "contatore adblue"          "contatore adblue 1000 virgola 5"              "1000.5"
 controlla "contatore taniche"         "contatore taniche 10"                         "10"
 controlla "carta generica -> popup"  "20 euro di gasolio carta"                     "Gasolio 20.00 € - POS nero"
@@ -93,17 +93,17 @@ controlla "credito senza nome"        "credito cliente 15"                      
 controlla "cancella credito"          "cancella ultima"                              "Cancellata"
 controlla "anticipo cartissima"       "anticipo cartissima 100"                      "100.00 € tolti dai contanti"
 controlla "carta di credito = vendita" "10 gasolio carta di credito"                 "Gasolio 10.00 € - POS nero"
-grep -q "Gasolio\|gasolio" $D/*_dati.csv && echo "  ok   copia dati aggiornata in Download" || { echo "  ERRORE copia dati"; ERRORI=$((ERRORI+1)); }
+grep -q "Gasolio\|gasolio" $D/*/Documenti/*_dati.csv && echo "  ok   copia dati aggiornata in Download" || { echo "  ERRORE copia dati"; ERRORI=$((ERRORI+1)); }
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
 [ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "90.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
-grep -q "Contanti attesi" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
+grep -q "Contanti attesi" $D/*/Documenti/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
 PYTHONPATH=$HOME/.termux/tasker python3 - "$D" <<'PYEOF' && echo "  ok   file Excel compilati" || { echo "  ERRORE file Excel"; ERRORI=$((ERRORI+1)); }
 import glob, sys, openpyxl
 d = sys.argv[1]
-files = sorted(glob.glob(d + "/*.xlsx"))
+files = sorted(glob.glob(d + "/*/Excel/*.xlsx"))
 assert len(files) == 2, files
 oggi = [f for f in files if openpyxl.load_workbook(f).active['D2'].value is None and openpyxl.load_workbook(f).active['E2'].value]
 ws = openpyxl.load_workbook(oggi[0]).active
@@ -141,8 +141,9 @@ assert stato['orario_chiusura'] == '14:05:32' and stato['contatore'] == 1020.5 a
 assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 90.5 and w2['I22'].value == dopo_atteso, \
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
-grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
+[ "$(ls $D | wc -l)" = 1 ] && [ "$(ls $D/*/Documenti | wc -l)" = 2 ] && [ "$(ls $D/*/Excel | wc -l)" = 2 ] && echo "  ok   cartella del turno: Documenti (2) ed Excel (2)" || { echo "  ERRORE cartelle"; find $D; ERRORI=$((ERRORI+1)); }
+grep -q "CHIUSURA TURNO" $D/*/Documenti/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }
 
-[ -n "${TIENI:-}" ] && cp $D/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
+[ -n "${TIENI:-}" ] && cp $D/*/Documenti/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
 if [ $ERRORI -eq 0 ]; then echo "✅ Tutto ok"; else echo "❌ $ERRORI errori"; exit 1; fi

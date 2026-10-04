@@ -211,6 +211,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
                   'orario_chiusura': ora_oggi.strftime('%H:%M:%S') if ora_oggi else None})
     salva_stato(stato)
 
-    messaggi = [f"📗 Excel: Download/Chiusure_Turno/{os.path.basename(path_turno)}",
-                f"📘 Turno dopo: Download/Chiusure_Turno/{os.path.basename(path_dopo)}"]
+    breve = lambda p: "Download/" + os.path.relpath(p, os.path.expanduser('~/storage/downloads'))
+    messaggi = [f"📗 Excel: {breve(path_turno)}",
+                f"📘 Turno dopo: {breve(path_dopo)}"]
     return messaggi + [f"⚠️ {a}" for a in avvisi], stato

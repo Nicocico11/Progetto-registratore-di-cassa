@@ -69,7 +69,8 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
 
 ## Copia di sicurezza del turno
 
-All'apertura nasce `Download/Chiusure_Turno/<data>_<turno>.txt` (con `_dati.csv`), riscritto dopo
+All'apertura nasce `Download/Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt` (con `_dati.csv`;
+i due Excel vanno in `<data>_<turno>/Excel/`), riscritto dopo
 ogni vendita o cancellazione e sovrascritto con la versione finale alla chiusura.
 Se il file delle vendite in Termux va perso: comando vocale "ripristina turno".
 

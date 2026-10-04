@@ -146,11 +146,13 @@ I contanti non si contano: li calcola il telefono dalle vendite
 (avanzo + vendite in contanti - versamenti).
 
 Il documento di chiusura viene salvato in:
-  Download → Chiusure_Turno → es. 2026-10-02_Mattina.txt
+  Download → Chiusure_Turno → una cartella per ogni turno, es. 2026-10-02_Mattina
+    • Documenti → 2026-10-02_Mattina.txt (il riepilogo) e 2026-10-02_Mattina_dati.csv
+    • Excel     → i due file Excel (questo turno e il turno dopo)
 Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
 (avanzo + contanti - versamenti = contanti attesi) e l'elenco di tutte le vendite.
 
-Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
+Nella sottocartella Excel vengono creati i due file del distributore:
   • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
     data, turno, ora chiusura, DANEA, TELEFAX, litri AdBlue, contatori,
     taniche, petrolifere PAX, POS banca (nero), PAX bancarie (bianco),
@@ -191,7 +193,8 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 ━━━━━━━━━━━━━━━━━━━━━━━━
 9. SICUREZZA DEI DATI
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• Dopo ogni vendita il documento del turno in Download/Chiusure_Turno viene aggiornato.
+• Dopo ogni vendita il documento del turno in Download/Chiusure_Turno/<turno>/Documenti
+  viene aggiornato.
 • Se le vendite in Termux vanno perse, di' "ripristina turno": vengono recuperate da lì.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━

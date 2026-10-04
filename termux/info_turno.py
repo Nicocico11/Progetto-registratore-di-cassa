@@ -163,9 +163,25 @@ def salva_turno(turno):
 
 
 def nuovo_documento(turno, adesso):
-    """Percorso del documento in Download: <data>_<turno>.txt (se esiste già, con l'ora)."""
-    base = os.path.join(CARTELLA_CHIUSURE, f"{turno['data_file']}_{turno['tipo']}")
-    return base + ".txt" if not os.path.exists(base + ".txt") else f"{base}_{adesso.strftime('%H%M')}.txt"
+    """Documento del turno in Download, ogni turno nella sua cartella:
+    Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt  (e .../Excel/ per i due Excel).
+    Se la cartella esiste già (turno riaperto) si aggiunge l'ora."""
+    nome = f"{turno['data_file']}_{turno['tipo']}"
+    if os.path.exists(os.path.join(CARTELLA_CHIUSURE, nome)):
+        nome += f"_{adesso.strftime('%H%M')}"
+    return os.path.join(CARTELLA_CHIUSURE, nome, "Documenti", nome + ".txt")
+
+
+def cartella_turno(t):
+    """Cartella del turno (quella che contiene Documenti ed Excel)."""
+    doc = t["documento"]
+    if os.path.basename(os.path.dirname(doc)) == "Documenti":
+        return os.path.dirname(os.path.dirname(doc))
+    return os.path.join(CARTELLA_CHIUSURE, os.path.basename(doc)[:-4])  # turni aperti con la versione vecchia
+
+
+def percorso_breve(path):
+    return "Download/" + os.path.relpath(path, os.path.dirname(CARTELLA_CHIUSURE))
 
 
 def imposta_avanzo(testo):
@@ -263,13 +279,13 @@ def scrivi_sicuro(path, contenuto):
 def salva_documento(righe, t, finale=False, orario_terminale=""):
     """Scrive (o riscrive) in Download il documento del turno e la copia dei dati (_dati.csv)."""
     try:
-        os.makedirs(CARTELLA_CHIUSURE, exist_ok=True)
         path_doc = t["documento"]
+        os.makedirs(os.path.dirname(path_doc), exist_ok=True)
         scrivi_sicuro(path_doc, testo_documento(righe, t, finale, orario_terminale))
         dati = [",".join(INTESTAZIONE)] + [
             ",".join('"' + c.replace('"', '""') + '"' for c in r) for r in righe]
         scrivi_sicuro(path_doc[:-4] + "_dati.csv", "\n".join(dati) + "\n")
-        return f"💾 Download/Chiusure_Turno/{os.path.basename(path_doc)}"
+        return f"💾 {percorso_breve(path_doc)}"
     except Exception as e:
         return f"⚠️ Copia in Download non riuscita ({e})"
 
@@ -287,7 +303,8 @@ def ripristina():
     if leggi_csv():
         print("ℹ️ Ci sono già vendite nel turno: niente da ripristinare.")
         return
-    copie = sorted(glob.glob(os.path.join(CARTELLA_CHIUSURE, "*_dati.csv")), key=os.path.getmtime)
+    copie = sorted(glob.glob(os.path.join(CARTELLA_CHIUSURE, "**", "*_dati.csv"), recursive=True),
+                   key=os.path.getmtime)
     if not copie:
         print("📭 Nessuna copia trovata in Download/Chiusure_Turno.")
         return
@@ -574,7 +591,8 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
 
     try:
         import excel_turno
-        messaggi_excel, stato = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+        messaggi_excel, stato = excel_turno.crea_excel(righe, t, orario_terminale,
+                                                         os.path.join(cartella_turno(t), "Excel"))
         if t["contati"] is None and stato.get("avanzo") is not None:
             with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # avanzo calcolato, proposto all'apertura dopo
                 f.write(f"{stato['avanzo']:.2f}")
