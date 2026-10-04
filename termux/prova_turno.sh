@@ -7,7 +7,7 @@ set -u
 QUI=$(cd "$(dirname "$0")" && pwd)
 export HOME=$(mktemp -d)
 mkdir -p $HOME/.termux/tasker $HOME/bin $HOME/storage/downloads $HOME/llama.cpp/build/bin
-cp $QUI/*.sh $QUI/processa_ia.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
+cp $QUI/*.sh $QUI/processa_ia.py $QUI/numeri.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
 cp $QUI/info_turno.py $HOME/
 for c in termux-vibrate termux-wake-lock termux-wake-unlock; do
   printf '#!/bin/bash\n' > $HOME/bin/$c; chmod +x $HOME/bin/$c
@@ -21,6 +21,7 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 # Popup finto: risponde in base al titolo
 case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
+  *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
   *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
@@ -51,6 +52,7 @@ controlla "vendita a turno chiuso"    "20 euro di gasolio"                      
 controlla "accendi ia a turno chiuso" "accendi ia"                                   "Turno non aperto"
 sleep 1; grep -q "^mostra" $HOME/notifiche.log 2>/dev/null && { echo "  ERRORE notifiche a turno chiuso"; ERRORI=$((ERRORI+1)); } || echo "  ok   nessuna notifica a turno chiuso"
 controlla "apertura turno con avanzo" "apertura turno"                               "150.50"
+[ "$(python3 $HOME/info_turno.py stato orario_chiusura)" = "13:00:00" ] && echo "  ok   ora chiusura precedente dal riquadro" || { echo "  ERRORE ora chiusura precedente"; ERRORI=$((ERRORI+1)); }
 [ -f $D/*/Documenti/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "contatore adblue"          "contatore adblue 1000 virgola 5"              "1000.5"
 controlla "contatore taniche"         "contatore taniche 10"                         "10"
@@ -59,7 +61,7 @@ controlla "correggi carburante in cassa" "correggi ultima in cassa"             
 controlla "abbuono"                   "20 e 10 di gasolio, abbuono 10 centesimi"     "-0.10"
 controlla "tanica adblue pos cassa"  "tanica di adblue pagato in cassa"             "STAMPARE RICEVUTA"
 controlla "resto lasciato"            "19 e 90 di gasolio, ha lasciato 10 centesimi" "Resto lasciato dal cliente 0.1"
-controlla "versamento"                "versamento 50"                                "50.00"
+controlla "versamento a parole"       "versamento cinquanta"                         "50.00"
 controlla "numeri in lettere"         "trentacinque di verde sul bianco"             "Benzina 35.00 € - POS bianco"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
 controlla "vendita mista"             "50 gasolio, 20 litri di adblue e 2 red bull con carta" "3 voci"
@@ -68,7 +70,8 @@ controlla "pos nero niente ricevuta"  "1 mars sul nero"                         
 controlla "cartissima"                "40 gasolio cartissima"                        "Petrolifere"
 controlla "fax"                       "5 fax"                                        "5 fogli"
 controlla "frase senza importo"       "ciao"                                         "Niente salvato"
-controlla "totali brevi"              "totali"                                       "Attesi in cassa"
+controlla "totali in finestra"        "totali"                                       "Totali sullo schermo"
+python3 $HOME/info_turno.py totali breve | grep -q "Attesi in cassa" && echo "  ok   testo dei totali" || { echo "  ERRORE testo totali"; ERRORI=$((ERRORI+1)); }
 controlla "market"                    "market"                                       "Red Bull"
 controlla "erogazioni adblue"         "erogazioni"                                   "litri erogati"
 controlla "correggi ultima pagamento"  "correggi ultima sul bianco"                   "POS bianco"
@@ -83,6 +86,8 @@ controlla "riscosso in cassa: ricevuta" "credito riscosso neri 12 in cassa"     
 controlla "cancella riscosso cassa"   "cancella ultima"                              "Cancellata"
 controlla "carburante in cassa: no"   "20 gasolio e 1 mars in cassa"                 "Niente salvato"
 controlla "20:10 e a buono"           "20:10 di gasolio a buono 10 centesimi"        "Gasolio 20.10 € + Abbuono -0.10"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "20 10 di gasolio"          "20 10 di gasolio abbuono 10 centesimi"        "Gasolio 20.10 € + Abbuono"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto senza virgola"       "19.90 di gasolio ha lasciato 10 centesimi"    "Gasolio 19.90 € + Resto lasciato"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
@@ -116,7 +121,7 @@ scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]
 assert scontrini[:2] == [26, 7] and scontrini[2] is None, scontrini        # un scontrino per vendita in cassa
 assert ws['D9'].value == 107 and ws['D12'].value == 144 and ws['D14'].value == 36.5, \
     (ws['D9'].value, ws['D12'].value, ws['D14'].value)                    # petrolifere, POS nero, POS bianco
-assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo turno: ora chiusura precedente sconosciuta
+assert ws['D7'].value == 160 and str(ws['I24'].value) == '13:00:00'      # ora chiusura precedente scritta all'apertura
 assert ws['I28'].value == 20 and ws['D34'].value == 70.5, ws['D34'].value   # cassaforte, contanti attesi nel cassetto
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
 assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte

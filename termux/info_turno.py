@@ -89,7 +89,12 @@ def sigla(metodo):
 
 
 def importo_da_testo(testo):
-    """'150', '150,50', '150.50 €' -> 150.5; None se vuoto o non valido."""
+    """'150', '150,50', '150.50 €', 'cinquanta' -> 150.5; None se vuoto o non valido."""
+    try:
+        from numeri import in_cifre
+        testo = in_cifre(testo or "")
+    except ImportError:
+        pass
     m = re.search(r'\d+(?:[.,]\d{1,2})?', (testo or "").replace(" ", ""))
     return float(m.group(0).replace(",", ".")) if m else None
 
@@ -132,7 +137,7 @@ def turno_aperto():
     return bool(leggi_turno() or leggi_csv())
 
 
-def apri_turno(avanzo_testo=""):
+def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo=""):
     esistente = leggi_turno()
     if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
@@ -149,12 +154,36 @@ def apri_turno(avanzo_testo=""):
     try:
         import excel_turno
         stato = excel_turno.leggi_stato()
-        c, tn = stato.get("contatore"), stato.get("taniche")
+        # Valori scritti nei riquadri dell'apertura (vuoto = restano quelli del turno prima)
+        ora = normalizza_orario(ora_prec_testo)
+        if re.fullmatch(r'\d\d:\d\d:\d\d', ora):
+            stato["orario_chiusura"] = ora
+        elif ora:
+            print(f"⚠️ Ora chiusura precedente {ora}: scrivila a mano nell'Excel")
+        if importo_da_testo(contatore_testo) is not None:
+            stato["contatore"] = float(re.search(r'\d+(?:[.,]\d+)?', contatore_testo).group(0).replace(",", "."))
+        if importo_da_testo(taniche_testo) is not None:
+            stato["taniche"] = int(importo_da_testo(taniche_testo))
+        excel_turno.salva_stato(stato)
+        o, c, tn = stato.get("orario_chiusura"), stato.get("contatore"), stato.get("taniche")
+        print(f"🕐 Ora chiusura turno precedente: {o}" if o else "🕐 Ora chiusura precedente non inserita")
         print(f"🧪 AdBlue: contatore {c:g}" if c is not None else "🧪 Di' \"contatore adblue …\" (valore sulla colonnina)")
         print(f"🧪 Taniche: {tn}" if tn is not None else "🧪 Di' \"contatore taniche …\" (taniche in magazzino)")
     except Exception:
         pass
     print(salva_documento([], turno))
+
+
+def valore_stato(chiave):
+    """Valore salvato dal turno prima (per i suggerimenti dei riquadri all'apertura)."""
+    try:
+        import excel_turno
+        v = excel_turno.leggi_stato().get(chiave)
+    except Exception:
+        v = None
+    if v is None:
+        return ""
+    return f"{v:g}".replace(".", ",") if isinstance(v, float) else str(v)
 
 
 def salva_turno(turno):
@@ -199,6 +228,11 @@ def imposta_avanzo(testo):
 def imposta_contatore(testo):
     """"contatore adblue 68624,4" / "contatore taniche 59": valori di partenza del turno."""
     import excel_turno
+    try:
+        from numeri import in_cifre
+        testo = in_cifre(testo)
+    except ImportError:
+        pass
     testo = re.sub(r'\s+virgola\s+', ',', testo.lower())
     valore = re.search(r'\d+(?:[.,]\d+)?', testo)
     if not valore:
@@ -439,20 +473,21 @@ def prospetto_completo(righe, titolo, t=None):
 
 
 def totali_brevi(righe):
-    """Poche righe, leggibili nel messaggio a schermo di Tasker (il dettaglio è nel widget 03)."""
+    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 03)."""
     vv = vendite(righe)
     t = leggi_turno() or {}
     per_metodo = totali_per(vv, "metodo")
     contanti = per_metodo.get("Contanti", 0.0)
     attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
-    nomi = (("POS nero", "Nero"), ("POS bianco", "Bianco"), ("POS cassa", "Cassa"),
-            ("Petrolifere", "Petrol."), ("Credito", "Crediti"))
-    carte = " | ".join(f"{breve} {per_metodo[m]:.2f}" for m, breve in nomi if per_metodo.get(m))
-    out = [f"📊 {len(transazioni(righe))} vendite | Contanti {contanti:.2f}",
-           f"💶 Attesi in cassa: {euro(attesi)}"]
-    if carte:
-        out.append(f"💳 {carte}")
-    out.append("Dettaglio: pulsante 03 Totali")
+    nomi = (("POS nero", "POS nero"), ("POS bianco", "POS bianco"), ("POS cassa", "POS cassa"),
+            ("Petrolifere", "Petrolifere"), ("Credito", "Crediti clienti"))
+    out = [f"Vendite: {len(transazioni(righe))}",
+           f"💶 Attesi in cassa: {euro(attesi)}",
+           f"   (avanzo {euro(t.get('avanzo') or 0.0)} + contanti {euro(contanti)}"
+           + (f" - versamenti {euro(t['versamento'])}" if t.get('versamento') else "") + ")"]
+    for m, breve in nomi:
+        if per_metodo.get(m):
+            out.append(f"💳 {breve}: {euro(per_metodo[m])}")
     return "\n".join(out)
 
 
@@ -620,7 +655,10 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        apri_turno(sys.argv[3] if len(sys.argv) > 3 else "")
+        argomenti = sys.argv[3:] + ["", "", "", ""]
+        apri_turno(*argomenti[:4])
+    elif comando.startswith("stato "):
+        print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":
         sys.exit(0 if turno_aperto() else 1)
     elif comando == "ultimo conteggio":

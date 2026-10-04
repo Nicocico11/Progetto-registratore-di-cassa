@@ -20,8 +20,13 @@ Vibrazioni (non serve guardare il telefono):
 ━━━━━━━━━━━━━━━━━━━━━━━━
 2. INIZIO TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "APERTURA TURNO"
-• Compare un riquadro: scrivi l'AVANZO CASSA del turno precedente (es. 150,50).
+Di': "APERTURA TURNO". Compaiono quattro riquadri:
+1) AVANZO CASSA del turno precedente (es. 150,50)
+2) ORA CHIUSURA del turno precedente, tutto attaccato (es. 140532)
+3) CONTATORE ADBLUE iniziale (numero sulla colonnina, es. 68624,4)
+4) TANICHE ADBLUE presenti in magazzino (es. 59)
+Nei riquadri è scritto il valore che il telefono già conosce dal turno prima
+("vuoto = 59"): se è giusto premi OK senza scrivere niente.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
@@ -29,9 +34,8 @@ Di': "APERTURA TURNO"
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 
-Solo la PRIMA volta (poi il telefono li aggiorna da solo turno dopo turno):
-• "contatore adblue 68624 virgola 4" = numero sulla colonnina AdBlue
-• "contatore taniche 59" = taniche AdBlue in magazzino
+Contatore e taniche si possono correggere anche dopo, a voce:
+• "contatore adblue 68624 virgola 4"  •  "contatore taniche 59"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 3. REGISTRARE LE VENDITE
@@ -127,8 +131,8 @@ VERSAMENTI
 ━━━━━━━━━━━━━━━━━━━━━━━━
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• "totali": riepilogo corto (contanti attesi e totali dei POS).
-  Il riepilogo completo è nel pulsante 03 Totali del widget.
+• "totali": si apre una finestra con i contanti attesi e i totali dei POS
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 03 Totali.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).

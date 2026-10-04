@@ -24,42 +24,12 @@ if not testo_originale.strip():
 testo_basso = testo_originale.lower()
 
 
-def numeri_in_lettere():
-    # Costruisce {"venti": 20, "trentacinque": 35, "centoventi": 120, ...} da 1 a 999
-    unita = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove']
-    dieci_19 = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici',
-                'sedici', 'diciassette', 'diciotto', 'diciannove']
-    decine = ['venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta']
-    parole = {}
-    for n in range(1, 100):
-        if n < 10:
-            nomi = [unita[n]]
-        elif n < 20:
-            nomi = [dieci_19[n - 10]]
-        else:
-            d, u = decine[n // 10 - 2], unita[n % 10]
-            nomi = [d[:-1] + u if u in ('uno', 'otto') else d + u]
-            if u == 'tre':
-                nomi.append(d + 'tré')
-        for nome in nomi:
-            parole[nome] = n
-    for c in range(1, 10):
-        cento = 'cento' if c == 1 else unita[c] + 'cento'
-        parole[cento] = c * 100
-        for nome, n in list(parole.items()):
-            if n < 100:
-                parole[cento + nome] = c * 100 + n
-                if nome.startswith('o'):
-                    parole[cento[:-1] + nome] = c * 100 + n  # centotto
-    return parole
-
-
 # "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
-_NUMERI = numeri_in_lettere()
-testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b',
-                     lambda m: str(_NUMERI[m.group(1)]), testo_basso)
+from numeri import in_cifre
+testo_basso = in_cifre(testo_basso)
 # Errori tipici del riconoscimento vocale
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
+testo_basso = re.sub(r'\b(\d+)\s+(\d{2})(?=\s+(?:euro\s+)?d[ie]\b)', r'\1.\2', testo_basso)  # "20 10 di gasolio"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
 testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"

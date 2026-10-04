@@ -57,13 +57,21 @@ case "$FRASE" in
     if [[ "$FRASE" =~ ripristin ]]; then
       python3 ~/info_turno.py ripristina
     elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
-      AVANZO=""
+      AVANZO=""; ORA_PREC=""; CONTATORE=""; TANICHE=""
       if ! python3 ~/info_turno.py aperto; then
+        # Valori del turno prima: lasciando vuoto il riquadro restano quelli
         ULTIMO=$(python3 ~/info_turno.py ultimo conteggio)
-        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50${ULTIMO:+ — ultimo conteggio: $ULTIMO}")
+        S_ORA=$(python3 ~/info_turno.py stato orario_chiusura)
+        S_CONT=$(python3 ~/info_turno.py stato contatore)
+        S_TAN=$(python3 ~/info_turno.py stato taniche)
+        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "${ULTIMO:+vuoto = $ULTIMO}${ULTIMO:-es. 150,50}")
+        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "${S_ORA:+vuoto = $S_ORA}${S_ORA:-tutto attaccato, es. 140532}" -n)
+        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "${S_CONT:+vuoto = $S_CONT}${S_CONT:-es. 68624,4}")
+        TANICHE=$(chiedi "Taniche AdBlue presenti" "${S_TAN:+vuoto = $S_TAN}${S_TAN:-es. 59}" -n)
+        [ -z "$AVANZO" ] && AVANZO="$ULTIMO"
       fi
       echo "🟢 TURNO APERTO"
-      python3 ~/info_turno.py apri turno "$AVANZO"
+      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE"
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
@@ -125,8 +133,11 @@ case "$FRASE" in
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
-    # Versione corta per il messaggio a schermo; quella completa è nel pulsante 03 Totali
-    python3 ~/info_turno.py totali breve ;;
+    # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
+    # il riepilogo completo è nel pulsante 03 Totali
+    RIEPILOGO=$(python3 ~/info_turno.py totali breve)
+    nohup termux-dialog confirm -t "📊 Totali del turno" -i "$RIEPILOGO" > /dev/null 2>&1 &
+    echo "📊 Totali sullo schermo" ;;
   *"ultime"*|*"ultimi"*)
     python3 ~/info_turno.py ultimi ;;
   *"archivio"*|*"storico"*)

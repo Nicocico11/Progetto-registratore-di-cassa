@@ -62,13 +62,21 @@ case "$FRASE" in
     if [[ "$FRASE" =~ ripristin ]]; then
       python3 ~/info_turno.py ripristina
     elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
-      AVANZO=""
+      AVANZO=""; ORA_PREC=""; CONTATORE=""; TANICHE=""
       if ! python3 ~/info_turno.py aperto; then
+        # Valori del turno prima: lasciando vuoto il riquadro restano quelli
         ULTIMO=$(python3 ~/info_turno.py ultimo conteggio)
-        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50${ULTIMO:+ — ultimo conteggio: $ULTIMO}")
+        S_ORA=$(python3 ~/info_turno.py stato orario_chiusura)
+        S_CONT=$(python3 ~/info_turno.py stato contatore)
+        S_TAN=$(python3 ~/info_turno.py stato taniche)
+        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "${ULTIMO:+vuoto = $ULTIMO}${ULTIMO:-es. 150,50}")
+        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "${S_ORA:+vuoto = $S_ORA}${S_ORA:-tutto attaccato, es. 140532}" -n)
+        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "${S_CONT:+vuoto = $S_CONT}${S_CONT:-es. 68624,4}")
+        TANICHE=$(chiedi "Taniche AdBlue presenti" "${S_TAN:+vuoto = $S_TAN}${S_TAN:-es. 59}" -n)
+        [ -z "$AVANZO" ] && AVANZO="$ULTIMO"
       fi
       echo "🟢 TURNO APERTO"
-      python3 ~/info_turno.py apri turno "$AVANZO"
+      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE"
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
@@ -130,8 +138,11 @@ case "$FRASE" in
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
-    # Versione corta per il messaggio a schermo; quella completa è nel pulsante 03 Totali
-    python3 ~/info_turno.py totali breve ;;
+    # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
+    # il riepilogo completo è nel pulsante 03 Totali
+    RIEPILOGO=$(python3 ~/info_turno.py totali breve)
+    nohup termux-dialog confirm -t "📊 Totali del turno" -i "$RIEPILOGO" > /dev/null 2>&1 &
+    echo "📊 Totali sullo schermo" ;;
   *"ultime"*|*"ultimi"*)
     python3 ~/info_turno.py ultimi ;;
   *"archivio"*|*"storico"*)
@@ -323,42 +334,12 @@ if not testo_originale.strip():
 testo_basso = testo_originale.lower()
 
 
-def numeri_in_lettere():
-    # Costruisce {"venti": 20, "trentacinque": 35, "centoventi": 120, ...} da 1 a 999
-    unita = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove']
-    dieci_19 = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici',
-                'sedici', 'diciassette', 'diciotto', 'diciannove']
-    decine = ['venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta']
-    parole = {}
-    for n in range(1, 100):
-        if n < 10:
-            nomi = [unita[n]]
-        elif n < 20:
-            nomi = [dieci_19[n - 10]]
-        else:
-            d, u = decine[n // 10 - 2], unita[n % 10]
-            nomi = [d[:-1] + u if u in ('uno', 'otto') else d + u]
-            if u == 'tre':
-                nomi.append(d + 'tré')
-        for nome in nomi:
-            parole[nome] = n
-    for c in range(1, 10):
-        cento = 'cento' if c == 1 else unita[c] + 'cento'
-        parole[cento] = c * 100
-        for nome, n in list(parole.items()):
-            if n < 100:
-                parole[cento + nome] = c * 100 + n
-                if nome.startswith('o'):
-                    parole[cento[:-1] + nome] = c * 100 + n  # centotto
-    return parole
-
-
 # "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
-_NUMERI = numeri_in_lettere()
-testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b',
-                     lambda m: str(_NUMERI[m.group(1)]), testo_basso)
+from numeri import in_cifre
+testo_basso = in_cifre(testo_basso)
 # Errori tipici del riconoscimento vocale
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
+testo_basso = re.sub(r'\b(\d+)\s+(\d{2})(?=\s+(?:euro\s+)?d[ie]\b)', r'\1.\2', testo_basso)  # "20 10 di gasolio"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
 testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
@@ -950,6 +931,49 @@ avviso_ricevuta(voci, metodo)
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)
 FINE_FILE
+cat > ~/.termux/tasker/numeri.py <<'FINE_FILE'
+# Numeri detti a parole -> cifre ("trentacinque" -> 35). Usato da processa_ia.py e info_turno.py.
+import re
+
+
+def numeri_in_lettere():
+    # Costruisce {"venti": 20, "trentacinque": 35, "centoventi": 120, ...} da 1 a 999
+    unita = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove']
+    dieci_19 = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici',
+                'sedici', 'diciassette', 'diciotto', 'diciannove']
+    decine = ['venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta']
+    parole = {}
+    for n in range(1, 100):
+        if n < 10:
+            nomi = [unita[n]]
+        elif n < 20:
+            nomi = [dieci_19[n - 10]]
+        else:
+            d, u = decine[n // 10 - 2], unita[n % 10]
+            nomi = [d[:-1] + u if u in ('uno', 'otto') else d + u]
+            if u == 'tre':
+                nomi.append(d + 'tré')
+        for nome in nomi:
+            parole[nome] = n
+    for c in range(1, 10):
+        cento = 'cento' if c == 1 else unita[c] + 'cento'
+        parole[cento] = c * 100
+        for nome, n in list(parole.items()):
+            if n < 100:
+                parole[cento + nome] = c * 100 + n
+                if nome.startswith('o'):
+                    parole[cento[:-1] + nome] = c * 100 + n  # centotto
+    return parole
+
+
+_NUMERI = numeri_in_lettere()
+_REGEX = re.compile(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b')
+
+
+def in_cifre(testo):
+    """"versamento cinquanta" -> "versamento 50"."""
+    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo.lower())
+FINE_FILE
 cat > ~/.termux/tasker/vibra.sh <<'FINE_FILE'
 #!/bin/bash
 # Vibrazioni diverse a seconda dell'esito (serve Termux:API).
@@ -1441,7 +1465,12 @@ def sigla(metodo):
 
 
 def importo_da_testo(testo):
-    """'150', '150,50', '150.50 €' -> 150.5; None se vuoto o non valido."""
+    """'150', '150,50', '150.50 €', 'cinquanta' -> 150.5; None se vuoto o non valido."""
+    try:
+        from numeri import in_cifre
+        testo = in_cifre(testo or "")
+    except ImportError:
+        pass
     m = re.search(r'\d+(?:[.,]\d{1,2})?', (testo or "").replace(" ", ""))
     return float(m.group(0).replace(",", ".")) if m else None
 
@@ -1484,7 +1513,7 @@ def turno_aperto():
     return bool(leggi_turno() or leggi_csv())
 
 
-def apri_turno(avanzo_testo=""):
+def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo=""):
     esistente = leggi_turno()
     if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
@@ -1501,12 +1530,36 @@ def apri_turno(avanzo_testo=""):
     try:
         import excel_turno
         stato = excel_turno.leggi_stato()
-        c, tn = stato.get("contatore"), stato.get("taniche")
+        # Valori scritti nei riquadri dell'apertura (vuoto = restano quelli del turno prima)
+        ora = normalizza_orario(ora_prec_testo)
+        if re.fullmatch(r'\d\d:\d\d:\d\d', ora):
+            stato["orario_chiusura"] = ora
+        elif ora:
+            print(f"⚠️ Ora chiusura precedente {ora}: scrivila a mano nell'Excel")
+        if importo_da_testo(contatore_testo) is not None:
+            stato["contatore"] = float(re.search(r'\d+(?:[.,]\d+)?', contatore_testo).group(0).replace(",", "."))
+        if importo_da_testo(taniche_testo) is not None:
+            stato["taniche"] = int(importo_da_testo(taniche_testo))
+        excel_turno.salva_stato(stato)
+        o, c, tn = stato.get("orario_chiusura"), stato.get("contatore"), stato.get("taniche")
+        print(f"🕐 Ora chiusura turno precedente: {o}" if o else "🕐 Ora chiusura precedente non inserita")
         print(f"🧪 AdBlue: contatore {c:g}" if c is not None else "🧪 Di' \"contatore adblue …\" (valore sulla colonnina)")
         print(f"🧪 Taniche: {tn}" if tn is not None else "🧪 Di' \"contatore taniche …\" (taniche in magazzino)")
     except Exception:
         pass
     print(salva_documento([], turno))
+
+
+def valore_stato(chiave):
+    """Valore salvato dal turno prima (per i suggerimenti dei riquadri all'apertura)."""
+    try:
+        import excel_turno
+        v = excel_turno.leggi_stato().get(chiave)
+    except Exception:
+        v = None
+    if v is None:
+        return ""
+    return f"{v:g}".replace(".", ",") if isinstance(v, float) else str(v)
 
 
 def salva_turno(turno):
@@ -1551,6 +1604,11 @@ def imposta_avanzo(testo):
 def imposta_contatore(testo):
     """"contatore adblue 68624,4" / "contatore taniche 59": valori di partenza del turno."""
     import excel_turno
+    try:
+        from numeri import in_cifre
+        testo = in_cifre(testo)
+    except ImportError:
+        pass
     testo = re.sub(r'\s+virgola\s+', ',', testo.lower())
     valore = re.search(r'\d+(?:[.,]\d+)?', testo)
     if not valore:
@@ -1791,20 +1849,21 @@ def prospetto_completo(righe, titolo, t=None):
 
 
 def totali_brevi(righe):
-    """Poche righe, leggibili nel messaggio a schermo di Tasker (il dettaglio è nel widget 03)."""
+    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 03)."""
     vv = vendite(righe)
     t = leggi_turno() or {}
     per_metodo = totali_per(vv, "metodo")
     contanti = per_metodo.get("Contanti", 0.0)
     attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
-    nomi = (("POS nero", "Nero"), ("POS bianco", "Bianco"), ("POS cassa", "Cassa"),
-            ("Petrolifere", "Petrol."), ("Credito", "Crediti"))
-    carte = " | ".join(f"{breve} {per_metodo[m]:.2f}" for m, breve in nomi if per_metodo.get(m))
-    out = [f"📊 {len(transazioni(righe))} vendite | Contanti {contanti:.2f}",
-           f"💶 Attesi in cassa: {euro(attesi)}"]
-    if carte:
-        out.append(f"💳 {carte}")
-    out.append("Dettaglio: pulsante 03 Totali")
+    nomi = (("POS nero", "POS nero"), ("POS bianco", "POS bianco"), ("POS cassa", "POS cassa"),
+            ("Petrolifere", "Petrolifere"), ("Credito", "Crediti clienti"))
+    out = [f"Vendite: {len(transazioni(righe))}",
+           f"💶 Attesi in cassa: {euro(attesi)}",
+           f"   (avanzo {euro(t.get('avanzo') or 0.0)} + contanti {euro(contanti)}"
+           + (f" - versamenti {euro(t['versamento'])}" if t.get('versamento') else "") + ")"]
+    for m, breve in nomi:
+        if per_metodo.get(m):
+            out.append(f"💳 {breve}: {euro(per_metodo[m])}")
     return "\n".join(out)
 
 
@@ -1972,7 +2031,10 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        apri_turno(sys.argv[3] if len(sys.argv) > 3 else "")
+        argomenti = sys.argv[3:] + ["", "", "", ""]
+        apri_turno(*argomenti[:4])
+    elif comando.startswith("stato "):
+        print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":
         sys.exit(0 if turno_aperto() else 1)
     elif comando == "ultimo conteggio":
@@ -7572,8 +7634,13 @@ Vibrazioni (non serve guardare il telefono):
 ━━━━━━━━━━━━━━━━━━━━━━━━
 2. INIZIO TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "APERTURA TURNO"
-• Compare un riquadro: scrivi l'AVANZO CASSA del turno precedente (es. 150,50).
+Di': "APERTURA TURNO". Compaiono quattro riquadri:
+1) AVANZO CASSA del turno precedente (es. 150,50)
+2) ORA CHIUSURA del turno precedente, tutto attaccato (es. 140532)
+3) CONTATORE ADBLUE iniziale (numero sulla colonnina, es. 68624,4)
+4) TANICHE ADBLUE presenti in magazzino (es. 59)
+Nei riquadri è scritto il valore che il telefono già conosce dal turno prima
+("vuoto = 59"): se è giusto premi OK senza scrivere niente.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
@@ -7581,9 +7648,8 @@ Di': "APERTURA TURNO"
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 
-Solo la PRIMA volta (poi il telefono li aggiorna da solo turno dopo turno):
-• "contatore adblue 68624 virgola 4" = numero sulla colonnina AdBlue
-• "contatore taniche 59" = taniche AdBlue in magazzino
+Contatore e taniche si possono correggere anche dopo, a voce:
+• "contatore adblue 68624 virgola 4"  •  "contatore taniche 59"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 3. REGISTRARE LE VENDITE
@@ -7679,8 +7745,8 @@ VERSAMENTI
 ━━━━━━━━━━━━━━━━━━━━━━━━
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• "totali": riepilogo corto (contanti attesi e totali dei POS).
-  Il riepilogo completo è nel pulsante 03 Totali del widget.
+• "totali": si apre una finestra con i contanti attesi e i totali dei POS
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 03 Totali.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
@@ -7773,4 +7839,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 01:46"

@@ -7,7 +7,7 @@ echo '#!/bin/bash'
 echo '# Installa / aggiorna la cassa vocale. Generato da genera_installa.sh: non modificarlo a mano.'
 echo '# Copia di sicurezza dei file attuali (solo la prima volta: le copie .vecchio non vengono sovrascritte)'
 echo 'for f in ~/.termux/tasker/avvia_ia.sh ~/.termux/tasker/avvia_server.sh ~/.termux/tasker/processa_ia.py ~/.termux/tasker/notifica.sh ~/info_turno.py; do [ -f "$f" ] && [ ! -f "$f.vecchio" ] && cp "$f" "$f.vecchio"; done'
-for f in avvia_ia.sh avvia_server.sh stato_ia.sh notifica.sh processa_ia.py vibra.sh migra_prezzi.py danea_listino.py excel_turno.py; do
+for f in avvia_ia.sh avvia_server.sh stato_ia.sh notifica.sh processa_ia.py numeri.py vibra.sh migra_prezzi.py danea_listino.py excel_turno.py; do
   echo "cat > ~/.termux/tasker/$f <<'FINE_FILE'"; cat $f; echo "FINE_FILE"
 done
 echo "cat > ~/info_turno.py <<'FINE_FILE'"; cat info_turno.py; echo "FINE_FILE"
@@ -47,6 +47,6 @@ echo 'python3 ~/info_turno.py salva > /dev/null 2>&1'
 echo 'bash ~/.termux/tasker/notifica.sh'
 echo 'bash ~/.termux/tasker/stato_ia.sh aggiorna'
 echo 'if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi'
-echo 'echo "✅ INSTALLAZIONE COMPLETATA"'
+echo "echo \"✅ INSTALLAZIONE COMPLETATA - versione del $(TZ=Europe/Rome date '+%d/%m %H:%M')\""
 } > installa.sh
 echo "installa.sh creato ($(wc -c < installa.sh) byte)"
