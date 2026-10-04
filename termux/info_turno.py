@@ -109,8 +109,8 @@ def tipo_turno(momento):
 
     nome = min(TURNI, key=distanza)
     data_inizio = momento.date()
-    if nome == 'Notte' and momento.hour < 12:  # aperto dopo mezzanotte: la notte è iniziata ieri
-        data_inizio -= timedelta(days=1)
+    if nome == 'Notte' and momento.hour >= 12:  # la notte porta la data del giorno dopo (aperta alle 22 del 4 = notte del 5)
+        data_inizio += timedelta(days=1)
     return nome, data_inizio
 
 
@@ -369,6 +369,10 @@ def prospetto_cassa(vv, t):
     if versamento:
         out.append(f"  {'- Versamenti':<20} {euro(versamento):>12}")
     out.append(f"  {'= Contanti attesi':<20} {euro(attesi):>12}")
+    if t.get("cassaforte"):
+        out.append(f"  {'di cui in cassaforte':<20} {euro(t['cassaforte']):>12}")
+        attesi -= t["cassaforte"]
+        out.append(f"  {'= Attesi nel cassetto':<20} {euro(attesi):>12}")
     if t.get("contati") is not None:
         out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(attesi, t['contati'])}")
     out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
@@ -529,7 +533,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
+def chiudi_turno(orario_terminale="", contati_testo="", pos_testo="", cassaforte_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
@@ -542,6 +546,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["pos"] = importo_da_testo(pos_testo)
+    t["cassaforte"] = importo_da_testo(cassaforte_testo)
     if t["contati"] is not None:
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")
@@ -591,8 +596,8 @@ def main():
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        argomenti = sys.argv[2:] + ["", "", ""]
-        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
+        argomenti = sys.argv[2:] + ["", "", "", ""]
+        chiudi_turno(argomenti[0], argomenti[1], argomenti[2], argomenti[3])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:

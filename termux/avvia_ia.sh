@@ -75,8 +75,9 @@ case "$FRASE" in
       # Quadratura: si possono lasciare vuoti
       CONTATI=$(chiedi "Contanti contati in cassa (€)" "es. 455,50 — vuoto per saltare")
       POS=$(chiedi "Totale POS / carte (€)" "es. 320,00 — vuoto per saltare")
+      CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS" "$CASSAFORTE"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"

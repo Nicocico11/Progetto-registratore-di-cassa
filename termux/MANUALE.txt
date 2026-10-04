@@ -23,6 +23,7 @@ Vibrazioni (non serve guardare il telefono):
 Di': "APERTURA TURNO"
 • Compare un riquadro: scrivi l'AVANZO CASSA del turno precedente (es. 150,50).
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
+  La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
 
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
@@ -105,6 +106,7 @@ Di': "CHIUSURA TURNO". Compaiono tre riquadri:
    140532 = 14:05:32
 2) CONTANTI CONTATI in cassa (si può lasciare vuoto)
 3) TOTALE POS / carte (si può lasciare vuoto)
+4) IN CASSAFORTE (vuoto se non c'è niente)
 
 Il documento di chiusura viene salvato in:
   Download → Chiusure_Turno → es. 2026-10-02_Mattina.txt
@@ -116,8 +118,9 @@ Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
     data, turno, ora chiusura, DANEA, TELEFAX, sconti, litri AdBlue, contatori,
     taniche, scontrini POS registratore, avanzo precedente e (negli spiccioli
     cassetto) i contanti che dovrebbero esserci.
-  • 04_10_2026_notte.xlsx = il turno dopo, già "imbastito" (data, turno, avanzo,
-    contatore AdBlue iniziale, taniche precedenti).
+  • 05_10_2026_notte.xlsx = il turno dopo, già "imbastito": data, turno, avanzo,
+    ORA CHIUSURA (l'orario del terminale appena inserito), contatore AdBlue
+    iniziale, taniche precedenti, cassaforte.
   Sul computer restano da scrivere: totale carburanti, PAX, POS banca, OPT,
   crediti, ricariche, versamento, operatore.
 

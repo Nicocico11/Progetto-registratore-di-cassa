@@ -23,6 +23,7 @@ case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
   *Contanti*) echo '{"code": -1, "text": "200"}' ;;
+  *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
   *)          echo '{"code": -2, "text": ""}' ;;   # POS: annullato
 esac
 EOF
@@ -91,13 +92,18 @@ assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 ta
 assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
 assert ws['I5'].value == 0.1                                              # abbuono
 assert 26 in [ws[c].value for c in ('S27', 'T27', 'U27')]                 # scontrino tanica con POS
-assert ws['D7'].value == 160 and str(ws['I24'].value) == '14:05:32'
+assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo turno: ora chiusura precedente sconosciuta
+assert ws['I28'].value == 20                                              # cassaforte
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
 assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte
 dopo = [f for f in files if f not in oggi][0]
 w2 = openpyxl.load_workbook(dopo).active
 dopo_atteso = {'MATTINA': 'POMERIGGIO', 'POMERIGGIO': 'NOTTE', 'NOTTE': 'MATTINA'}[ws['I22'].value]
-assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 200 and w2['I22'].value == dopo_atteso, \
+assert str(w2['I24'].value) == '14:05:32' and w2['I28'].value == 20     # orario terminale di oggi -> turno dopo
+import json, os
+stato = json.load(open(os.path.expanduser('~/stato_cassa.json')))
+assert stato['orario_chiusura'] == '14:05:32' and stato['contatore'] == 1020.5 and stato['taniche'] == 9, stato
+assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 220 and w2['I22'].value == dopo_atteso, \
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }

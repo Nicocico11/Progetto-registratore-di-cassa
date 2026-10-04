@@ -80,8 +80,9 @@ case "$FRASE" in
       # Quadratura: si possono lasciare vuoti
       CONTATI=$(chiedi "Contanti contati in cassa (€)" "es. 455,50 — vuoto per saltare")
       POS=$(chiedi "Totale POS / carte (€)" "es. 320,00 — vuoto per saltare")
+      CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS" "$CASSAFORTE"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
@@ -996,7 +997,8 @@ TELEFAX = [f'{c}{r}' for r in range(21, 26) for c in 'ABCD']
 ADBLUE_LITRI = [f'{c}17' for c in 'IJKLMNO'] + [f'{c}18' for c in 'IJKLMN']
 SCONTRINI_POS = [f'{c}{r}' for r in range(27, 33) for c in 'STUV']
 SCONTI = [f'{c}{r}' for r in (5, 6) for c in 'IJKLMNO']
-SUCCESSIVO = {'Mattina': ('Pomeriggio', 0), 'Pomeriggio': ('Notte', 0), 'Notte': ('Mattina', 1)}
+# La notte porta la data del giorno in cui finisce: pomeriggio del 4 -> notte del 5 -> mattina del 5
+SUCCESSIVO = {'Mattina': ('Pomeriggio', 0), 'Pomeriggio': ('Notte', 1), 'Notte': ('Mattina', 0)}
 
 
 def leggi_stato():
@@ -1026,9 +1028,19 @@ def nome_file(giorno, tipo):
     return f"{giorno.strftime('%d_%m_%Y')}_{tipo.lower()}.xlsx"
 
 
+def ora_da_testo(testo):
+    try:
+        h, m, s = (int(x) for x in str(testo).split()[0].split(':'))
+        return time(h, m, s)
+    except Exception:
+        return None
+
+
 def crea_excel(righe, turno, orario_terminale, cartella):
     """Crea <data>_<turno>.xlsx (turno concluso) e il file del turno successivo.
-    Restituisce (lista di messaggi, stato aggiornato)."""
+    Restituisce (lista di messaggi, stato aggiornato).
+    "ORA CHIUSURA" (I24) è l'orario del terminale pompe del turno PRECEDENTE:
+    quello inserito oggi va nel file del turno dopo."""
     import openpyxl
     avvisi = []
     stato = leggi_stato()
@@ -1045,14 +1057,16 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     wb = openpyxl.load_workbook(MODELLO)
     ws = wb.active
 
-    # Intestazione: data, turno, ora di chiusura (orario del terminale pompe)
+    # Intestazione: data, turno, ora chiusura del turno precedente
     ws['I20'] = datetime.combine(giorno, time())
     ws['I22'] = turno['tipo'].upper()
-    try:
-        h, m, s = (int(x) for x in orario_terminale.split()[0].split(':'))
-        ws['I24'] = time(h, m, s)
-    except Exception:
-        avvisi.append("ora chiusura non inserita: scrivila a mano")
+    if ora_da_testo(stato.get('orario_chiusura')):
+        ws['I24'] = ora_da_testo(stato['orario_chiusura'])
+    else:
+        avvisi.append("ora chiusura del turno precedente sconosciuta: scrivila a mano")
+    ora_oggi = ora_da_testo(orario_terminale)
+    if not ora_oggi:
+        avvisi.append("orario terminale non inserito: nel file del turno dopo va scritto a mano")
 
     # DANEA: prodotti market raggruppati ("3x RED BULL")
     gruppi = {}
@@ -1104,9 +1118,13 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     avanzo = turno.get('avanzo')
     if avanzo is not None:
         ws['D7'] = avanzo
+    # Cassaforte: va in "IN CASSAFORTE" (I28), il foglio la somma da solo all'avanzo attuale
     contanti = sum(imp(v) for v in voci if v.get('metodo_pagamento') == 'Contanti')
-    attesi = round((avanzo or 0) + contanti - (turno.get('versamento') or 0), 2)
-    ws['D34'] = attesi
+    totale_cassa = round((avanzo or 0) + contanti - (turno.get('versamento') or 0), 2)
+    cassaforte = turno.get('cassaforte') or 0
+    if cassaforte:
+        ws['I28'] = cassaforte
+    ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
     path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo']))
@@ -1115,12 +1133,17 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     # Turno successivo "imbastito"
     tipo_dopo, giorni = SUCCESSIVO[turno['tipo']]
     giorno_dopo = giorno + timedelta(days=giorni)
-    avanzo_dopo = turno.get('contati') if turno.get('contati') is not None else attesi
+    cassetto = turno.get('contati') if turno.get('contati') is not None else totale_cassa - cassaforte
+    avanzo_dopo = round(cassetto + cassaforte, 2)
     wb2 = openpyxl.load_workbook(MODELLO)
     ws2 = wb2.active
     ws2['I20'] = datetime.combine(giorno_dopo, time())
     ws2['I22'] = tipo_dopo.upper()
     ws2['D7'] = avanzo_dopo
+    if ora_oggi:
+        ws2['I24'] = ora_oggi
+    if cassaforte:
+        ws2['I28'] = cassaforte
     if contatore_finale is not None:
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
@@ -1131,7 +1154,8 @@ def crea_excel(righe, turno, orario_terminale, cartella):
 
     stato.update({'contatore': contatore_finale if contatore_finale is not None else stato.get('contatore'),
                   'taniche': taniche_attuali if taniche_attuali is not None else stato.get('taniche'),
-                  'avanzo': avanzo_dopo})
+                  'avanzo': avanzo_dopo,
+                  'orario_chiusura': ora_oggi.strftime('%H:%M:%S') if ora_oggi else None})
     salva_stato(stato)
 
     messaggi = [f"📗 Excel: Download/Chiusure_Turno/{os.path.basename(path_turno)}",
@@ -1250,8 +1274,8 @@ def tipo_turno(momento):
 
     nome = min(TURNI, key=distanza)
     data_inizio = momento.date()
-    if nome == 'Notte' and momento.hour < 12:  # aperto dopo mezzanotte: la notte è iniziata ieri
-        data_inizio -= timedelta(days=1)
+    if nome == 'Notte' and momento.hour >= 12:  # la notte porta la data del giorno dopo (aperta alle 22 del 4 = notte del 5)
+        data_inizio += timedelta(days=1)
     return nome, data_inizio
 
 
@@ -1510,6 +1534,10 @@ def prospetto_cassa(vv, t):
     if versamento:
         out.append(f"  {'- Versamenti':<20} {euro(versamento):>12}")
     out.append(f"  {'= Contanti attesi':<20} {euro(attesi):>12}")
+    if t.get("cassaforte"):
+        out.append(f"  {'di cui in cassaforte':<20} {euro(t['cassaforte']):>12}")
+        attesi -= t["cassaforte"]
+        out.append(f"  {'= Attesi nel cassetto':<20} {euro(attesi):>12}")
     if t.get("contati") is not None:
         out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(attesi, t['contati'])}")
     out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
@@ -1670,7 +1698,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
+def chiudi_turno(orario_terminale="", contati_testo="", pos_testo="", cassaforte_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
@@ -1683,6 +1711,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["pos"] = importo_da_testo(pos_testo)
+    t["cassaforte"] = importo_da_testo(cassaforte_testo)
     if t["contati"] is not None:
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")
@@ -1732,8 +1761,8 @@ def main():
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        argomenti = sys.argv[2:] + ["", "", ""]
-        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
+        argomenti = sys.argv[2:] + ["", "", "", ""]
+        chiudi_turno(argomenti[0], argomenti[1], argomenti[2], argomenti[3])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:
