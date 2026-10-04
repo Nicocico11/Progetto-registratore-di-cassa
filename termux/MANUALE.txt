@@ -28,6 +28,10 @@ Di': "APERTURA TURNO"
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 
+Solo la PRIMA volta (poi il telefono li aggiorna da solo turno dopo turno):
+• "contatore adblue 68624 virgola 4" = numero sulla colonnina AdBlue
+• "contatore taniche 59" = taniche AdBlue in magazzino
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 3. REGISTRARE LE VENDITE
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -57,6 +61,12 @@ PAGAMENTI (si dicono in fondo alla frase)
 • carta  •  pos  •  bancomat
 • cartissima / carta carburante
 
+RESTO ARROTONDATO / ABBUONI
+• Il cliente fa 20,10 e gli dai il resto di 20:
+  "20 e 10 di gasolio, abbuono 10 centesimi"
+  (oppure subito dopo la vendita: "abbuono 10 centesimi")
+  La vendita resta 20,10 come sulla pompa, l'abbuono va negli SCONTI e la cassa torna.
+
 PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 • "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
 
@@ -73,6 +83,9 @@ arriva la notifica "STAMPARE RICEVUTA". Con contanti e cartissima no.
 • Al posto di "ultima" puoi dire "penultima".
 • Nelle vendite con più cose si può correggere solo il pagamento:
   per il resto cancellala e ridettala.
+
+VERSAMENTI
+• Se togli contanti dal cassetto per il versamento: "versamento 500"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 5. CONTROLLARE DURANTE IL TURNO
@@ -97,6 +110,16 @@ Il documento di chiusura viene salvato in:
   Download → Chiusure_Turno → es. 2026-10-02_Mattina.txt
 Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
 (avanzo + contanti = attesi, confrontati con i contati) e l'elenco di tutte le vendite.
+
+Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
+  • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
+    data, turno, ora chiusura, DANEA, TELEFAX, sconti, litri AdBlue, contatori,
+    taniche, scontrini POS registratore, avanzo precedente e (negli spiccioli
+    cassetto) i contanti che dovrebbero esserci.
+  • 04_10_2026_notte.xlsx = il turno dopo, già "imbastito" (data, turno, avanzo,
+    contatore AdBlue iniziale, taniche precedenti).
+  Sul computer restano da scrivere: totale carburanti, PAX, POS banca, OPT,
+  crediti, ricariche, versamento, operatore.
 
 Dopo la chiusura l'IA si spegne e le notifiche spariscono.
 Il conteggio dei contanti viene proposto come avanzo al turno successivo.

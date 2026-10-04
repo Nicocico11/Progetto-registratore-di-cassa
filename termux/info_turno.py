@@ -7,6 +7,9 @@ import shutil
 import glob
 import re
 
+# I moduli della cassa vocale (excel_turno.py) stanno nella cartella di Tasker
+sys.path.insert(0, os.path.expanduser("~/.termux/tasker"))
+
 # Uso: python3 info_turno.py [notifica | ultimi | totali | market | adblue |
 #                             apri turno | chiudi turno [HH:MM] |
 #                             cancella ultima | cancella penultima | archivio]
@@ -142,6 +145,14 @@ def apri_turno(avanzo_testo=""):
     salva_turno(turno)
     print(f"📅 {descrivi_turno(turno)}")
     print(f"💶 Avanzo cassa turno precedente: {euro(turno['avanzo']) if turno['avanzo'] is not None else '(non inserito)'}")
+    try:
+        import excel_turno
+        stato = excel_turno.leggi_stato()
+        c, tn = stato.get("contatore"), stato.get("taniche")
+        print(f"🧪 AdBlue: contatore {c:g}" if c is not None else "🧪 Di' \"contatore adblue …\" (valore sulla colonnina)")
+        print(f"🧪 Taniche: {tn}" if tn is not None else "🧪 Di' \"contatore taniche …\" (taniche in magazzino)")
+    except Exception:
+        pass
     print(salva_documento([], turno))
 
 
@@ -166,6 +177,37 @@ def imposta_avanzo(testo):
     t["avanzo"] = valore
     salva_turno(t)
     print(f"💶 Avanzo cassa turno precedente: {euro(valore)}")
+
+
+def imposta_contatore(testo):
+    """"contatore adblue 68624,4" / "contatore taniche 59": valori di partenza del turno."""
+    import excel_turno
+    testo = re.sub(r'\s+virgola\s+', ',', testo.lower())
+    valore = re.search(r'\d+(?:[.,]\d+)?', testo)
+    if not valore:
+        print("❓ Di' il numero, es. \"contatore adblue 68624,4\" o \"contatore taniche 59\".")
+        sys.exit(1)
+    valore = float(valore.group(0).replace(",", "."))
+    stato = excel_turno.leggi_stato()
+    if "tanic" in testo:
+        stato["taniche"] = int(valore)
+        print(f"🧪 Taniche AdBlue all'inizio del turno: {int(valore)}")
+    else:
+        stato["contatore"] = valore
+        print(f"🧪 Contatore AdBlue all'inizio del turno: {valore:g}")
+    excel_turno.salva_stato(stato)
+
+
+def aggiungi_versamento(testo):
+    """"versamento 500": contanti tolti dal cassetto (non vanno più contati negli attesi)."""
+    valore = importo_da_testo(re.sub(r'\s+virgola\s+', ',', testo))
+    if valore is None:
+        print("❓ Di' l'importo, es. \"versamento 500\".")
+        sys.exit(1)
+    t = turno_attuale(leggi_csv())
+    t["versamento"] = round((t.get("versamento") or 0) + valore, 2)
+    salva_turno(t)
+    print(f"🏦 Versamento registrato: {euro(valore)} (totale versato nel turno: {euro(t['versamento'])})")
 
 
 def turno_attuale(righe):
@@ -307,7 +349,7 @@ def prospetto_adblue(vv, dettaglio=True):
 
 def prospetto_cassa(vv, t):
     """Quadratura: avanzo + vendite in contanti = contanti attesi, confrontati con quelli contati."""
-    if not t or (t.get("avanzo") is None and t.get("contati") is None and t.get("pos") is None):
+    if not t or all(t.get(k) is None for k in ("avanzo", "contati", "pos", "versamento")):
         return []
     contanti = sum(v["importo"] for v in vv if v["metodo"] == "Contanti")
     elettronico = sum(v["importo"] for v in vv if v["metodo"] in ("Carta", "POS", "Bancomat"))
@@ -319,12 +361,16 @@ def prospetto_cassa(vv, t):
             return "✅ quadra"
         return f"⚠️ {'in più' if d > 0 else 'mancano'} {euro(abs(d))}"
 
+    versamento = t.get("versamento") or 0.0
+    attesi = avanzo + contanti - versamento
     out = ["", "💶 QUADRATURA CASSA",
            f"  {'Avanzo turno prec.':<20} {euro(avanzo) if t.get('avanzo') is not None else '(non inserito)':>12}",
-           f"  {'+ Vendite contanti':<20} {euro(contanti):>12}",
-           f"  {'= Contanti attesi':<20} {euro(avanzo + contanti):>12}"]
+           f"  {'+ Vendite contanti':<20} {euro(contanti):>12}"]
+    if versamento:
+        out.append(f"  {'- Versamenti':<20} {euro(versamento):>12}")
+    out.append(f"  {'= Contanti attesi':<20} {euro(attesi):>12}")
     if t.get("contati") is not None:
-        out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(avanzo + contanti, t['contati'])}")
+        out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(attesi, t['contati'])}")
     out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
     if t.get("pos") is not None:
         out.append(f"  {'Totale POS':<20} {euro(t['pos']):>12}   {differenza(elettronico, t['pos'])}")
@@ -361,6 +407,10 @@ def prospetto_completo(righe, titolo, t=None):
         out.append("")
         out.append("📠 FAX / FOTOCOPIE")
         out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
+    sconti = [v for v in vv if v["reparto"] == "Sconto"]
+    if sconti:
+        out.append("")
+        out.append(f"🏷️ SCONTI / ABBUONI ({len(sconti)}): {euro(sum(v['importo'] for v in sconti))}")
     out.append("")
     out += prospetto_market(vv)
     out += prospetto_cassa(vv, t)
@@ -382,7 +432,7 @@ def notifica_breve(righe):
     parti = []
     for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
         parti.append(f"{nome.upper()}: {val:.2f}€")
-    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET")):
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:
             parti.append(f"{icona}: {val:.2f}€")
@@ -499,6 +549,14 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
     testo = testo_documento(righe, t, finale=True, orario_terminale=orario_terminale)
     salvato = salva_documento(righe, t, finale=True, orario_terminale=orario_terminale)
 
+    try:
+        import excel_turno
+        messaggi_excel, _ = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+    except ImportError:
+        messaggi_excel = ["⚠️ Excel non creato: manca openpyxl (riesegui l'installazione con internet)"]
+    except Exception as e:
+        messaggi_excel = [f"⚠️ Excel non creato ({e})"]
+
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
     shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
     scrivi_csv([])
@@ -507,6 +565,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
 
     print(testo.split("\n📋")[0])
     print(salvato)
+    print("\n".join(messaggi_excel))
 
 
 def main():
@@ -525,6 +584,10 @@ def main():
             print(open(PATH_ULTIMO_CONTEGGIO).read().strip().replace(".", ","))
         except Exception:
             pass
+    elif comando.startswith("contatore"):
+        imposta_contatore(" ".join(sys.argv[2:]) or comando)
+    elif comando.startswith("versamento"):
+        aggiungi_versamento(" ".join(sys.argv[2:]))
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:

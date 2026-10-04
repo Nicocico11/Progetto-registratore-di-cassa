@@ -101,3 +101,14 @@ reparto e unità propri. Se un nome detto vale per più prodotti con prezzi dive
 viene rifiutata chiedendo il nome completo. `installa.sh` installa il listino solo se è cambiato.
 
 `installa.sh` si genera con `bash termux/genera_installa.sh` (non va modificato a mano).
+
+## File Excel del distributore
+
+`excel_turno.py` compila `modello_turno.xlsx` (il modello "TURNO NUOVO", con protezione del foglio)
+scrivendo solo nelle caselle bianche: data/turno/ora chiusura (I20/I22/I24), DANEA (E2:H29),
+TELEFAX (A21:D25), sconti (I5:O6), litri AdBlue sfuso (I17:N18), contatore AdBlue (O20 iniziale,
+O19 = iniziale + litri), taniche (K30 precedenti, K31 = precedenti - vendute), scontrini POS
+registratore (S27:V32), avanzo precedente (D7) e contanti attesi negli spiccioli cassetto (D34).
+Prepara anche il file del turno successivo (data, turno, D7, O20, K30). Lo stato tra un turno e
+l'altro è in `~/stato_cassa.json`. Comandi: "contatore adblue N", "contatore taniche N",
+"versamento N", "abbuono N centesimi".

@@ -7,10 +7,12 @@ echo '#!/bin/bash'
 echo '# Installa / aggiorna la cassa vocale. Generato da genera_installa.sh: non modificarlo a mano.'
 echo '# Copia di sicurezza dei file attuali (solo la prima volta: le copie .vecchio non vengono sovrascritte)'
 echo 'for f in ~/.termux/tasker/avvia_ia.sh ~/.termux/tasker/avvia_server.sh ~/.termux/tasker/processa_ia.py ~/.termux/tasker/notifica.sh ~/info_turno.py; do [ -f "$f" ] && [ ! -f "$f.vecchio" ] && cp "$f" "$f.vecchio"; done'
-for f in avvia_ia.sh avvia_server.sh stato_ia.sh notifica.sh processa_ia.py vibra.sh migra_prezzi.py danea_listino.py; do
+for f in avvia_ia.sh avvia_server.sh stato_ia.sh notifica.sh processa_ia.py vibra.sh migra_prezzi.py danea_listino.py excel_turno.py; do
   echo "cat > ~/.termux/tasker/$f <<'FINE_FILE'"; cat $f; echo "FINE_FILE"
 done
 echo "cat > ~/info_turno.py <<'FINE_FILE'"; cat info_turno.py; echo "FINE_FILE"
+echo '# Modello Excel del turno (file binario, codificato in base64)'
+echo "base64 -d > ~/.termux/tasker/modello_turno.xlsx <<'FINE_FILE'"; base64 modello_turno.xlsx; echo "FINE_FILE"
 
 echo '# Listino Danea: si installa solo se è cambiato (il listino attuale resta in prezzi.json.vecchio)'
 echo "cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'"; cat prezzi_danea.json; echo "FINE_FILE"

@@ -105,6 +105,16 @@ case "$FRASE" in
     python3 $CARTELLA/processa_ia.py --correggi $QUALE "$TESTO"
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+  *"contatore"*)
+    # "contatore adblue 68624,4" / "contatore taniche 59": valori di partenza
+    python3 ~/info_turno.py contatore "$FRASE"
+    ESITO=$? ;;
+  *"versamento"*|*"versato"*)
+    if turno_aperto; then
+      python3 ~/info_turno.py versamento "$FRASE"
+      ESITO=$?
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+    fi ;;
   *"avanzo"*)
     if turno_aperto; then
       python3 ~/info_turno.py avanzo "$FRASE"

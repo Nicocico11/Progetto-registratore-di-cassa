@@ -179,8 +179,25 @@ def voce_carburante(testo):
     return {"categoria": categoria, "reparto": "Carburante", "importo": importo}
 
 
+PAROLE_SCONTO = r'\b(sconto|sconti|abbuono|abbuonati|abbuonato|arrotondamento|arrotondato)\b'
+
+
+def voce_sconto(testo):
+    # "abbuono 10 centesimi" / "sconto 0,10" / "sconto 2 euro": soldi non incassati (importo negativo)
+    m = re.search(NUMERO + r'\s*centesim', testo)
+    if m:
+        importo = float(m.group(1).replace(',', '.')) / 100
+    else:
+        importo = numero_in_euro(testo) or primo_numero(testo)
+    if not importo:
+        return None
+    return {"categoria": "Sconto/abbuono", "reparto": "Sconto", "importo": -round(importo, 2)}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(PAROLE_SCONTO, testo):
+        return voce_sconto(testo)
     prodotto = trova_prodotto_listino(testo)
     if prodotto:
         return voce_listino(prodotto, testo)
@@ -188,7 +205,7 @@ def voce(testo):
 
 
 def ha_voce(testo):
-    return bool(trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(PAROLE_SCONTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):
@@ -447,7 +464,7 @@ if voci == [None]:
                  "reparto": "Carburante", "importo": numero_in_euro(testo_basso) or numeri_detti[0]}]
         origine = 'emergenza'
 
-if any(float(v['importo']) <= 0 for v in voci):
+if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     print("❌ Transazione scartata: Nessun importo valido rilevato.")
     sys.exit(1)
 

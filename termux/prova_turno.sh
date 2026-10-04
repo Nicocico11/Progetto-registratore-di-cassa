@@ -7,7 +7,7 @@ set -u
 QUI=$(cd "$(dirname "$0")" && pwd)
 export HOME=$(mktemp -d)
 mkdir -p $HOME/.termux/tasker $HOME/bin $HOME/storage/downloads $HOME/llama.cpp/build/bin
-cp $QUI/*.sh $QUI/processa_ia.py $QUI/migra_prezzi.py $HOME/.termux/tasker/
+cp $QUI/*.sh $QUI/processa_ia.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
 cp $QUI/info_turno.py $HOME/
 for c in termux-vibrate termux-wake-lock termux-wake-unlock; do
   printf '#!/bin/bash\n' > $HOME/bin/$c; chmod +x $HOME/bin/$c
@@ -51,7 +51,12 @@ controlla "accendi ia a turno chiuso" "accendi ia"                              
 sleep 1; grep -q "^mostra" $HOME/notifiche.log 2>/dev/null && { echo "  ERRORE notifiche a turno chiuso"; ERRORI=$((ERRORI+1)); } || echo "  ok   nessuna notifica a turno chiuso"
 controlla "apertura turno con avanzo" "apertura turno"                               "150.50"
 [ -f $D/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
+controlla "contatore adblue"          "contatore adblue 1000 virgola 5"              "1000.5"
+controlla "contatore taniche"         "contatore taniche 10"                         "10"
 controlla "vendita carburante"        "20 euro di gasolio carta"                     "Gasolio 20.00"
+controlla "abbuono"                   "20 e 10 di gasolio, abbuono 10 centesimi"     "-0.10"
+controlla "tanica adblue con carta"   "tanica di adblue pos"                         "STAMPARE RICEVUTA"
+controlla "versamento"                "versamento 50"                                "50.00"
 controlla "numeri in lettere"         "trentacinque di verde col pos"                "Benzina 35.00"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
 controlla "vendita mista"             "50 gasolio, 20 litri di adblue e 2 red bull con carta" "3 voci"
@@ -74,6 +79,27 @@ controlla "ripristino da Download"    "ripristina turno"                        
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
 grep -q "Contanti contati" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
+python3 - "$D" <<'PYEOF' && echo "  ok   file Excel compilati" || { echo "  ERRORE file Excel"; ERRORI=$((ERRORI+1)); }
+import glob, sys, openpyxl
+d = sys.argv[1]
+files = sorted(glob.glob(d + "/*.xlsx"))
+assert len(files) == 2, files
+oggi = [f for f in files if openpyxl.load_workbook(f).active['D2'].value is None and openpyxl.load_workbook(f).active['E2'].value]
+ws = openpyxl.load_workbook(oggi[0]).active
+assert ws['O20'].value == 1000.5 and ws['O19'].value == 1020.5, (ws['O20'].value, ws['O19'].value)   # +20 litri
+assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 tanica venduta
+assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
+assert ws['I5'].value == 0.1                                              # abbuono
+assert 26 in [ws[c].value for c in ('S27', 'T27', 'U27')]                 # scontrino tanica con POS
+assert ws['D7'].value == 160 and str(ws['I24'].value) == '14:05:32'
+assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
+assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte
+dopo = [f for f in files if f not in oggi][0]
+w2 = openpyxl.load_workbook(dopo).active
+dopo_atteso = {'MATTINA': 'POMERIGGIO', 'POMERIGGIO': 'NOTTE', 'NOTTE': 'MATTINA'}[ws['I22'].value]
+assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 200 and w2['I22'].value == dopo_atteso, \
+    (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
+PYEOF
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }
 

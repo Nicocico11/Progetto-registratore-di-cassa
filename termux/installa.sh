@@ -110,6 +110,16 @@ case "$FRASE" in
     python3 $CARTELLA/processa_ia.py --correggi $QUALE "$TESTO"
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
+  *"contatore"*)
+    # "contatore adblue 68624,4" / "contatore taniche 59": valori di partenza
+    python3 ~/info_turno.py contatore "$FRASE"
+    ESITO=$? ;;
+  *"versamento"*|*"versato"*)
+    if turno_aperto; then
+      python3 ~/info_turno.py versamento "$FRASE"
+      ESITO=$?
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+    fi ;;
   *"avanzo"*)
     if turno_aperto; then
       python3 ~/info_turno.py avanzo "$FRASE"
@@ -468,8 +478,25 @@ def voce_carburante(testo):
     return {"categoria": categoria, "reparto": "Carburante", "importo": importo}
 
 
+PAROLE_SCONTO = r'\b(sconto|sconti|abbuono|abbuonati|abbuonato|arrotondamento|arrotondato)\b'
+
+
+def voce_sconto(testo):
+    # "abbuono 10 centesimi" / "sconto 0,10" / "sconto 2 euro": soldi non incassati (importo negativo)
+    m = re.search(NUMERO + r'\s*centesim', testo)
+    if m:
+        importo = float(m.group(1).replace(',', '.')) / 100
+    else:
+        importo = numero_in_euro(testo) or primo_numero(testo)
+    if not importo:
+        return None
+    return {"categoria": "Sconto/abbuono", "reparto": "Sconto", "importo": -round(importo, 2)}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(PAROLE_SCONTO, testo):
+        return voce_sconto(testo)
     prodotto = trova_prodotto_listino(testo)
     if prodotto:
         return voce_listino(prodotto, testo)
@@ -477,7 +504,7 @@ def voce(testo):
 
 
 def ha_voce(testo):
-    return bool(trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(PAROLE_SCONTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):
@@ -736,7 +763,7 @@ if voci == [None]:
                  "reparto": "Carburante", "importo": numero_in_euro(testo_basso) or numeri_detti[0]}]
         origine = 'emergenza'
 
-if any(float(v['importo']) <= 0 for v in voci):
+if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     print("❌ Transazione scartata: Nessun importo valido rilevato.")
     sys.exit(1)
 
@@ -952,6 +979,165 @@ if __name__ == '__main__':
     if saltati:
         print(f"⚠️ Saltati {len(saltati)} prodotti senza prezzo o senza nome utilizzabile: {', '.join(saltati[:10])}")
 FINE_FILE
+cat > ~/.termux/tasker/excel_turno.py <<'FINE_FILE'
+import json, os
+from datetime import datetime, date, time, timedelta
+
+# Compila il modello Excel del distributore ("TURNO NUOVO") con i dati del turno appena chiuso
+# e prepara ("imbastisce") il file del turno successivo.
+# Si scrive SOLO nelle caselle bianche: formule e protezione del foglio restano intatte.
+
+MODELLO = os.path.expanduser('~/.termux/tasker/modello_turno.xlsx')
+PATH_STATO = os.path.expanduser('~/stato_cassa.json')  # contatore AdBlue, taniche, avanzo tra un turno e l'altro
+
+# Caselle del modello (nell'ordine in cui le sommano le formule del foglio)
+DANEA = [(f'E{r}', f'H{r}') for r in range(2, 30)]                                  # descrizione, importo
+TELEFAX = [f'{c}{r}' for r in range(21, 26) for c in 'ABCD']
+ADBLUE_LITRI = [f'{c}17' for c in 'IJKLMNO'] + [f'{c}18' for c in 'IJKLMN']
+SCONTRINI_POS = [f'{c}{r}' for r in range(27, 33) for c in 'STUV']
+SCONTI = [f'{c}{r}' for r in (5, 6) for c in 'IJKLMNO']
+SUCCESSIVO = {'Mattina': ('Pomeriggio', 0), 'Pomeriggio': ('Notte', 0), 'Notte': ('Mattina', 1)}
+
+
+def leggi_stato():
+    try:
+        with open(PATH_STATO, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def salva_stato(stato):
+    with open(PATH_STATO, 'w', encoding='utf-8') as f:
+        json.dump(stato, f)
+
+
+def riempi(ws, caselle, valori, avvisi, nome):
+    """Scrive i valori nelle caselle; se non bastano, somma il resto nell'ultima."""
+    valori = [round(v, 2) for v in valori if v]
+    if len(valori) > len(caselle):
+        avvisi.append(f"{nome}: {len(valori)} voci, caselle {len(caselle)}: le ultime sono sommate insieme")
+        valori = valori[:len(caselle) - 1] + [round(sum(valori[len(caselle) - 1:]), 2)]
+    for casella, valore in zip(caselle, valori):
+        ws[casella] = valore
+
+
+def nome_file(giorno, tipo):
+    return f"{giorno.strftime('%d_%m_%Y')}_{tipo.lower()}.xlsx"
+
+
+def crea_excel(righe, turno, orario_terminale, cartella):
+    """Crea <data>_<turno>.xlsx (turno concluso) e il file del turno successivo.
+    Restituisce (lista di messaggi, stato aggiornato)."""
+    import openpyxl
+    avvisi = []
+    stato = leggi_stato()
+    voci = []
+    for r in righe:
+        try:
+            voci.append(json.loads(r[1]))
+        except Exception:
+            pass
+    imp = lambda v: float(v.get('importo', 0) or 0)
+    q = lambda v: float(v.get('quantita', 1) or 1)
+    giorno = date.fromisoformat(turno['data_file'])
+
+    wb = openpyxl.load_workbook(MODELLO)
+    ws = wb.active
+
+    # Intestazione: data, turno, ora di chiusura (orario del terminale pompe)
+    ws['I20'] = datetime.combine(giorno, time())
+    ws['I22'] = turno['tipo'].upper()
+    try:
+        h, m, s = (int(x) for x in orario_terminale.split()[0].split(':'))
+        ws['I24'] = time(h, m, s)
+    except Exception:
+        avvisi.append("ora chiusura non inserita: scrivila a mano")
+
+    # DANEA: prodotti market raggruppati ("3x RED BULL")
+    gruppi = {}
+    for v in voci:
+        if v.get('reparto') == 'Market':
+            n, tot = gruppi.get(v['categoria'], (0.0, 0.0))
+            gruppi[v['categoria']] = (n + q(v), tot + imp(v))
+    danea = sorted(gruppi.items(), key=lambda x: -x[1][1])
+    if len(danea) > len(DANEA):
+        avvisi.append(f"DANEA: {len(danea)} prodotti, righe {len(DANEA)}: gli ultimi sono sommati in 'ALTRI'")
+        resto = danea[len(DANEA) - 1:]
+        danea = danea[:len(DANEA) - 1] + [('ALTRI', (sum(x[1][0] for x in resto), sum(x[1][1] for x in resto)))]
+    for (c_desc, c_imp), (nome, (n, tot)) in zip(DANEA, danea):
+        ws[c_desc] = nome if n == 1 else f"{n:g}x {nome}"
+        ws[c_imp] = round(tot, 2)
+
+    # TELEFAX, sconti, litri AdBlue sfuso
+    riempi(ws, TELEFAX, [imp(v) for v in voci if v.get('reparto') == 'Fax'], avvisi, "TELEFAX")
+    riempi(ws, SCONTI, [-imp(v) for v in voci if v.get('reparto') == 'Sconto'], avvisi, "SCONTI")
+    litri = [q(v) for v in voci if v.get('reparto') == 'AdBlue' and v.get('unita') == 'l']
+    riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
+
+    # Scontrini POS del registratore: market, fax e taniche pagati con carta / POS / bancomat
+    per_scontrino = {}
+    for v in voci:
+        da_scontrino = v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')
+        if da_scontrino and v.get('metodo_pagamento') in ('Carta', 'POS', 'Bancomat'):
+            chiave = v.get('transazione') or id(v)
+            per_scontrino[chiave] = per_scontrino.get(chiave, 0.0) + imp(v)
+    riempi(ws, SCONTRINI_POS, list(per_scontrino.values()), avvisi, "SCONTRINI POS")
+
+    # Contatore AdBlue e taniche: iniziali dal turno prima, finali calcolati dalle vendite
+    contatore_finale = taniche_attuali = None
+    if stato.get('contatore') is not None:
+        ws['O20'] = stato['contatore']
+        contatore_finale = round(stato['contatore'] + sum(litri), 2)
+        ws['O19'] = contatore_finale
+    else:
+        avvisi.append("contatore AdBlue iniziale sconosciuto: di' \"contatore adblue …\" all'apertura")
+    vendute = sum(q(v) for v in voci if v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')
+    if stato.get('taniche') is not None:
+        ws['K30'] = stato['taniche']
+        taniche_attuali = stato['taniche'] - vendute
+        ws['K31'] = taniche_attuali
+    else:
+        avvisi.append("taniche AdBlue sconosciute: di' \"contatore taniche …\" all'apertura")
+
+    # Cassa: avanzo precedente; nei "spiccioli cassetto" i contanti che dovrebbero esserci
+    avanzo = turno.get('avanzo')
+    if avanzo is not None:
+        ws['D7'] = avanzo
+    contanti = sum(imp(v) for v in voci if v.get('metodo_pagamento') == 'Contanti')
+    attesi = round((avanzo or 0) + contanti - (turno.get('versamento') or 0), 2)
+    ws['D34'] = attesi
+
+    os.makedirs(cartella, exist_ok=True)
+    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo']))
+    wb.save(path_turno)
+
+    # Turno successivo "imbastito"
+    tipo_dopo, giorni = SUCCESSIVO[turno['tipo']]
+    giorno_dopo = giorno + timedelta(days=giorni)
+    avanzo_dopo = turno.get('contati') if turno.get('contati') is not None else attesi
+    wb2 = openpyxl.load_workbook(MODELLO)
+    ws2 = wb2.active
+    ws2['I20'] = datetime.combine(giorno_dopo, time())
+    ws2['I22'] = tipo_dopo.upper()
+    ws2['D7'] = avanzo_dopo
+    if contatore_finale is not None:
+        ws2['O20'] = contatore_finale
+    if taniche_attuali is not None:
+        ws2['K30'] = taniche_attuali
+    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo))
+    if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
+        wb2.save(path_dopo)
+
+    stato.update({'contatore': contatore_finale if contatore_finale is not None else stato.get('contatore'),
+                  'taniche': taniche_attuali if taniche_attuali is not None else stato.get('taniche'),
+                  'avanzo': avanzo_dopo})
+    salva_stato(stato)
+
+    messaggi = [f"📗 Excel: Download/Chiusure_Turno/{os.path.basename(path_turno)}",
+                f"📘 Turno dopo: Download/Chiusure_Turno/{os.path.basename(path_dopo)}"]
+    return messaggi + [f"⚠️ {a}" for a in avvisi], stato
+FINE_FILE
 cat > ~/info_turno.py <<'FINE_FILE'
 import csv
 import json
@@ -961,6 +1147,9 @@ from datetime import datetime, timedelta
 import shutil
 import glob
 import re
+
+# I moduli della cassa vocale (excel_turno.py) stanno nella cartella di Tasker
+sys.path.insert(0, os.path.expanduser("~/.termux/tasker"))
 
 # Uso: python3 info_turno.py [notifica | ultimi | totali | market | adblue |
 #                             apri turno | chiudi turno [HH:MM] |
@@ -1097,6 +1286,14 @@ def apri_turno(avanzo_testo=""):
     salva_turno(turno)
     print(f"📅 {descrivi_turno(turno)}")
     print(f"💶 Avanzo cassa turno precedente: {euro(turno['avanzo']) if turno['avanzo'] is not None else '(non inserito)'}")
+    try:
+        import excel_turno
+        stato = excel_turno.leggi_stato()
+        c, tn = stato.get("contatore"), stato.get("taniche")
+        print(f"🧪 AdBlue: contatore {c:g}" if c is not None else "🧪 Di' \"contatore adblue …\" (valore sulla colonnina)")
+        print(f"🧪 Taniche: {tn}" if tn is not None else "🧪 Di' \"contatore taniche …\" (taniche in magazzino)")
+    except Exception:
+        pass
     print(salva_documento([], turno))
 
 
@@ -1121,6 +1318,37 @@ def imposta_avanzo(testo):
     t["avanzo"] = valore
     salva_turno(t)
     print(f"💶 Avanzo cassa turno precedente: {euro(valore)}")
+
+
+def imposta_contatore(testo):
+    """"contatore adblue 68624,4" / "contatore taniche 59": valori di partenza del turno."""
+    import excel_turno
+    testo = re.sub(r'\s+virgola\s+', ',', testo.lower())
+    valore = re.search(r'\d+(?:[.,]\d+)?', testo)
+    if not valore:
+        print("❓ Di' il numero, es. \"contatore adblue 68624,4\" o \"contatore taniche 59\".")
+        sys.exit(1)
+    valore = float(valore.group(0).replace(",", "."))
+    stato = excel_turno.leggi_stato()
+    if "tanic" in testo:
+        stato["taniche"] = int(valore)
+        print(f"🧪 Taniche AdBlue all'inizio del turno: {int(valore)}")
+    else:
+        stato["contatore"] = valore
+        print(f"🧪 Contatore AdBlue all'inizio del turno: {valore:g}")
+    excel_turno.salva_stato(stato)
+
+
+def aggiungi_versamento(testo):
+    """"versamento 500": contanti tolti dal cassetto (non vanno più contati negli attesi)."""
+    valore = importo_da_testo(re.sub(r'\s+virgola\s+', ',', testo))
+    if valore is None:
+        print("❓ Di' l'importo, es. \"versamento 500\".")
+        sys.exit(1)
+    t = turno_attuale(leggi_csv())
+    t["versamento"] = round((t.get("versamento") or 0) + valore, 2)
+    salva_turno(t)
+    print(f"🏦 Versamento registrato: {euro(valore)} (totale versato nel turno: {euro(t['versamento'])})")
 
 
 def turno_attuale(righe):
@@ -1262,7 +1490,7 @@ def prospetto_adblue(vv, dettaglio=True):
 
 def prospetto_cassa(vv, t):
     """Quadratura: avanzo + vendite in contanti = contanti attesi, confrontati con quelli contati."""
-    if not t or (t.get("avanzo") is None and t.get("contati") is None and t.get("pos") is None):
+    if not t or all(t.get(k) is None for k in ("avanzo", "contati", "pos", "versamento")):
         return []
     contanti = sum(v["importo"] for v in vv if v["metodo"] == "Contanti")
     elettronico = sum(v["importo"] for v in vv if v["metodo"] in ("Carta", "POS", "Bancomat"))
@@ -1274,12 +1502,16 @@ def prospetto_cassa(vv, t):
             return "✅ quadra"
         return f"⚠️ {'in più' if d > 0 else 'mancano'} {euro(abs(d))}"
 
+    versamento = t.get("versamento") or 0.0
+    attesi = avanzo + contanti - versamento
     out = ["", "💶 QUADRATURA CASSA",
            f"  {'Avanzo turno prec.':<20} {euro(avanzo) if t.get('avanzo') is not None else '(non inserito)':>12}",
-           f"  {'+ Vendite contanti':<20} {euro(contanti):>12}",
-           f"  {'= Contanti attesi':<20} {euro(avanzo + contanti):>12}"]
+           f"  {'+ Vendite contanti':<20} {euro(contanti):>12}"]
+    if versamento:
+        out.append(f"  {'- Versamenti':<20} {euro(versamento):>12}")
+    out.append(f"  {'= Contanti attesi':<20} {euro(attesi):>12}")
     if t.get("contati") is not None:
-        out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(avanzo + contanti, t['contati'])}")
+        out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(attesi, t['contati'])}")
     out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
     if t.get("pos") is not None:
         out.append(f"  {'Totale POS':<20} {euro(t['pos']):>12}   {differenza(elettronico, t['pos'])}")
@@ -1316,6 +1548,10 @@ def prospetto_completo(righe, titolo, t=None):
         out.append("")
         out.append("📠 FAX / FOTOCOPIE")
         out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
+    sconti = [v for v in vv if v["reparto"] == "Sconto"]
+    if sconti:
+        out.append("")
+        out.append(f"🏷️ SCONTI / ABBUONI ({len(sconti)}): {euro(sum(v['importo'] for v in sconti))}")
     out.append("")
     out += prospetto_market(vv)
     out += prospetto_cassa(vv, t)
@@ -1337,7 +1573,7 @@ def notifica_breve(righe):
     parti = []
     for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
         parti.append(f"{nome.upper()}: {val:.2f}€")
-    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET")):
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:
             parti.append(f"{icona}: {val:.2f}€")
@@ -1454,6 +1690,14 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
     testo = testo_documento(righe, t, finale=True, orario_terminale=orario_terminale)
     salvato = salva_documento(righe, t, finale=True, orario_terminale=orario_terminale)
 
+    try:
+        import excel_turno
+        messaggi_excel, _ = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+    except ImportError:
+        messaggi_excel = ["⚠️ Excel non creato: manca openpyxl (riesegui l'installazione con internet)"]
+    except Exception as e:
+        messaggi_excel = [f"⚠️ Excel non creato ({e})"]
+
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
     shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
     scrivi_csv([])
@@ -1462,6 +1706,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo=""):
 
     print(testo.split("\n📋")[0])
     print(salvato)
+    print("\n".join(messaggi_excel))
 
 
 def main():
@@ -1480,6 +1725,10 @@ def main():
             print(open(PATH_ULTIMO_CONTEGGIO).read().strip().replace(".", ","))
         except Exception:
             pass
+    elif comando.startswith("contatore"):
+        imposta_contatore(" ".join(sys.argv[2:]) or comando)
+    elif comando.startswith("versamento"):
+        aggiungi_versamento(" ".join(sys.argv[2:]))
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
@@ -1505,6 +1754,316 @@ def main():
 
 if __name__ == "__main__":
     main()
+FINE_FILE
+# Modello Excel del turno (file binario, codificato in base64)
+base64 -d > ~/.termux/tasker/modello_turno.xlsx <<'FINE_FILE'
+UEsDBBQABgAIAAAAIQB0NlqmegEAAIQFAAATAAgCW0NvbnRlbnRfVHlwZXNdLnhtbCCiBAIooAAC
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACs
+VM1OAjEQvpv4DpteDVvwYIxh4YB6VBLwAWo7sA3dtukMCG/vbEFiDEIIXLbZtvP9TGemP1w3rlhB
+Qht8JXplVxTgdTDWzyvxMX3tPIoCSXmjXPBQiQ2gGA5ub/rTTQQsONpjJWqi+CQl6hoahWWI4Plk
+FlKjiH/TXEalF2oO8r7bfZA6eAJPHWoxxKD/DDO1dFS8rHl7q+TTelGMtvdaqkqoGJ3VilioXHnz
+h6QTZjOrwQS9bBi6xJhAGawBqHFlTJYZ0wSI2BgKeZAzgcPzSHeuSo7MwrC2Ee/Y+j8M7cn/rnZx
+7/wcyRooxirRm2rYu1w7+RXS4jOERXkc5NzU5BSVjbL+R/cR/nwZZV56VxbS+svAJ3QQ1xjI/L1c
+QoY5QYi0cYDXTnsGPcVcqwRmQly986sL+I19QodWTo9qLpErJ2GPe4yfW3qcQkSeGgnOF/DTom10
+JzIQJLKwb9JDxb5n5JFzsWNoZ5oBc4Bb5hk6+AYAAP//AwBQSwMEFAAGAAgAAAAhALVVMCP0AAAA
+TAIAAAsACAJfcmVscy8ucmVscyCiBAIooAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACskk1PwzAMhu9I/IfI99XdkBBCS3dBSLshVH6ASdwP
+tY2jJBvdvyccEFQagwNHf71+/Mrb3TyN6sgh9uI0rIsSFDsjtnethpf6cXUHKiZylkZxrOHEEXbV
+9dX2mUdKeSh2vY8qq7iooUvJ3yNG0/FEsRDPLlcaCROlHIYWPZmBWsZNWd5i+K4B1UJT7a2GsLc3
+oOqTz5t/15am6Q0/iDlM7NKZFchzYmfZrnzIbCH1+RpVU2g5abBinnI6InlfZGzA80SbvxP9fC1O
+nMhSIjQS+DLPR8cloPV/WrQ08cudecQ3CcOryPDJgosfqN4BAAD//wMAUEsDBBQABgAIAAAAIQAO
+roDUaAMAAGAIAAAPAAAAeGwvd29ya2Jvb2sueG1srFVdb6M4FH1faf8D4p1iE0MANR2FANpK7ajq
+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
+DQANAGQDAAC2QAAAAAA=
 FINE_FILE
 # Listino Danea: si installa solo se è cambiato (il listino attuale resta in prezzi.json.vecchio)
 cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
