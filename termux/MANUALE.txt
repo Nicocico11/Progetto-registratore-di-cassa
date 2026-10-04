@@ -74,6 +74,13 @@ RESTO ARROTONDATO / ABBUONI
   (oppure subito dopo la vendita: "abbuono 10 centesimi")
   La vendita resta 20,10 come sulla pompa, l'abbuono va negli SCONTI e la cassa torna.
 
+RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
+• Il cliente fa 19,90, ti dà 20 e non vuole il resto:
+  "19 e 90 di gasolio, ha lasciato 10 centesimi"
+  (oppure subito dopo la vendita: "lasciato 10 centesimi")
+  I centesimi si sommano ai contanti attesi (spiccioli cassetto). Nell'Excel
+  compaiono come differenza in più, e nelle NOTE viene scritto da dove vengono.
+
 PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 • "50 di gasolio, 20 litri di adblue e 2 red bull sul nero"
 

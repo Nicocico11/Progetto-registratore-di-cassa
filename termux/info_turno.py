@@ -433,7 +433,7 @@ def notifica_breve(righe):
     parti = []
     for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
         parti.append(f"{nome.upper()}: {val:.2f}€")
-    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"),
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
                            ("Credito cliente", "📒 CREDITI"), ("Credito riscosso", "💰 RISCOSSI")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:

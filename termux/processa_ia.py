@@ -243,8 +243,22 @@ def voce_sconto(testo):
     return {"categoria": "Sconto/abbuono", "reparto": "Sconto", "importo": -round(importo, 2)}
 
 
+# Il contrario dell'abbuono: il cliente lascia qualche centesimo (contanti in più nel cassetto)
+PAROLE_RESTO = r'\b(lasciat\w*|lascia|eccedenz\w*)\b'
+
+
+def voce_resto(testo):
+    v = voce_sconto(testo)
+    if not v:
+        return None
+    return {"categoria": "Resto lasciato dal cliente", "reparto": "Resto lasciato",
+            "importo": -v['importo'], "metodo_pagamento": "Contanti"}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(PAROLE_RESTO, testo):
+        return voce_resto(testo)
     if re.search(PAROLE_SCONTO, testo):
         return voce_sconto(testo)
     prodotto = trova_prodotto_listino(testo)
@@ -254,7 +268,7 @@ def voce(testo):
 
 
 def ha_voce(testo):
-    return bool(re.search(PAROLE_SCONTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):

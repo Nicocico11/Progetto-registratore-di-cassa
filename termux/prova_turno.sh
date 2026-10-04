@@ -57,6 +57,7 @@ controlla "contatore taniche"         "contatore taniche 10"                    
 controlla "carta generica -> popup"  "20 euro di gasolio carta"                     "Gasolio 20.00 € - POS nero"
 controlla "abbuono"                   "20 e 10 di gasolio, abbuono 10 centesimi"     "-0.10"
 controlla "tanica adblue pos cassa"  "tanica di adblue pagato in cassa"             "STAMPARE RICEVUTA"
+controlla "resto lasciato"            "19 e 90 di gasolio, ha lasciato 10 centesimi" "Resto lasciato dal cliente 0.1"
 controlla "versamento"                "versamento 50"                                "50.00"
 controlla "numeri in lettere"         "trentacinque di verde sul bianco"             "Benzina 35.00 € - POS bianco"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
@@ -90,7 +91,7 @@ grep -q "Gasolio\|gasolio" $D/*_dati.csv && echo "  ok   copia dati aggiornata i
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
-[ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "70.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
+[ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "90.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
 grep -q "Contanti attesi" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
 PYTHONPATH=$HOME/.termux/tasker python3 - "$D" <<'PYEOF' && echo "  ok   file Excel compilati" || { echo "  ERRORE file Excel"; ERRORI=$((ERRORI+1)); }
@@ -104,12 +105,13 @@ assert ws['O20'].value == 1000.5 and ws['O19'].value == 1020.5, (ws['O20'].value
 assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 tanica venduta
 assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
 assert ws['I5'].value == 0.1                                              # abbuono
+assert ws['A39'].value.startswith('RESTI LASCIATI DAI CLIENTI: + 0,10'), ws['A39'].value   # nota resti lasciati
 scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]
 assert scontrini[:2] == [26, 7] and scontrini[2] is None, scontrini        # un scontrino per vendita in cassa
 assert ws['D9'].value == 107 and ws['D12'].value == 144 and ws['D14'].value == 36.5, \
     (ws['D9'].value, ws['D12'].value, ws['D14'].value)                    # petrolifere, POS nero, POS bianco
 assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo turno: ora chiusura precedente sconosciuta
-assert ws['I28'].value == 20 and ws['D34'].value == 50.5, ws['D34'].value   # cassaforte, contanti attesi nel cassetto
+assert ws['I28'].value == 20 and ws['D34'].value == 70.5, ws['D34'].value   # cassaforte, contanti attesi nel cassetto
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
 assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte
 assert (ws['I8'].value, ws['L8'].value, ws['I9'].value) == ('Rossi Mario', 50, None)          # crediti clienti
@@ -130,7 +132,7 @@ assert str(w2['I24'].value) == '14:05:32' and w2['I28'].value == 20     # orario
 import json, os
 stato = json.load(open(os.path.expanduser('~/stato_cassa.json')))
 assert stato['orario_chiusura'] == '14:05:32' and stato['contatore'] == 1020.5 and stato['taniche'] == 9, stato
-assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 70.5 and w2['I22'].value == dopo_atteso, \
+assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 90.5 and w2['I22'].value == dopo_atteso, \
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }

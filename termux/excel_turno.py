@@ -128,6 +128,14 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         riempi(ws, caselle, [imp(v) for v in crediti], avvisi, nome,
                nomi=[v.get('cliente') or '?' for v in crediti])
 
+    # Centesimi lasciati dai clienti: sono contanti in più, il foglio li mostra nella DIFFERENZA.
+    # Una nota (A39) spiega da dove vengono.
+    resti = round(sum(imp(v) for v in voci if v.get('reparto') == 'Resto lasciato'), 2)
+    if resti:
+        n = sum(1 for v in voci if v.get('reparto') == 'Resto lasciato')
+        ws['A39'] = (f"RESTI LASCIATI DAI CLIENTI: + {resti:.2f} € ({n} volte) "
+                     "- contanti in più, compaiono nella differenza").replace('.', ',')
+
     # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
     metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))
     for casella, nome in (('D9', 'Petrolifere'), ('D12', 'POS nero'), ('D14', 'POS bianco')):

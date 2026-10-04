@@ -541,8 +541,22 @@ def voce_sconto(testo):
     return {"categoria": "Sconto/abbuono", "reparto": "Sconto", "importo": -round(importo, 2)}
 
 
+# Il contrario dell'abbuono: il cliente lascia qualche centesimo (contanti in più nel cassetto)
+PAROLE_RESTO = r'\b(lasciat\w*|lascia|eccedenz\w*)\b'
+
+
+def voce_resto(testo):
+    v = voce_sconto(testo)
+    if not v:
+        return None
+    return {"categoria": "Resto lasciato dal cliente", "reparto": "Resto lasciato",
+            "importo": -v['importo'], "metodo_pagamento": "Contanti"}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(PAROLE_RESTO, testo):
+        return voce_resto(testo)
     if re.search(PAROLE_SCONTO, testo):
         return voce_sconto(testo)
     prodotto = trova_prodotto_listino(testo)
@@ -552,7 +566,7 @@ def voce(testo):
 
 
 def ha_voce(testo):
-    return bool(re.search(PAROLE_SCONTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):
@@ -1229,6 +1243,14 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         riempi(ws, caselle, [imp(v) for v in crediti], avvisi, nome,
                nomi=[v.get('cliente') or '?' for v in crediti])
 
+    # Centesimi lasciati dai clienti: sono contanti in più, il foglio li mostra nella DIFFERENZA.
+    # Una nota (A39) spiega da dove vengono.
+    resti = round(sum(imp(v) for v in voci if v.get('reparto') == 'Resto lasciato'), 2)
+    if resti:
+        n = sum(1 for v in voci if v.get('reparto') == 'Resto lasciato')
+        ws['A39'] = (f"RESTI LASCIATI DAI CLIENTI: + {resti:.2f} € ({n} volte) "
+                     "- contanti in più, compaiono nella differenza").replace('.', ',')
+
     # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
     metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))
     for casella, nome in (('D9', 'Petrolifere'), ('D12', 'POS nero'), ('D14', 'POS bianco')):
@@ -1743,7 +1765,7 @@ def notifica_breve(righe):
     parti = []
     for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
         parti.append(f"{nome.upper()}: {val:.2f}€")
-    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"),
+    for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
                            ("Credito cliente", "📒 CREDITI"), ("Credito riscosso", "💰 RISCOSSI")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:
@@ -7542,6 +7564,13 @@ RESTO ARROTONDATO / ABBUONI
   "20 e 10 di gasolio, abbuono 10 centesimi"
   (oppure subito dopo la vendita: "abbuono 10 centesimi")
   La vendita resta 20,10 come sulla pompa, l'abbuono va negli SCONTI e la cassa torna.
+
+RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
+• Il cliente fa 19,90, ti dà 20 e non vuole il resto:
+  "19 e 90 di gasolio, ha lasciato 10 centesimi"
+  (oppure subito dopo la vendita: "lasciato 10 centesimi")
+  I centesimi si sommano ai contanti attesi (spiccioli cassetto). Nell'Excel
+  compaiono come differenza in più, e nelle NOTE viene scritto da dove vengono.
 
 PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 • "50 di gasolio, 20 litri di adblue e 2 red bull sul nero"
