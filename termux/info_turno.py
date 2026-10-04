@@ -51,9 +51,10 @@ def vendita(r):
     try:
         data = json.loads(r[1])
         cat = str(data.get("categoria", "altro")).replace("_", " ")
-        metodo = str(data.get("metodo_pagamento", "altro")).capitalize()
-        if metodo == "Pos":
-            metodo = "POS"
+        metodo = str(data.get("metodo_pagamento", "altro"))
+        metodo = {"carta carburante": "Petrolifere", "pos": "POS"}.get(metodo.lower(), metodo)
+        if metodo.islower():
+            metodo = metodo.capitalize()
         reparto = data.get("reparto")
         if not reparto:  # vendite salvate prima dei reparti
             if cat.upper() in CARBURANTI:
@@ -80,7 +81,7 @@ def vendite(righe):
     return [v for v in (vendita(r) for r in righe) if v]
 
 
-SIGLE = {"Contanti": "CON", "Carta": "CAR", "Carta carburante": "CCB", "POS": "POS", "Bancomat": "BAN"}
+SIGLE = {"Contanti": "CON", "POS bianco": "BIA", "POS nero": "NER", "Petrolifere": "PET", "POS cassa": "CAS"}
 
 
 def sigla(metodo):
@@ -349,10 +350,9 @@ def prospetto_adblue(vv, dettaglio=True):
 
 def prospetto_cassa(vv, t):
     """Quadratura: avanzo + vendite in contanti = contanti attesi, confrontati con quelli contati."""
-    if not t or all(t.get(k) is None for k in ("avanzo", "contati", "pos", "versamento")):
+    if not t or all(t.get(k) is None for k in ("avanzo", "contati", "versamento")):
         return []
     contanti = sum(v["importo"] for v in vv if v["metodo"] == "Contanti")
-    elettronico = sum(v["importo"] for v in vv if v["metodo"] in ("Carta", "POS", "Bancomat"))
     avanzo = t.get("avanzo") or 0.0
 
     def differenza(atteso, contato):
@@ -375,9 +375,6 @@ def prospetto_cassa(vv, t):
         out.append(f"  {'= Attesi nel cassetto':<20} {euro(attesi):>12}")
     if t.get("contati") is not None:
         out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(attesi, t['contati'])}")
-    out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
-    if t.get("pos") is not None:
-        out.append(f"  {'Totale POS':<20} {euro(t['pos']):>12}   {differenza(elettronico, t['pos'])}")
     return out
 
 
@@ -533,7 +530,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale="", contati_testo="", pos_testo="", cassaforte_testo=""):
+def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
@@ -545,7 +542,6 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo="", cassaforte
 
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
-    t["pos"] = importo_da_testo(pos_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
     if t["contati"] is not None:
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
@@ -596,8 +592,8 @@ def main():
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        argomenti = sys.argv[2:] + ["", "", "", ""]
-        chiudi_turno(argomenti[0], argomenti[1], argomenti[2], argomenti[3])
+        argomenti = sys.argv[2:] + ["", "", ""]
+        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:

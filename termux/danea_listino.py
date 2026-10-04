@@ -14,7 +14,7 @@ ALIAS_EXTRA = {
     'RED BULL': ['red bull', 'redbull'],
     'ACQUA BOTT 0,500': ['acqua piccola', 'acqua naturale', 'bottiglietta acqua', 'acqua'],
     'ACQUA CONFEZ.1,5 LITRI': ['acqua grande', 'acqua big', 'acqua 1 litro e mezzo'],
-    'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'cassa acqua', 'confezione acqua'],
+    'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'confezione acqua'],
     'COCA COLA BOTT 400': ['coca', 'coca cola', 'cocacola'],
     'FANTA 0,400 CL': ['fanta'],
     'ESTATHE BRICK': ['estathe', 'estate', 'the brick'],
@@ -38,7 +38,7 @@ SPECIALI = {
                         'lettera di vettura', 'lettere di vettura', 'cmr', 'delivery']},
 }
 # Parole che non possono essere il nome di un prodotto da sole (carburanti, pagamenti, comandi)
-RISERVATE = {'verde', 'benzina', 'gasolio', 'diesel', 'carta', 'pos', 'bancomat', 'contanti', 'cash',
+RISERVATE = {'verde', 'benzina', 'gasolio', 'diesel', 'carta', 'pos', 'bancomat', 'contanti', 'cash', 'nero', 'bianco', 'cassa',
              'euro', 'litri', 'litro', 'turno', 'ultima', 'penultima', 'totali', 'market', 'ia',
              'set', 'kit', 'mini', 'big', 'plus', 'pro', 'per', 'con', 'di', 'da'}
 # Parole di formato che non si dicono a voce

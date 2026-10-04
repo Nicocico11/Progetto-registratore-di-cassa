@@ -7,7 +7,7 @@ A fine turno prepara da solo il riepilogo per la chiusura.
 1. COME SI USA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • Fai un DOPPIO TAP sul retro del telefono.
-• Parla subito, con frasi semplici: "20 euro di gasolio con carta".
+• Parla subito, con frasi semplici: "20 euro di gasolio sul nero".
 • Compaiono due messaggi a schermo:
   🎙️ quello che il telefono ha capito
   ✅ / ❓ / ❌ il risultato
@@ -37,7 +37,7 @@ Solo la PRIMA volta (poi il telefono li aggiorna da solo turno dopo turno):
 3. REGISTRARE LE VENDITE
 ━━━━━━━━━━━━━━━━━━━━━━━━
 CARBURANTE
-• "20 euro di gasolio"  •  "trentacinque di verde col pos"  •  "50 diesel bancomat"
+• "20 euro di gasolio"  •  "trentacinque di verde sul bianco"  •  "50 diesel cartissima"
   (verde / senza piombo = Benzina, diesel = Gasolio)
 
 CENTESIMI
@@ -48,7 +48,7 @@ ADBLUE
 • Taniche: "2 taniche di adblue" (dire sempre "adblue": "tanica" da sola è la tanica da 10 litri)
 
 MARKET (tutti i prodotti di Danea, con i prezzi del listino)
-• "2 red bull", "una coca cola carta", "3 ghiaccioli", "kinder bueno e twix"
+• "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
 • Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
   "formula excel plus", "lampadina h7".
 • Se il nome vale per più prodotti (es. "lampadina") il telefono chiede quale:
@@ -58,9 +58,15 @@ FAX / FOTOCOPIE (0,30 € a foglio)
 • "5 fax", "10 fotocopie", "2 lettere di vettura"
 
 PAGAMENTI (si dicono in fondo alla frase)
-• contanti (se non dici niente, è contanti)
-• carta  •  pos  •  bancomat
-• cartissima / carta carburante
+• contanti ............................ se non dici niente, è contanti
+• "sul bianco" / "pos bianco" ........ POS bianco  → TOTALE PAX BANCARIE (somma)
+• "sul nero" / "pos nero" ............ POS nero    → TOTALE POS BANCA (somma)
+• "petrolifere" / "cartissima" ....... Petrolifere → CHIUSURA PETROLIFERE PAX (somma)
+• "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
+                                       (una casella per ogni vendita)
+Se dici solo "carta", "pos" o "bancomat" compare il riquadro
+"Pagato con carta: su quale POS?": tocca quello giusto e premi OK.
+Se lo annulli la vendita NON viene salvata.
 
 RESTO ARROTONDATO / ABBUONI
 • Il cliente fa 20,10 e gli dai il resto di 20:
@@ -69,16 +75,16 @@ RESTO ARROTONDATO / ABBUONI
   La vendita resta 20,10 come sulla pompa, l'abbuono va negli SCONTI e la cassa torna.
 
 PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
-• "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
+• "50 di gasolio, 20 litri di adblue e 2 red bull sul nero"
 
-🧾 Se market, fax o taniche vengono pagati con carta, POS o bancomat
-arriva la notifica "STAMPARE RICEVUTA". Con contanti e cartissima no.
+🧾 Se paghi "in cassa" (POS della cassa) arriva la notifica
+"STAMPARE RICEVUTA" con l'importo da battere. Con gli altri pagamenti no.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 4. CORREGGERE E CANCELLARE
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "cancella ultima" / "cancella penultima": toglie la vendita intera.
-• "correggi ultima bancomat": cambia il pagamento.
+• "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo.
 • "correggi ultima gasolio": cambia il carburante.
 • Al posto di "ultima" puoi dire "penultima".
@@ -105,8 +111,7 @@ Di': "CHIUSURA TURNO". Compaiono tre riquadri:
 1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
    140532 = 14:05:32
 2) CONTANTI CONTATI in cassa (si può lasciare vuoto)
-3) TOTALE POS / carte (si può lasciare vuoto)
-4) IN CASSAFORTE (vuoto se non c'è niente)
+3) IN CASSAFORTE (vuoto se non c'è niente)
 
 Il documento di chiusura viene salvato in:
   Download → Chiusure_Turno → es. 2026-10-02_Mattina.txt
@@ -116,13 +121,14 @@ Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
 Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
   • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
     data, turno, ora chiusura, DANEA, TELEFAX, sconti, litri AdBlue, contatori,
-    taniche, scontrini POS registratore, avanzo precedente e (negli spiccioli
+    taniche, petrolifere PAX, POS banca (nero), PAX bancarie (bianco),
+    scontrini POS registratore (cassa), avanzo precedente e (negli spiccioli
     cassetto) i contanti che dovrebbero esserci.
   • 05_10_2026_notte.xlsx = il turno dopo, già "imbastito": data, turno, avanzo,
     ORA CHIUSURA (l'orario del terminale appena inserito), contatore AdBlue
     iniziale, taniche precedenti, cassaforte.
-  Sul computer restano da scrivere: totale carburanti, PAX, POS banca, OPT,
-  crediti, ricariche, versamento, operatore.
+  Sul computer restano da scrivere: totale carburanti, OPT, crediti,
+  ricariche, versamento, operatore (e i totali dei POS se vuoi correggerli).
 
 Dopo la chiusura l'IA si spegne e le notifiche spariscono.
 Il conteggio dei contanti viene proposto come avanzo al turno successivo.

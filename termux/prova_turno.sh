@@ -24,7 +24,8 @@ case "$*" in
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
   *Contanti*) echo '{"code": -1, "text": "200"}' ;;
   *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
-  *)          echo '{"code": -2, "text": ""}' ;;   # POS: annullato
+  *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
+  *)          echo '{"code": -2, "text": ""}' ;;
 esac
 EOF
 printf '#!/bin/bash\nsleep 1\n' > $HOME/llama.cpp/build/bin/llama-server
@@ -54,21 +55,22 @@ controlla "apertura turno con avanzo" "apertura turno"                          
 [ -f $D/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "contatore adblue"          "contatore adblue 1000 virgola 5"              "1000.5"
 controlla "contatore taniche"         "contatore taniche 10"                         "10"
-controlla "vendita carburante"        "20 euro di gasolio carta"                     "Gasolio 20.00"
+controlla "carta generica -> popup"  "20 euro di gasolio carta"                     "Gasolio 20.00 € - POS nero"
 controlla "abbuono"                   "20 e 10 di gasolio, abbuono 10 centesimi"     "-0.10"
-controlla "tanica adblue con carta"   "tanica di adblue pos"                         "STAMPARE RICEVUTA"
+controlla "tanica adblue pos cassa"  "tanica di adblue pagato in cassa"             "STAMPARE RICEVUTA"
 controlla "versamento"                "versamento 50"                                "50.00"
-controlla "numeri in lettere"         "trentacinque di verde col pos"                "Benzina 35.00"
+controlla "numeri in lettere"         "trentacinque di verde sul bianco"             "Benzina 35.00 € - POS bianco"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
 controlla "vendita mista"             "50 gasolio, 20 litri di adblue e 2 red bull con carta" "3 voci"
-controlla "ricevuta market con carta" "2 mars bancomat"                              "STAMPARE RICEVUTA"
-controlla "cartissima"                "40 gasolio cartissima"                        "Carta carburante"
+controlla "ricevuta market pos cassa" "2 mars e un red bull pagato in cassa"         "STAMPARE RICEVUTA (7.00"
+controlla "pos nero niente ricevuta"  "1 mars sul nero"                               "POS nero"
+controlla "cartissima"                "40 gasolio cartissima"                        "Petrolifere"
 controlla "fax"                       "5 fax"                                        "5 fogli"
 controlla "frase senza importo"       "ciao"                                         "Niente salvato"
 controlla "totali"                    "totali"                                       "PER PAGAMENTO"
 controlla "market"                    "market"                                       "Red Bull"
 controlla "erogazioni adblue"         "erogazioni"                                   "litri erogati"
-controlla "correggi ultima pagamento"  "correggi ultima bancomat"                     "Bancomat"
+controlla "correggi ultima pagamento"  "correggi ultima sul bianco"                   "POS bianco"
 controlla "correggi penultima importo" "correggi penultima 7 fax"                    "ora:"
 controlla "correzione vendita mista"  "50 gasolio e 1 mars" "2 voci"
 controlla "mista: solo pagamento"     "correggi ultima 30 euro"                      "vendita mista"
@@ -91,7 +93,10 @@ assert ws['O20'].value == 1000.5 and ws['O19'].value == 1020.5, (ws['O20'].value
 assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 tanica venduta
 assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
 assert ws['I5'].value == 0.1                                              # abbuono
-assert 26 in [ws[c].value for c in ('S27', 'T27', 'U27')]                 # scontrino tanica con POS
+scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]
+assert scontrini[:2] == [26, 7] and scontrini[2] is None, scontrini        # un scontrino per vendita in cassa
+assert ws['D9'].value == 7 and ws['D12'].value == 104 and ws['D14'].value == 36.5, \
+    (ws['D9'].value, ws['D12'].value, ws['D14'].value)                    # petrolifere, POS nero, POS bianco
 assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo turno: ora chiusura precedente sconosciuta
 assert ws['I28'].value == 20                                              # cassaforte
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True

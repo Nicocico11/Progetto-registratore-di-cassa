@@ -79,10 +79,9 @@ case "$FRASE" in
       fi
       # Quadratura: si possono lasciare vuoti
       CONTATI=$(chiedi "Contanti contati in cassa (€)" "es. 455,50 — vuoto per saltare")
-      POS=$(chiedi "Totale POS / carte (€)" "es. 320,00 — vuoto per saltare")
       CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$POS" "$CASSAFORTE"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$CASSAFORTE"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
@@ -364,15 +363,23 @@ CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
     'Benzina': ['benzina', 'verde', 'senza piombo'],
 }
-# L'ordine conta: "carta carburante" va controllata prima di "carta"
+# Metodi di pagamento e caselle del foglio Excel:
+#   POS bianco  -> TOTALE PAX BANCARIE (D14)      POS nero -> TOTALE POS BANCA (D12)
+#   Petrolifere -> CHIUSURA PETROLIFERE PAX (D9)  POS cassa -> SCONTRINI POS REG. CASSA (S27:V32)
 PAGAMENTI = {
-    'Carta carburante': ['carta carburante', 'carte carburante', 'cartissima', 'cartissimo',
-                         'carta cartissima', 'carissima', 'carissimo', 'fuel card', 'carta q8'],
-    'Carta': ['carta', 'credito'],
-    'POS': ['pos'],
-    'Bancomat': ['bancomat'],
-    'Contanti': ['contanti', 'cash'],
+    'Petrolifere': ['petrolifera', 'petrolifere', 'carta petrolifera', 'carta carburante', 'carte carburante',
+                    'cartissima', 'cartissimo', 'carta cartissima', 'carissima', 'carissimo',
+                    'fuel card', 'carta q8'],
+    'POS cassa': ['pos cassa', 'pos della cassa', 'pos di cassa', 'pos registratore',
+                  'in cassa', 'alla cassa', 'sulla cassa'],
+    'POS nero': ['pos nero', 'sul nero', 'col nero', 'con il nero', 'nel nero', 'pagato nero', 'pagato al nero'],
+    'POS bianco': ['pos bianco', 'sul bianco', 'col bianco', 'con il bianco', 'nel bianco', 'pagato bianco',
+                   'pagato al bianco'],
+    'Contanti': ['contanti', 'contante', 'cash'],
 }
+# Carta senza dire quale POS: si chiede con un popup
+PAGAMENTO_GENERICO = ['carta', 'carte', 'pos', 'bancomat', 'credito', 'debito', 'carta di credito']
+SCELTA_POS = ['POS cassa', 'POS nero', 'POS bianco', 'Petrolifere']
 # Un numero "da solo": non le cifre dentro i codici dei prodotti (q8, h7, 5w-40)
 NUMERO = r'(?<![\w-])(\d+(?:[.,]\d+)?)(?![\w-])'
 
@@ -447,11 +454,52 @@ def primo_numero(testo):
     return float(m.group(1).replace(',', '.')) if m else None
 
 
-def metodo_pagamento(testo):
+def senza_prodotti(testo):
+    # Toglie i nomi dei prodotti che contengono parole di pagamento ("carta assorbente", "rutten nero")
+    for p in listino.values():
+        for alias in p.get('alias', []):
+            if len(alias.split()) > 1 and contiene(alias.lower(), testo):
+                testo = re.sub(r'\b' + re.escape(alias.lower()) + r'\b', ' ', testo)
+    return testo
+
+
+def pagamento_detto(testo):
+    """'POS nero', 'Contanti'... se detto; 'chiedi' se solo "carta"/"pos"; None se non detto."""
+    testo = senza_prodotti(testo)
     for metodo, parole in PAGAMENTI.items():
         if any(contiene(p, testo) for p in parole):
             return metodo
-    return 'Contanti'
+    if any(contiene(p, testo) for p in PAGAMENTO_GENERICO):
+        return 'chiedi'
+    return None
+
+
+def chiedi_pos():
+    """Popup "Pagato con carta: su quale POS?". None se annullato."""
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', '💳 Pagato con carta: su quale POS?',
+                            '-v', ','.join(SCELTA_POS)], capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        return None
+    if d.get('code') != -1:
+        return None
+    if d.get('text') in SCELTA_POS:
+        return d['text']
+    i = d.get('index')
+    return SCELTA_POS[i] if isinstance(i, int) and 0 <= i < len(SCELTA_POS) else None
+
+
+def metodo_pagamento(testo):
+    """Metodo della vendita: se è detto solo "carta" chiede quale POS; esce se annullato."""
+    metodo = pagamento_detto(testo) or 'Contanti'
+    if metodo == 'chiedi':
+        metodo = chiedi_pos()
+        if not metodo:
+            print("❌ POS non scelto. Niente salvato: ripeti dicendo \"sul nero\", \"sul bianco\", "
+                  "\"in cassa\" o \"petrolifere\".")
+            sys.exit(1)
+    return metodo
 
 
 def voce_listino(nome, testo):
@@ -550,7 +598,6 @@ SISTEMA = (
     "Sei il registratore di cassa di un distributore Q8. "
     "Dalla frase dell'operatore estrai: categoria (Benzina o Gasolio; "
     "verde e senza piombo sono Benzina, diesel è Gasolio), "
-    "metodo_pagamento (Contanti, Carta, Carta carburante, POS o Bancomat; se non detto: Contanti) "
     "e importo (numero in euro, es. venti -> 20). Rispondi solo con il JSON."
 )
 
@@ -558,11 +605,9 @@ SCHEMA = {
     "type": "object",
     "properties": {
         "categoria": {"type": "string", "enum": ["Benzina", "Gasolio"]},
-        "metodo_pagamento": {"type": "string",
-                             "enum": ["Contanti", "Carta", "Carta carburante", "POS", "Bancomat"]},
         "importo": {"type": "number"},
     },
-    "required": ["categoria", "metodo_pagamento", "importo"],
+    "required": ["categoria", "importo"],
 }
 
 
@@ -624,34 +669,23 @@ def descrivi(v):
 
 
 def avviso_ricevuta(voci, metodo):
-    # Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
-    # (non in contanti e non con la Cartissima/carta carburante)
-    da_stampare = [v for v in voci
-                   if v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')]
-    if not da_stampare or metodo in ('Contanti', 'Carta carburante'):
+    # Pagato sul POS della cassa: lo scontrino va stampato dal registratore
+    if metodo != 'POS cassa':
         return
-    importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
+    importo_ricevuta = sum(float(v['importo']) for v in voci)
     print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
     try:
         subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
-                          '--title', '🧾 STAMPARE RICEVUTA',
-                          '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
+                          '--title', f'🧾 STAMPARE RICEVUTA {importo_ricevuta:.2f} €',
+                          '--content', f"{' + '.join(descrivi(v) for v in voci)} - {metodo}",
                           '--vibrate', '300,150,300'],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except Exception:
         pass
 
 
-def pagamento_detto(testo):
-    """Metodo di pagamento solo se nominato (None se la frase non ne parla)."""
-    for metodo, parole in PAGAMENTI.items():
-        if any(contiene(p, testo) for p in parole):
-            return metodo
-    return None
-
-
 def correggi(quale):
-    """"correggi ultima carta" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
+    """"correggi ultima sul nero" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
     with open(csv_file, encoding='utf-8') as f:
         tutte = list(csv.reader(f))
     intestazione, righe = tutte[:1], [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
@@ -672,10 +706,12 @@ def correggi(quale):
     prima = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
 
     nuovo_metodo = pagamento_detto(testo_basso)
+    if nuovo_metodo == 'chiedi':
+        nuovo_metodo = metodo_pagamento(testo_basso)
     nuovo_carburante = carburante_detto(testo_basso)
     nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     if not (nuovo_metodo or nuovo_carburante or nuovo_importo):
-        print("❓ Cosa devo correggere? Es. \"correggi ultima carta\", \"correggi ultima 25 euro\", "
+        print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "
               "\"correggi ultima gasolio\". Niente cambiato.")
         sys.exit(1)
     if (nuovo_carburante or nuovo_importo) and len(voci) > 1:
@@ -718,7 +754,6 @@ if CORREZIONE:
 
 # ---------- programma ----------
 
-metodo = metodo_pagamento(testo_basso)
 pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
 origine = 'regole'
@@ -754,9 +789,6 @@ if voci == [None]:
         sys.exit(1)
 
     if data and data.get('categoria') in CARBURANTI:
-        metodo = data.get('metodo_pagamento') or metodo
-        if metodo_pagamento(testo_basso) != 'Contanti':
-            metodo = metodo_pagamento(testo_basso)  # una parola chiara vale più dell'IA
         voci = [{"categoria": data['categoria'], "reparto": "Carburante", "importo": importo_ia}]
     else:
         # Ultimo tentativo d'emergenza: numero nella frase + parole chiave
@@ -767,6 +799,9 @@ if voci == [None]:
 if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     print("❌ Transazione scartata: Nessun importo valido rilevato.")
     sys.exit(1)
+
+# Pagamento: chiesto solo ora, a vendita capita (popup se è detto solo "carta")
+metodo = metodo_pagamento(testo_basso)
 
 # ---------- salvataggio: una riga per voce, stesso numero di transazione ----------
 adesso = datetime.datetime.now()
@@ -879,7 +914,7 @@ ALIAS_EXTRA = {
     'RED BULL': ['red bull', 'redbull'],
     'ACQUA BOTT 0,500': ['acqua piccola', 'acqua naturale', 'bottiglietta acqua', 'acqua'],
     'ACQUA CONFEZ.1,5 LITRI': ['acqua grande', 'acqua big', 'acqua 1 litro e mezzo'],
-    'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'cassa acqua', 'confezione acqua'],
+    'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'confezione acqua'],
     'COCA COLA BOTT 400': ['coca', 'coca cola', 'cocacola'],
     'FANTA 0,400 CL': ['fanta'],
     'ESTATHE BRICK': ['estathe', 'estate', 'the brick'],
@@ -903,7 +938,7 @@ SPECIALI = {
                         'lettera di vettura', 'lettere di vettura', 'cmr', 'delivery']},
 }
 # Parole che non possono essere il nome di un prodotto da sole (carburanti, pagamenti, comandi)
-RISERVATE = {'verde', 'benzina', 'gasolio', 'diesel', 'carta', 'pos', 'bancomat', 'contanti', 'cash',
+RISERVATE = {'verde', 'benzina', 'gasolio', 'diesel', 'carta', 'pos', 'bancomat', 'contanti', 'cash', 'nero', 'bianco', 'cassa',
              'euro', 'litri', 'litro', 'turno', 'ultima', 'penultima', 'totali', 'market', 'ia',
              'set', 'kit', 'mini', 'big', 'plus', 'pro', 'per', 'con', 'di', 'da'}
 # Parole di formato che non si dicono a voce
@@ -1090,11 +1125,15 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     litri = [q(v) for v in voci if v.get('reparto') == 'AdBlue' and v.get('unita') == 'l']
     riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
 
-    # Scontrini POS del registratore: market, fax e taniche pagati con carta / POS / bancomat
+    # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
+    metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))
+    for casella, nome in (('D9', 'Petrolifere'), ('D12', 'POS nero'), ('D14', 'POS bianco')):
+        totale = round(sum(imp(v) for v in voci if metodo(v) == nome), 2)
+        if totale:
+            ws[casella] = totale
     per_scontrino = {}
     for v in voci:
-        da_scontrino = v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')
-        if da_scontrino and v.get('metodo_pagamento') in ('Carta', 'POS', 'Bancomat'):
+        if metodo(v) == 'POS cassa':
             chiave = v.get('transazione') or id(v)
             per_scontrino[chiave] = per_scontrino.get(chiave, 0.0) + imp(v)
     riempi(ws, SCONTRINI_POS, list(per_scontrino.values()), avvisi, "SCONTRINI POS")
@@ -1218,9 +1257,10 @@ def vendita(r):
     try:
         data = json.loads(r[1])
         cat = str(data.get("categoria", "altro")).replace("_", " ")
-        metodo = str(data.get("metodo_pagamento", "altro")).capitalize()
-        if metodo == "Pos":
-            metodo = "POS"
+        metodo = str(data.get("metodo_pagamento", "altro"))
+        metodo = {"carta carburante": "Petrolifere", "pos": "POS"}.get(metodo.lower(), metodo)
+        if metodo.islower():
+            metodo = metodo.capitalize()
         reparto = data.get("reparto")
         if not reparto:  # vendite salvate prima dei reparti
             if cat.upper() in CARBURANTI:
@@ -1247,7 +1287,7 @@ def vendite(righe):
     return [v for v in (vendita(r) for r in righe) if v]
 
 
-SIGLE = {"Contanti": "CON", "Carta": "CAR", "Carta carburante": "CCB", "POS": "POS", "Bancomat": "BAN"}
+SIGLE = {"Contanti": "CON", "POS bianco": "BIA", "POS nero": "NER", "Petrolifere": "PET", "POS cassa": "CAS"}
 
 
 def sigla(metodo):
@@ -1516,10 +1556,9 @@ def prospetto_adblue(vv, dettaglio=True):
 
 def prospetto_cassa(vv, t):
     """Quadratura: avanzo + vendite in contanti = contanti attesi, confrontati con quelli contati."""
-    if not t or all(t.get(k) is None for k in ("avanzo", "contati", "pos", "versamento")):
+    if not t or all(t.get(k) is None for k in ("avanzo", "contati", "versamento")):
         return []
     contanti = sum(v["importo"] for v in vv if v["metodo"] == "Contanti")
-    elettronico = sum(v["importo"] for v in vv if v["metodo"] in ("Carta", "POS", "Bancomat"))
     avanzo = t.get("avanzo") or 0.0
 
     def differenza(atteso, contato):
@@ -1542,9 +1581,6 @@ def prospetto_cassa(vv, t):
         out.append(f"  {'= Attesi nel cassetto':<20} {euro(attesi):>12}")
     if t.get("contati") is not None:
         out.append(f"  {'Contanti contati':<20} {euro(t['contati']):>12}   {differenza(attesi, t['contati'])}")
-    out.append(f"  {'Carte attese (POS)':<20} {euro(elettronico):>12}   (Carta + POS + Bancomat)")
-    if t.get("pos") is not None:
-        out.append(f"  {'Totale POS':<20} {euro(t['pos']):>12}   {differenza(elettronico, t['pos'])}")
     return out
 
 
@@ -1700,7 +1736,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale="", contati_testo="", pos_testo="", cassaforte_testo=""):
+def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe:
@@ -1712,7 +1748,6 @@ def chiudi_turno(orario_terminale="", contati_testo="", pos_testo="", cassaforte
 
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
-    t["pos"] = importo_da_testo(pos_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
     if t["contati"] is not None:
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
@@ -1763,8 +1798,8 @@ def main():
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        argomenti = sys.argv[2:] + ["", "", "", ""]
-        chiudi_turno(argomenti[0], argomenti[1], argomenti[2], argomenti[3])
+        argomenti = sys.argv[2:] + ["", "", ""]
+        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:
@@ -3722,7 +3757,6 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   "alias": [
    "box acqua",
    "box bottiglie acqua",
-   "cassa acqua",
    "confezione acqua"
   ],
   "reparto": "Market",

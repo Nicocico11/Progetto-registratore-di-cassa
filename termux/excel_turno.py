@@ -107,11 +107,15 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     litri = [q(v) for v in voci if v.get('reparto') == 'AdBlue' and v.get('unita') == 'l']
     riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
 
-    # Scontrini POS del registratore: market, fax e taniche pagati con carta / POS / bancomat
+    # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
+    metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))
+    for casella, nome in (('D9', 'Petrolifere'), ('D12', 'POS nero'), ('D14', 'POS bianco')):
+        totale = round(sum(imp(v) for v in voci if metodo(v) == nome), 2)
+        if totale:
+            ws[casella] = totale
     per_scontrino = {}
     for v in voci:
-        da_scontrino = v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')
-        if da_scontrino and v.get('metodo_pagamento') in ('Carta', 'POS', 'Bancomat'):
+        if metodo(v) == 'POS cassa':
             chiave = v.get('transazione') or id(v)
             per_scontrino[chiave] = per_scontrino.get(chiave, 0.0) + imp(v)
     riempi(ws, SCONTRINI_POS, list(per_scontrino.values()), avvisi, "SCONTRINI POS")

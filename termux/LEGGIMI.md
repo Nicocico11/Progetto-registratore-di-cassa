@@ -57,8 +57,10 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
 
 - Una frase può contenere più voci con un solo pagamento: "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
   → 3 righe con lo stesso numero di transazione; "cancella ultima" le toglie tutte insieme.
-- Pagamenti: Contanti, Carta, Carta carburante (anche "cartissima"), POS, Bancomat.
-- Market, fax o tanica AdBlue pagati con carta, POS o bancomat (non contanti né Cartissima) → notifica "🧾 STAMPARE RICEVUTA".
+- Pagamenti: Contanti (se non detto), POS bianco ("sul bianco" → D14 PAX bancarie), POS nero ("sul nero" → D12 POS banca),
+  Petrolifere ("petrolifere"/"cartissima" → D9), POS cassa ("in cassa" → scontrini S27:V32, uno per vendita).
+  Solo "carta"/"pos"/"bancomat" → popup "su quale POS?" (annullato = niente salvato).
+- Pagato "in cassa" → notifica "🧾 STAMPARE RICEVUTA" con l'importo della vendita.
 - Centesimi: "20 e 50", "20 euro e 50", "20 virgola 50" → 20,50 €.
 - Fax / fotocopie (lettere di vettura, delivery, CMR): 0,30 € a foglio, sezione a parte nei totali; "5 fax" = 1,50 €.
 
@@ -76,9 +78,8 @@ ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiorn
 ## Quadratura cassa
 
 - Apertura: popup "Avanzo cassa turno precedente" (suggerisce l'ultimo conteggio).
-- Chiusura: popup orario terminale, "Contanti contati", "Totale POS" (si possono saltare).
-- Nel documento: avanzo + vendite contanti = contanti attesi, confronto con i contati;
-  Carta + POS + Bancomat confrontati con il totale POS.
+- Chiusura: popup orario terminale, "Contanti contati", "In cassaforte" (si possono saltare).
+- Nel documento: avanzo + vendite contanti = contanti attesi, confronto con i contati.
 
 ## Termux:Widget
 
@@ -108,7 +109,8 @@ viene rifiutata chiedendo il nome completo. `installa.sh` installa il listino so
 scrivendo solo nelle caselle bianche: data/turno/ora chiusura (I20/I22/I24), DANEA (E2:H29),
 TELEFAX (A21:D25), sconti (I5:O6), litri AdBlue sfuso (I17:N18), contatore AdBlue (O20 iniziale,
 O19 = iniziale + litri), taniche (K30 precedenti, K31 = precedenti - vendute), scontrini POS
-registratore (S27:V32), avanzo precedente (D7) e contanti attesi negli spiccioli cassetto (D34).
+registratore (S27:V32, una per vendita "in cassa"), petrolifere (D9), POS nero (D12),
+POS bianco (D14), avanzo precedente (D7) e contanti attesi negli spiccioli cassetto (D34).
 Prepara anche il file del turno successivo (data, turno, D7, O20, K30). Lo stato tra un turno e
 l'altro è in `~/stato_cassa.json`. Comandi: "contatore adblue N", "contatore taniche N",
 "versamento N", "abbuono N centesimi".

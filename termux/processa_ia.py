@@ -64,15 +64,23 @@ CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
     'Benzina': ['benzina', 'verde', 'senza piombo'],
 }
-# L'ordine conta: "carta carburante" va controllata prima di "carta"
+# Metodi di pagamento e caselle del foglio Excel:
+#   POS bianco  -> TOTALE PAX BANCARIE (D14)      POS nero -> TOTALE POS BANCA (D12)
+#   Petrolifere -> CHIUSURA PETROLIFERE PAX (D9)  POS cassa -> SCONTRINI POS REG. CASSA (S27:V32)
 PAGAMENTI = {
-    'Carta carburante': ['carta carburante', 'carte carburante', 'cartissima', 'cartissimo',
-                         'carta cartissima', 'carissima', 'carissimo', 'fuel card', 'carta q8'],
-    'Carta': ['carta', 'credito'],
-    'POS': ['pos'],
-    'Bancomat': ['bancomat'],
-    'Contanti': ['contanti', 'cash'],
+    'Petrolifere': ['petrolifera', 'petrolifere', 'carta petrolifera', 'carta carburante', 'carte carburante',
+                    'cartissima', 'cartissimo', 'carta cartissima', 'carissima', 'carissimo',
+                    'fuel card', 'carta q8'],
+    'POS cassa': ['pos cassa', 'pos della cassa', 'pos di cassa', 'pos registratore',
+                  'in cassa', 'alla cassa', 'sulla cassa'],
+    'POS nero': ['pos nero', 'sul nero', 'col nero', 'con il nero', 'nel nero', 'pagato nero', 'pagato al nero'],
+    'POS bianco': ['pos bianco', 'sul bianco', 'col bianco', 'con il bianco', 'nel bianco', 'pagato bianco',
+                   'pagato al bianco'],
+    'Contanti': ['contanti', 'contante', 'cash'],
 }
+# Carta senza dire quale POS: si chiede con un popup
+PAGAMENTO_GENERICO = ['carta', 'carte', 'pos', 'bancomat', 'credito', 'debito', 'carta di credito']
+SCELTA_POS = ['POS cassa', 'POS nero', 'POS bianco', 'Petrolifere']
 # Un numero "da solo": non le cifre dentro i codici dei prodotti (q8, h7, 5w-40)
 NUMERO = r'(?<![\w-])(\d+(?:[.,]\d+)?)(?![\w-])'
 
@@ -147,11 +155,52 @@ def primo_numero(testo):
     return float(m.group(1).replace(',', '.')) if m else None
 
 
-def metodo_pagamento(testo):
+def senza_prodotti(testo):
+    # Toglie i nomi dei prodotti che contengono parole di pagamento ("carta assorbente", "rutten nero")
+    for p in listino.values():
+        for alias in p.get('alias', []):
+            if len(alias.split()) > 1 and contiene(alias.lower(), testo):
+                testo = re.sub(r'\b' + re.escape(alias.lower()) + r'\b', ' ', testo)
+    return testo
+
+
+def pagamento_detto(testo):
+    """'POS nero', 'Contanti'... se detto; 'chiedi' se solo "carta"/"pos"; None se non detto."""
+    testo = senza_prodotti(testo)
     for metodo, parole in PAGAMENTI.items():
         if any(contiene(p, testo) for p in parole):
             return metodo
-    return 'Contanti'
+    if any(contiene(p, testo) for p in PAGAMENTO_GENERICO):
+        return 'chiedi'
+    return None
+
+
+def chiedi_pos():
+    """Popup "Pagato con carta: su quale POS?". None se annullato."""
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', '💳 Pagato con carta: su quale POS?',
+                            '-v', ','.join(SCELTA_POS)], capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        return None
+    if d.get('code') != -1:
+        return None
+    if d.get('text') in SCELTA_POS:
+        return d['text']
+    i = d.get('index')
+    return SCELTA_POS[i] if isinstance(i, int) and 0 <= i < len(SCELTA_POS) else None
+
+
+def metodo_pagamento(testo):
+    """Metodo della vendita: se è detto solo "carta" chiede quale POS; esce se annullato."""
+    metodo = pagamento_detto(testo) or 'Contanti'
+    if metodo == 'chiedi':
+        metodo = chiedi_pos()
+        if not metodo:
+            print("❌ POS non scelto. Niente salvato: ripeti dicendo \"sul nero\", \"sul bianco\", "
+                  "\"in cassa\" o \"petrolifere\".")
+            sys.exit(1)
+    return metodo
 
 
 def voce_listino(nome, testo):
@@ -250,7 +299,6 @@ SISTEMA = (
     "Sei il registratore di cassa di un distributore Q8. "
     "Dalla frase dell'operatore estrai: categoria (Benzina o Gasolio; "
     "verde e senza piombo sono Benzina, diesel è Gasolio), "
-    "metodo_pagamento (Contanti, Carta, Carta carburante, POS o Bancomat; se non detto: Contanti) "
     "e importo (numero in euro, es. venti -> 20). Rispondi solo con il JSON."
 )
 
@@ -258,11 +306,9 @@ SCHEMA = {
     "type": "object",
     "properties": {
         "categoria": {"type": "string", "enum": ["Benzina", "Gasolio"]},
-        "metodo_pagamento": {"type": "string",
-                             "enum": ["Contanti", "Carta", "Carta carburante", "POS", "Bancomat"]},
         "importo": {"type": "number"},
     },
-    "required": ["categoria", "metodo_pagamento", "importo"],
+    "required": ["categoria", "importo"],
 }
 
 
@@ -324,34 +370,23 @@ def descrivi(v):
 
 
 def avviso_ricevuta(voci, metodo):
-    # Ricevuta da stampare: market, fax o tanica AdBlue pagati con carta, POS o bancomat
-    # (non in contanti e non con la Cartissima/carta carburante)
-    da_stampare = [v for v in voci
-                   if v.get('reparto') in ('Market', 'Fax') or (v.get('reparto') == 'AdBlue' and v.get('unita') != 'l')]
-    if not da_stampare or metodo in ('Contanti', 'Carta carburante'):
+    # Pagato sul POS della cassa: lo scontrino va stampato dal registratore
+    if metodo != 'POS cassa':
         return
-    importo_ricevuta = sum(float(v['importo']) for v in da_stampare)
+    importo_ricevuta = sum(float(v['importo']) for v in voci)
     print(f"🧾 STAMPARE RICEVUTA ({importo_ricevuta:.2f} €)")
     try:
         subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
-                          '--title', '🧾 STAMPARE RICEVUTA',
-                          '--content', f"{' + '.join(descrivi(v) for v in da_stampare)} - {metodo}",
+                          '--title', f'🧾 STAMPARE RICEVUTA {importo_ricevuta:.2f} €',
+                          '--content', f"{' + '.join(descrivi(v) for v in voci)} - {metodo}",
                           '--vibrate', '300,150,300'],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except Exception:
         pass
 
 
-def pagamento_detto(testo):
-    """Metodo di pagamento solo se nominato (None se la frase non ne parla)."""
-    for metodo, parole in PAGAMENTI.items():
-        if any(contiene(p, testo) for p in parole):
-            return metodo
-    return None
-
-
 def correggi(quale):
-    """"correggi ultima carta" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
+    """"correggi ultima sul nero" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
     with open(csv_file, encoding='utf-8') as f:
         tutte = list(csv.reader(f))
     intestazione, righe = tutte[:1], [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
@@ -372,10 +407,12 @@ def correggi(quale):
     prima = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
 
     nuovo_metodo = pagamento_detto(testo_basso)
+    if nuovo_metodo == 'chiedi':
+        nuovo_metodo = metodo_pagamento(testo_basso)
     nuovo_carburante = carburante_detto(testo_basso)
     nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     if not (nuovo_metodo or nuovo_carburante or nuovo_importo):
-        print("❓ Cosa devo correggere? Es. \"correggi ultima carta\", \"correggi ultima 25 euro\", "
+        print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "
               "\"correggi ultima gasolio\". Niente cambiato.")
         sys.exit(1)
     if (nuovo_carburante or nuovo_importo) and len(voci) > 1:
@@ -418,7 +455,6 @@ if CORREZIONE:
 
 # ---------- programma ----------
 
-metodo = metodo_pagamento(testo_basso)
 pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
 origine = 'regole'
@@ -454,9 +490,6 @@ if voci == [None]:
         sys.exit(1)
 
     if data and data.get('categoria') in CARBURANTI:
-        metodo = data.get('metodo_pagamento') or metodo
-        if metodo_pagamento(testo_basso) != 'Contanti':
-            metodo = metodo_pagamento(testo_basso)  # una parola chiara vale più dell'IA
         voci = [{"categoria": data['categoria'], "reparto": "Carburante", "importo": importo_ia}]
     else:
         # Ultimo tentativo d'emergenza: numero nella frase + parole chiave
@@ -467,6 +500,9 @@ if voci == [None]:
 if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     print("❌ Transazione scartata: Nessun importo valido rilevato.")
     sys.exit(1)
+
+# Pagamento: chiesto solo ora, a vendita capita (popup se è detto solo "carta")
+metodo = metodo_pagamento(testo_basso)
 
 # ---------- salvataggio: una riga per voce, stesso numero di transazione ----------
 adesso = datetime.datetime.now()
