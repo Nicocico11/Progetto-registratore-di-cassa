@@ -86,10 +86,11 @@ RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
 PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 • "50 di gasolio, 20 litri di adblue e 2 red bull sul nero"
 
-🧾 Se paghi "in cassa" (POS della cassa) arriva la notifica
-"STAMPARE RICEVUTA" con l'importo da battere. Con gli altri pagamenti no.
-⚠️ Una vendita mista con carburante detta "in cassa" si salva, ma con
-2 vibrazioni: di solito è "sul nero" o "sul bianco" → "correggi ultima sul nero".
+🧾 Se paghi "in cassa" (POS della cassa) compare in mezzo allo schermo la finestra
+"STAMPARE RICEVUTA" con l'importo da battere (resta finché non premi OK),
+più una notifica. Con gli altri pagamenti no.
+❌ Il carburante non si paga "in cassa": una vendita con carburante detta
+"in cassa" NON viene salvata → ridilla "sul nero" o "sul bianco".
 
 CREDITI CLIENTI (il cliente prende ora e paga più avanti)
 • "credito cliente Rossi 50 euro"
@@ -126,7 +127,8 @@ VERSAMENTI
 ━━━━━━━━━━━━━━━━━━━━━━━━
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• "totali": riepilogo per pagamento e per prodotto, con la cassa.
+• "totali": riepilogo corto (contanti attesi e totali dei POS).
+  Il riepilogo completo è nel pulsante 03 Totali del widget.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).

@@ -1,5 +1,5 @@
 #!/bin/bash
 # Pulsante Termux:Widget
-bash ~/.termux/tasker/avvia_ia.sh "totali"
+python3 ~/info_turno.py totali
 echo
 read -p "Premi Invio per chiudere… "

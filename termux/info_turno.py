@@ -389,8 +389,11 @@ def prospetto_completo(righe, titolo, t=None):
     out.append("💳 PER PAGAMENTO")
     for m, val in sorted(per_metodo.items()):
         out.append(f"  {m:<16} {euro(val):>10}")
+    crediti = per_metodo.get("Credito", 0.0)
     out.append(f"  {'= Contanti':<16} {euro(contanti):>10}")
-    out.append(f"  {'= Elettronico':<16} {euro(totale - contanti):>10}")
+    out.append(f"  {'= Carte / POS':<16} {euro(totale - contanti - crediti):>10}")
+    if crediti:
+        out.append(f"  {'= Crediti clienti':<16} {euro(crediti):>10}   (non pagati)")
     out.append("")
 
     out.append("⛽ CARBURANTI")
@@ -416,6 +419,24 @@ def prospetto_completo(righe, titolo, t=None):
     out += prospetto_market(vv)
     out += prospetto_cassa(vv, t)
     return out
+
+
+def totali_brevi(righe):
+    """Poche righe, leggibili nel messaggio a schermo di Tasker (il dettaglio è nel widget 03)."""
+    vv = vendite(righe)
+    t = leggi_turno() or {}
+    per_metodo = totali_per(vv, "metodo")
+    contanti = per_metodo.get("Contanti", 0.0)
+    attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
+    nomi = (("POS nero", "Nero"), ("POS bianco", "Bianco"), ("POS cassa", "Cassa"),
+            ("Petrolifere", "Petrol."), ("Credito", "Crediti"))
+    carte = " | ".join(f"{breve} {per_metodo[m]:.2f}" for m, breve in nomi if per_metodo.get(m))
+    out = [f"📊 {len(transazioni(righe))} vendite | Contanti {contanti:.2f}",
+           f"💶 Attesi in cassa: {euro(attesi)}"]
+    if carte:
+        out.append(f"💳 {carte}")
+    out.append("Dettaglio: pulsante 03 Totali")
+    return "\n".join(out)
 
 
 def notifica_breve(righe):
@@ -606,7 +627,9 @@ def main():
         mostra_archivio()
     else:
         righe = leggi_csv()
-        if comando == "totali":
+        if comando == "totali breve":
+            print(totali_brevi(righe))
+        elif comando == "totali":
             print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
         elif comando == "market":
             print("\n".join(prospetto_market(vendite(righe))))

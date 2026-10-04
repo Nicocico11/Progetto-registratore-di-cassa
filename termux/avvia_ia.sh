@@ -125,7 +125,8 @@ case "$FRASE" in
   *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
-    python3 ~/info_turno.py totali ;;
+    # Versione corta per il messaggio a schermo; quella completa è nel pulsante 03 Totali
+    python3 ~/info_turno.py totali breve ;;
   *"ultime"*|*"ultimi"*)
     python3 ~/info_turno.py ultimi ;;
   *"archivio"*|*"storico"*)

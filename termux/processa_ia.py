@@ -58,6 +58,11 @@ def numeri_in_lettere():
 _NUMERI = numeri_in_lettere()
 testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b',
                      lambda m: str(_NUMERI[m.group(1)]), testo_basso)
+# Errori tipici del riconoscimento vocale
+testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
+testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
+testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
+testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
 
 # Parole che identificano carburanti e metodi di pagamento
 CARBURANTI = {
@@ -175,27 +180,28 @@ def pagamento_detto(testo):
     return None
 
 
-def chiedi_pos():
+def chiedi_pos(scelte=SCELTA_POS):
     """Popup "Pagato con carta: su quale POS?". None se annullato."""
     try:
         r = subprocess.run(['termux-dialog', 'radio', '-t', '💳 Pagato con carta: su quale POS?',
-                            '-v', ','.join(SCELTA_POS)], capture_output=True, text=True, timeout=110)
+                            '-v', ','.join(scelte)], capture_output=True, text=True, timeout=110)
         d = json.loads(r.stdout or '{}')
     except Exception:
         return None
     if d.get('code') != -1:
         return None
-    if d.get('text') in SCELTA_POS:
+    if d.get('text') in scelte:
         return d['text']
     i = d.get('index')
-    return SCELTA_POS[i] if isinstance(i, int) and 0 <= i < len(SCELTA_POS) else None
+    return scelte[i] if isinstance(i, int) and 0 <= i < len(scelte) else None
 
 
-def metodo_pagamento(testo):
-    """Metodo della vendita: se è detto solo "carta" chiede quale POS; esce se annullato."""
+def metodo_pagamento(testo, carburante=False):
+    """Metodo della vendita: se è detto solo "carta" chiede quale POS; esce se annullato.
+    Con il carburante il POS della cassa non si propone."""
     metodo = pagamento_detto(testo) or 'Contanti'
     if metodo == 'chiedi':
-        metodo = chiedi_pos()
+        metodo = chiedi_pos([m for m in SCELTA_POS if not (carburante and m == 'POS cassa')])
         if not metodo:
             print("❌ POS non scelto. Niente salvato: ripeti dicendo \"sul nero\", \"sul bianco\", "
                   "\"in cassa\" o \"petrolifere\".")
@@ -276,6 +282,8 @@ def dividi_in_pezzi(testo):
     # "50 gasolio, 20 litri adblue e 2 red bull" -> 3 pezzi.
     # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
     testo = re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo)
+    # "19.90 di gasolio ha lasciato 10 centesimi" -> "19.90 di gasolio, ha lasciato 10 centesimi"
+    testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz))', ', ', testo)
     grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+più\s+|\s+poi\s+', testo) if p.strip()]
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
@@ -384,6 +392,10 @@ def descrivi(v):
 
 
 
+CARBURANTE_IN_CASSA = ("❌ Il carburante non si paga sul POS della cassa: ridillo \"sul nero\" o \"sul bianco\". "
+                       "Niente salvato.")
+
+
 def avviso_ricevuta(voci, metodo):
     # Pagato sul POS della cassa: lo scontrino va stampato dal registratore
     if metodo != 'POS cassa':
@@ -394,7 +406,11 @@ def avviso_ricevuta(voci, metodo):
         subprocess.Popen(['termux-notification', '--id', 'stampa_ricevuta', '--priority', 'max',
                           '--title', f'🧾 STAMPARE RICEVUTA {importo_ricevuta:.2f} €',
                           '--content', f"{' + '.join(descrivi(v) for v in voci)} - {metodo}",
-                          '--vibrate', '300,150,300'],
+                          '--vibrate', '300,150,300,150,300'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        # Finestra in mezzo allo schermo: resta finché non premi OK (non blocca la cassa)
+        subprocess.Popen(['termux-dialog', 'confirm', '-t', f'🧾 STAMPARE RICEVUTA {importo_ricevuta:.2f} €'.replace('.', ','),
+                          '-i', ' + '.join(descrivi(v) for v in voci)],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except Exception:
         pass
@@ -441,6 +457,9 @@ def correggi(quale):
               "Per il resto cancellala e ridettala. Niente cambiato.")
         sys.exit(1)
 
+    if nuovo_metodo == 'POS cassa' and any(v.get('reparto') == 'Carburante' for v in voci):
+        print(CARBURANTE_IN_CASSA.replace("ridillo", "correggi").replace("Niente salvato", "Niente cambiato"))
+        sys.exit(1)
     for v in voci:
         if nuovo_metodo:
             v['metodo_pagamento'] = nuovo_metodo
@@ -614,7 +633,10 @@ if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
 
 
 # Pagamento: chiesto solo ora, a vendita capita (popup se è detto solo "carta")
-metodo = metodo_pagamento(testo_basso)
+metodo = metodo_pagamento(testo_basso, carburante=any(v['reparto'] == 'Carburante' for v in voci))
+if metodo == 'POS cassa' and any(v['reparto'] == 'Carburante' for v in voci):
+    print(CARBURANTE_IN_CASSA)
+    sys.exit(1)
 salva_voci(voci, pezzi, metodo)
 totale = sum(float(v['importo']) for v in voci)
 simbolo = '⚠️' if origine == 'emergenza' else '✅'
@@ -625,12 +647,6 @@ else:
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
 avviso_ricevuta(voci, metodo)
-
-# Vendita mista con carburante pagata in cassa: di solito non succede (si usa il POS nero o bianco)
-if metodo == 'POS cassa' and len(voci) > 1 and any(v['reparto'] == 'Carburante' for v in voci):
-    print("⚠️ Vendita con carburante pagata IN CASSA: di solito è sul nero o sul bianco. "
-          "Se è sbagliato: \"correggi ultima sul nero\".")
-    sys.exit(2)
 
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)
