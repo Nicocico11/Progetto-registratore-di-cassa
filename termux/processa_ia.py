@@ -240,7 +240,8 @@ def voce_sconto(testo):
         importo = numero_in_euro(testo) or primo_numero(testo)
     if not importo:
         return None
-    return {"categoria": "Sconto/abbuono", "reparto": "Sconto", "importo": -round(importo, 2)}
+    return {"categoria": "Abbuono", "reparto": "Sconto", "importo": -round(importo, 2),
+            "metodo_pagamento": "Contanti"}
 
 
 # Il contrario dell'abbuono: il cliente lascia qualche centesimo (contanti in più nel cassetto)

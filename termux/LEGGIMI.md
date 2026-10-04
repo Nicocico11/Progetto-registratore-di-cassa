@@ -62,7 +62,7 @@ Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone 
   Solo "carta"/"pos"/"bancomat" → popup "su quale POS?" (annullato = niente salvato).
 - "credito cliente NOME N" → I8:K15 (nome) / L8:L15; "credito riscosso NOME N [pagamento]" → M8:N15 / O8:O15.
   "anticipo cartissima N" → +N Petrolifere (D9), -N contanti. Widget 09, 10, 11.
-- Caselle finite (telefax, scontrini, sconti, litri, crediti): si riparte dalla prima sommando, con avviso.
+- Caselle finite (telefax, scontrini, litri, crediti): si riparte dalla prima sommando, con avviso.
 - Pagato "in cassa" → notifica "🧾 STAMPARE RICEVUTA" con l'importo della vendita.
 - Centesimi: "20 e 50", "20 euro e 50", "20 virgola 50" → 20,50 €.
 - Fax / fotocopie (lettere di vettura, delivery, CMR): 0,30 € a foglio, sezione a parte nei totali; "5 fax" = 1,50 €.
@@ -110,7 +110,7 @@ viene rifiutata chiedendo il nome completo. `installa.sh` installa il listino so
 
 `excel_turno.py` compila `modello_turno.xlsx` (il modello "TURNO NUOVO", con protezione del foglio)
 scrivendo solo nelle caselle bianche: data/turno/ora chiusura (I20/I22/I24), DANEA (E2:H29),
-TELEFAX (A21:D25), sconti (I5:O6), litri AdBlue sfuso (I17:N18), contatore AdBlue (O20 iniziale,
+TELEFAX (A21:D25), litri AdBlue sfuso (I17:N18), contatore AdBlue (O20 iniziale,
 O19 = iniziale + litri), taniche (K30 precedenti, K31 = precedenti - vendute), scontrini POS
 registratore (S27:V32, una per vendita "in cassa"), petrolifere (D9), POS nero (D12),
 POS bianco (D14), avanzo precedente (D7) e contanti attesi negli spiccioli cassetto (D34).

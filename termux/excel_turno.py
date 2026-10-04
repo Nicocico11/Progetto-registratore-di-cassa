@@ -13,7 +13,6 @@ DANEA = [(f'E{r}', f'H{r}') for r in range(2, 30)]                              
 TELEFAX = [f'{c}{r}' for r in range(21, 26) for c in 'ABCD']
 ADBLUE_LITRI = [f'{c}17' for c in 'IJKLMNO'] + [f'{c}18' for c in 'IJKLMN']
 SCONTRINI_POS = [f'{c}{r}' for r in range(27, 33) for c in 'STUV']
-SCONTI = [f'{c}{r}' for r in (5, 6) for c in 'IJKLMNO']
 CREDITI_CLIENTI = [(f'I{r}', f'L{r}') for r in range(8, 16)]   # nome, importo
 CREDITI_RISCOSSI = [(f'M{r}', f'O{r}') for r in range(8, 16)]
 # La notte porta la data del giorno in cui finisce: pomeriggio del 4 -> notte del 5 -> mattina del 5
@@ -115,9 +114,8 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws[c_desc] = nome if n == 1 else f"{n:g}x {nome}"
         ws[c_imp] = round(tot, 2)
 
-    # TELEFAX, sconti, litri AdBlue sfuso
+    # TELEFAX, litri AdBlue sfuso
     riempi(ws, TELEFAX, [imp(v) for v in voci if v.get('reparto') == 'Fax'], avvisi, "TELEFAX")
-    riempi(ws, SCONTI, [-imp(v) for v in voci if v.get('reparto') == 'Sconto'], avvisi, "SCONTI")
     litri = [q(v) for v in voci if v.get('reparto') == 'AdBlue' and v.get('unita') == 'l']
     riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
 
@@ -128,13 +126,16 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         riempi(ws, caselle, [imp(v) for v in crediti], avvisi, nome,
                nomi=[v.get('cliente') or '?' for v in crediti])
 
-    # Centesimi lasciati dai clienti: sono contanti in più, il foglio li mostra nella DIFFERENZA.
-    # Una nota (A39) spiega da dove vengono.
-    resti = round(sum(imp(v) for v in voci if v.get('reparto') == 'Resto lasciato'), 2)
-    if resti:
-        n = sum(1 for v in voci if v.get('reparto') == 'Resto lasciato')
-        ws['A39'] = (f"RESTI LASCIATI DAI CLIENTI: + {resti:.2f} € ({n} volte) "
-                     "- contanti in più, compaiono nella differenza").replace('.', ',')
+    # Abbuoni (centesimi in meno) e resti lasciati dai clienti (centesimi in più): non hanno caselle,
+    # finiscono nella DIFFERENZA del foglio. Una nota (A39) spiega da dove viene.
+    note = []
+    for reparto, titolo in (('Sconto', 'ABBUONI'), ('Resto lasciato', 'RESTI LASCIATI DAI CLIENTI')):
+        lista = [imp(v) for v in voci if v.get('reparto') == reparto]
+        if lista:
+            totale = round(sum(lista), 2)
+            note.append(f"{titolo}: {'+' if totale > 0 else '-'} {abs(totale):.2f} € ({len(lista)} {'volta' if len(lista) == 1 else 'volte'})".replace('.', ','))
+    if note:
+        ws['A39'] = " | ".join(note) + " - compaiono nella differenza"
 
     # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
     metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))

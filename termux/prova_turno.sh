@@ -104,8 +104,8 @@ ws = openpyxl.load_workbook(oggi[0]).active
 assert ws['O20'].value == 1000.5 and ws['O19'].value == 1020.5, (ws['O20'].value, ws['O19'].value)   # +20 litri
 assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 tanica venduta
 assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
-assert ws['I5'].value == 0.1                                              # abbuono
-assert ws['A39'].value.startswith('RESTI LASCIATI DAI CLIENTI: + 0,10'), ws['A39'].value   # nota resti lasciati
+assert ws['I5'].value is None                                             # abbuono: niente SCONTI
+assert ws['A39'].value.startswith('ABBUONI: - 0,10 € (1 volta) | RESTI LASCIATI DAI CLIENTI: + 0,10'), ws['A39'].value   # nota resti lasciati
 scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]
 assert scontrini[:2] == [26, 7] and scontrini[2] is None, scontrini        # un scontrino per vendita in cassa
 assert ws['D9'].value == 107 and ws['D12'].value == 144 and ws['D14'].value == 36.5, \

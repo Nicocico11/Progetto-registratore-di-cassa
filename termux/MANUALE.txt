@@ -72,7 +72,9 @@ RESTO ARROTONDATO / ABBUONI
 • Il cliente fa 20,10 e gli dai il resto di 20:
   "20 e 10 di gasolio, abbuono 10 centesimi"
   (oppure subito dopo la vendita: "abbuono 10 centesimi")
-  La vendita resta 20,10 come sulla pompa, l'abbuono va negli SCONTI e la cassa torna.
+  La vendita resta 20,10 come sulla pompa e i contanti attesi calano di 10 centesimi.
+  Nell'Excel l'abbuono NON va negli SCONTI: compare nella differenza (in meno)
+  e nelle NOTE viene scritto da dove viene.
 
 RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
 • Il cliente fa 19,90, ti dà 20 e non vuole il resto:
@@ -148,7 +150,7 @@ Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
 
 Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
   • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
-    data, turno, ora chiusura, DANEA, TELEFAX, sconti, litri AdBlue, contatori,
+    data, turno, ora chiusura, DANEA, TELEFAX, litri AdBlue, contatori,
     taniche, petrolifere PAX, POS banca (nero), PAX bancarie (bianco),
     crediti clienti e crediti riscossi (nome e importo),
     scontrini POS registratore (cassa), avanzo precedente e (negli spiccioli
