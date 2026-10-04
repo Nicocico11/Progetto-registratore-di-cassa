@@ -1055,6 +1055,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     giorno = date.fromisoformat(turno['data_file'])
 
     wb = openpyxl.load_workbook(MODELLO)
+    wb.calculation.fullCalcOnLoad = True  # i totali del foglio li calcola Excel all'apertura
     ws = wb.active
 
     # Intestazione: data, turno, ora chiusura del turno precedente
@@ -1136,6 +1137,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     cassetto = turno.get('contati') if turno.get('contati') is not None else totale_cassa - cassaforte
     avanzo_dopo = round(cassetto + cassaforte, 2)
     wb2 = openpyxl.load_workbook(MODELLO)
+    wb2.calculation.fullCalcOnLoad = True
     ws2 = wb2.active
     ws2['I20'] = datetime.combine(giorno_dopo, time())
     ws2['I22'] = tipo_dopo.upper()

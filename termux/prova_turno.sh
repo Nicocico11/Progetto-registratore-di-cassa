@@ -96,6 +96,8 @@ assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo
 assert ws['I28'].value == 20                                              # cassaforte
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
 assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte
+import zipfile
+assert 'fullCalcOnLoad="1"' in zipfile.ZipFile(oggi[0]).read('xl/workbook.xml').decode()   # Excel ricalcola all'apertura
 dopo = [f for f in files if f not in oggi][0]
 w2 = openpyxl.load_workbook(dopo).active
 dopo_atteso = {'MATTINA': 'POMERIGGIO', 'POMERIGGIO': 'NOTTE', 'NOTTE': 'MATTINA'}[ws['I22'].value]
