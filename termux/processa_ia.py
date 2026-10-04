@@ -406,7 +406,7 @@ def correggi(quale):
     voci = [json.loads(righe[k][1]) for k in indici]
     prima = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
 
-    nuovo_metodo = pagamento_detto(testo_basso)
+    nuovo_metodo = pagamento_detto(senza_parole_credito(testo_basso))
     if nuovo_metodo == 'chiedi':
         nuovo_metodo = metodo_pagamento(testo_basso)
     nuovo_carburante = carburante_detto(testo_basso)
@@ -414,6 +414,12 @@ def correggi(quale):
     if not (nuovo_metodo or nuovo_carburante or nuovo_importo):
         print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "
               "\"correggi ultima gasolio\". Niente cambiato.")
+        sys.exit(1)
+    if any(v.get('reparto') == 'Anticipo' for v in voci):
+        print("❌ L'anticipo Cartissima non si corregge: \"cancella ultima\" e ridillo. Niente cambiato.")
+        sys.exit(1)
+    if nuovo_metodo and voci[0].get('reparto') == 'Credito cliente':
+        print("❌ Un credito cliente non ha pagamento. Niente cambiato.")
         sys.exit(1)
     if (nuovo_carburante or nuovo_importo) and len(voci) > 1:
         print("❌ È una vendita mista: posso cambiare solo il pagamento. "
@@ -449,8 +455,97 @@ def correggi(quale):
     sys.exit(0)
 
 
+# ---------- salvataggio: una riga per voce, stesso numero di transazione ----------
+def salva_voci(voci, pezzi, metodo):
+    adesso = datetime.datetime.now()
+    transazione = adesso.strftime('%Y%m%d%H%M%S%f')
+    try:
+        file_exists = os.path.isfile(csv_file)
+        with open(csv_file, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['data_ora', 'dettagli_json', 'importo'])
+            for v, pezzo in zip(voci, pezzi if len(voci) == len(pezzi) else [testo_basso] * len(voci)):
+                v.update({"metodo_pagamento": v.get('metodo_pagamento') or metodo, "transazione": transazione,
+                          "note": testo_originale if len(voci) == 1 else pezzo,
+                          "importo": f"{float(v['importo']):.2f}"})
+                writer.writerow([adesso.strftime('%Y-%m-%d %H:%M:%S'), json.dumps(v), float(v['importo'])])
+    except Exception as e:
+        print('❌ Errore fatale nel salvataggio:', e)
+        sys.exit(1)
+
+
+# ---------- crediti clienti, crediti riscossi, anticipo contanti con Cartissima ----------
+# Non sono vendite: vanno nelle caselle CREDITI CLIENTI / CREDITI RISCOSSI e nelle PETROLIFERE.
+
+PAROLE_CREDITO = r'\b(crediti|credito|clienti|cliente|riscoss\w*|riscossione|anticip\w*|contanti|contante|' \
+                 r'cartissim\w|petrolifer\w|euro|di|da|del|dal|della|a|al|alla|per|il|la|lo|e|ed|con|col|' \
+                 r'pagato|pagata|pagati|ha|ho|dato|dati|q8|carta|carburante|sul|sulla|in|cassa|nero|bianco|pos)\b'
+
+
+def senza_parole_credito(testo):
+    return re.sub(r'\b(crediti|credito|clienti|cliente|riscoss\w*|riscossione)\b', ' ', testo)
+
+
+def nome_cliente(testo):
+    """"credito cliente rossi mario 50 euro" -> "Rossi Mario"."""
+    testo = re.sub(NUMERO, ' ', testo)
+    testo = re.sub(PAROLE_CREDITO, ' ', testo)
+    parole = re.findall(r"[\w'&.-]+", testo)
+    return " ".join(p.capitalize() for p in parole if not p.isdigit()) or None
+
+
+def tipo_speciale(testo):
+    if re.search(r'\banticip', testo):
+        return 'anticipo'
+    if re.search(r'\briscoss', testo):
+        return 'riscosso'
+    if re.search(r'\b(credito|crediti)\s+(al\s+|a\s+)?client|\ba credito\b', testo):
+        return 'credito'
+    return None
+
+
+def registra_speciale(tipo):
+    importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
+    if not importo or importo <= 0:
+        print(f"❓ Manca l'importo: \"{testo_originale}\". Niente salvato.")
+        sys.exit(1)
+    if tipo == 'anticipo':
+        # Pagato con Cartissima come gasolio senza rifornimento: il cliente riceve i contanti
+        voci = [{"categoria": "Anticipo Cartissima", "reparto": "Anticipo", "importo": importo,
+                 "metodo_pagamento": "Petrolifere"},
+                {"categoria": "Contanti dati al cliente", "reparto": "Anticipo", "importo": -importo,
+                 "metodo_pagamento": "Contanti"}]
+        salva_voci(voci, [testo_basso] * 2, 'Petrolifere')
+        print(f"✅ Anticipo Cartissima: {importo:.2f} € sulle petrolifere, {importo:.2f} € tolti dai contanti")
+        sys.exit(0)
+    cliente = nome_cliente(testo_basso)
+    if tipo == 'credito':
+        # Il cliente non paga ora: nessun incasso
+        voce_c = {"categoria": f"Credito cliente {cliente or '?'}", "reparto": "Credito cliente",
+                  "cliente": cliente or "", "importo": importo, "metodo_pagamento": "Credito"}
+        salva_voci([voce_c], [testo_basso], 'Credito')
+        titolo = "Credito cliente"
+    else:
+        # Il cliente paga un vecchio credito: incasso con il metodo detto (contanti se non detto)
+        metodo = metodo_pagamento(senza_parole_credito(testo_basso))
+        voce_c = {"categoria": f"Credito riscosso {cliente or '?'}", "reparto": "Credito riscosso",
+                  "cliente": cliente or "", "importo": importo, "metodo_pagamento": metodo}
+        salva_voci([voce_c], [testo_basso], metodo)
+        titolo = f"Credito riscosso ({metodo})"
+    if not cliente:
+        print(f"⚠️ {titolo}: {importo:.2f} € salvato SENZA NOME: scrivilo a mano nell'Excel "
+              "(oppure \"cancella ultima\" e ridillo con il nome)")
+        sys.exit(2)
+    print(f"✅ {titolo}: {cliente} {importo:.2f} €")
+    sys.exit(0)
+
+
 if CORREZIONE:
     correggi(CORREZIONE)
+
+if tipo_speciale(testo_basso):
+    registra_speciale(tipo_speciale(testo_basso))
 
 
 # ---------- programma ----------
@@ -501,28 +596,10 @@ if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     print("❌ Transazione scartata: Nessun importo valido rilevato.")
     sys.exit(1)
 
+
 # Pagamento: chiesto solo ora, a vendita capita (popup se è detto solo "carta")
 metodo = metodo_pagamento(testo_basso)
-
-# ---------- salvataggio: una riga per voce, stesso numero di transazione ----------
-adesso = datetime.datetime.now()
-transazione = adesso.strftime('%Y%m%d%H%M%S%f')
-try:
-    file_exists = os.path.isfile(csv_file)
-    with open(csv_file, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(['data_ora', 'dettagli_json', 'importo'])
-        for v, pezzo in zip(voci, pezzi if len(voci) == len(pezzi) else [testo_basso]):
-            v.update({"metodo_pagamento": metodo, "transazione": transazione,
-                      "note": testo_originale if len(voci) == 1 else pezzo,
-                      "importo": f"{float(v['importo']):.2f}"})
-            writer.writerow([adesso.strftime('%Y-%m-%d %H:%M:%S'), json.dumps(v), float(v['importo'])])
-except Exception as e:
-    print('❌ Errore fatale nel salvataggio:', e)
-    sys.exit(1)
-
-
+salva_voci(voci, pezzi, metodo)
 totale = sum(float(v['importo']) for v in voci)
 simbolo = '⚠️' if origine == 'emergenza' else '✅'
 if len(voci) == 1:

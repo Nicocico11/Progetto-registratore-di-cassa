@@ -80,6 +80,22 @@ PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 🧾 Se paghi "in cassa" (POS della cassa) arriva la notifica
 "STAMPARE RICEVUTA" con l'importo da battere. Con gli altri pagamenti no.
 
+CREDITI CLIENTI (il cliente prende ora e paga più avanti)
+• "credito cliente Rossi 50 euro"
+  → casella CREDITI CLIENTI (nome + importo). Non entra nei contanti.
+
+CREDITI RISCOSSI (il cliente paga un vecchio credito)
+• "credito riscosso Rossi 50 euro"            (contanti)
+• "credito riscosso Rossi 50 euro sul nero"   (o sul bianco, in cassa, petrolifere)
+  → casella CREDITI RISCOSSI (nome + importo).
+Se il nome non viene capito il credito si salva lo stesso, con 2 vibrazioni:
+il nome lo scrivi a mano nell'Excel.
+
+ANTICIPO CON CARTISSIMA (paga con Cartissima come gasolio, senza rifornimento,
+e gli dai lo stesso importo in contanti)
+• "anticipo cartissima 100"
+  → +100 nelle PETROLIFERE e -100 dai contanti attesi.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 4. CORREGGERE E CANCELLARE
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -90,6 +106,7 @@ PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
 • Al posto di "ultima" puoi dire "penultima".
 • Nelle vendite con più cose si può correggere solo il pagamento:
   per il resto cancellala e ridettala.
+• Anticipo Cartissima: non si corregge, si cancella e si ridice.
 
 VERSAMENTI
 • Se togli contanti dal cassetto per il versamento: "versamento 500"
@@ -123,12 +140,16 @@ Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
   • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
     data, turno, ora chiusura, DANEA, TELEFAX, sconti, litri AdBlue, contatori,
     taniche, petrolifere PAX, POS banca (nero), PAX bancarie (bianco),
+    crediti clienti e crediti riscossi (nome e importo),
     scontrini POS registratore (cassa), avanzo precedente e (negli spiccioli
     cassetto) i contanti che dovrebbero esserci.
   • 05_10_2026_notte.xlsx = il turno dopo, già "imbastito": data, turno, avanzo,
     ORA CHIUSURA (l'orario del terminale appena inserito), contatore AdBlue
     iniziale, taniche precedenti, cassaforte.
-  Sul computer restano da scrivere: totale carburanti, OPT, crediti,
+  Se le caselle di un riquadro finiscono (es. più di 20 telefax o 24 scontrini),
+  si ricomincia dalla prima casella sommando: il totale resta giusto e
+  nel messaggio di chiusura compare un avviso.
+  Sul computer restano da scrivere: totale carburanti, OPT,
   ricariche, versamento, operatore (e i totali dei POS se vuoi correggerli).
 
 Dopo la chiusura l'IA si spegne e le notifiche spariscono.
@@ -149,6 +170,8 @@ Si accende da sola con l'apertura del turno e si spegne con la chiusura.
 Per quando non si può parlare:
 1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Market
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
+9 Anticipo Cartissima · 9 Credito cliente · 9 Credito riscosso
+  (scrivi nome e importo, poi Invio)
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━

@@ -14,6 +14,8 @@ TELEFAX = [f'{c}{r}' for r in range(21, 26) for c in 'ABCD']
 ADBLUE_LITRI = [f'{c}17' for c in 'IJKLMNO'] + [f'{c}18' for c in 'IJKLMN']
 SCONTRINI_POS = [f'{c}{r}' for r in range(27, 33) for c in 'STUV']
 SCONTI = [f'{c}{r}' for r in (5, 6) for c in 'IJKLMNO']
+CREDITI_CLIENTI = [(f'I{r}', f'L{r}') for r in range(8, 16)]   # nome, importo
+CREDITI_RISCOSSI = [(f'M{r}', f'O{r}') for r in range(8, 16)]
 # La notte porta la data del giorno in cui finisce: pomeriggio del 4 -> notte del 5 -> mattina del 5
 SUCCESSIVO = {'Mattina': ('Pomeriggio', 0), 'Pomeriggio': ('Notte', 1), 'Notte': ('Mattina', 0)}
 
@@ -31,14 +33,26 @@ def salva_stato(stato):
         json.dump(stato, f)
 
 
-def riempi(ws, caselle, valori, avvisi, nome):
-    """Scrive i valori nelle caselle; se non bastano, somma il resto nell'ultima."""
-    valori = [round(v, 2) for v in valori if v]
-    if len(valori) > len(caselle):
-        avvisi.append(f"{nome}: {len(valori)} voci, caselle {len(caselle)}: le ultime sono sommate insieme")
-        valori = valori[:len(caselle) - 1] + [round(sum(valori[len(caselle) - 1:]), 2)]
-    for casella, valore in zip(caselle, valori):
-        ws[casella] = valore
+def riempi(ws, caselle, valori, avvisi, nome, nomi=None):
+    """Scrive i valori nelle caselle, uno per casella. Se le caselle finiscono si riparte dalla
+    prima sommando (la 21ª voce si somma alla 1ª, la 22ª alla 2ª...): il totale resta giusto.
+    nomi: per i crediti, caselle del nome accanto all'importo (i nomi si uniscono con " + ")."""
+    coppie = [(round(v, 2), n) for v, n in zip(valori, nomi or [None] * len(valori)) if v]
+    if len(coppie) > len(caselle):
+        avvisi.append(f"{nome}: {len(coppie)} voci per {len(caselle)} caselle: "
+                      "dalla prima casella in poi alcune sono la somma di due voci")
+    somme, testi = {}, {}
+    for i, (v, n) in enumerate(coppie):
+        k = i % len(caselle)
+        somme[k] = round(somme.get(k, 0.0) + v, 2)
+        if n is not None:
+            testi[k] = f"{testi[k]} + {n}" if k in testi else n
+    for k, v in somme.items():
+        if nomi is None:
+            ws[caselle[k]] = v
+        else:
+            ws[caselle[k][0]] = testi[k]
+            ws[caselle[k][1]] = v
 
 
 def nome_file(giorno, tipo):
@@ -106,6 +120,13 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     riempi(ws, SCONTI, [-imp(v) for v in voci if v.get('reparto') == 'Sconto'], avvisi, "SCONTI")
     litri = [q(v) for v in voci if v.get('reparto') == 'AdBlue' and v.get('unita') == 'l']
     riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
+
+    # Crediti clienti (non pagati ora) e crediti riscossi (vecchi crediti pagati oggi)
+    for reparto, caselle, nome in (('Credito cliente', CREDITI_CLIENTI, "CREDITI CLIENTI"),
+                                   ('Credito riscosso', CREDITI_RISCOSSI, "CREDITI RISCOSSI")):
+        crediti = [v for v in voci if v.get('reparto') == reparto]
+        riempi(ws, caselle, [imp(v) for v in crediti], avvisi, nome,
+               nomi=[v.get('cliente') or '?' for v in crediti])
 
     # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
     metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))

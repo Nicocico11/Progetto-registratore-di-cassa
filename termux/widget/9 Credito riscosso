@@ -1,0 +1,20 @@
+#!/bin/bash
+# Pulsante Termux:Widget: credito riscosso (il cliente paga un vecchio credito)
+read -p "Nome cliente: " NOME
+read -p "Importo (€, es. 50,50): " IMPORTO
+echo "Come ha pagato?  1 = contanti  2 = POS cassa  3 = POS nero  4 = POS bianco  5 = petrolifere"
+read -p "Scelta (Invio = contanti): " P
+case "$P" in
+  2) PAGATO="in cassa" ;;
+  3) PAGATO="sul nero" ;;
+  4) PAGATO="sul bianco" ;;
+  5) PAGATO="petrolifere" ;;
+  *) PAGATO="contanti" ;;
+esac
+if [ -n "$NOME" ] && [ -n "$IMPORTO" ]; then
+  bash ~/.termux/tasker/avvia_ia.sh "credito riscosso $NOME $IMPORTO euro $PAGATO"
+else
+  echo "Niente salvato (nome o importo vuoto)."
+fi
+echo
+read -p "Premi Invio per chiudere… "

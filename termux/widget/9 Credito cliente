@@ -1,0 +1,11 @@
+#!/bin/bash
+# Pulsante Termux:Widget: credito cliente (il cliente prende e paga più avanti)
+read -p "Nome cliente: " NOME
+read -p "Importo (€, es. 50,50): " IMPORTO
+if [ -n "$NOME" ] && [ -n "$IMPORTO" ]; then
+  bash ~/.termux/tasker/avvia_ia.sh "credito cliente $NOME $IMPORTO euro"
+else
+  echo "Niente salvato (nome o importo vuoto)."
+fi
+echo
+read -p "Premi Invio per chiudere… "

@@ -75,14 +75,21 @@ controlla "correzione vendita mista"  "50 gasolio e 1 mars" "2 voci"
 controlla "mista: solo pagamento"     "correggi ultima 30 euro"                      "vendita mista"
 controlla "avanzo a voce"             "avanzo 160"                                   "160.00"
 controlla "cancella ultima"           "cancella ultima"                              "Cancellata"
+controlla "credito cliente"           "credito cliente rossi mario 50 euro"          "Rossi Mario 50.00"
+controlla "credito riscosso pos nero" "credito riscosso bianchi 30 sul nero"         "Bianchi 30.00"
+controlla "credito riscosso contanti" "credito riscosso verdi 20"                    "(Contanti): Verdi 20.00"
+controlla "credito senza nome"        "credito cliente 15"                           "SENZA NOME"
+controlla "cancella credito"          "cancella ultima"                              "Cancellata"
+controlla "anticipo cartissima"       "anticipo cartissima 100"                      "100.00 € tolti dai contanti"
+controlla "carta di credito = vendita" "10 gasolio carta di credito"                 "Gasolio 10.00 € - POS nero"
 grep -q "Gasolio\|gasolio" $D/*_dati.csv && echo "  ok   copia dati aggiornata in Download" || { echo "  ERRORE copia dati"; ERRORI=$((ERRORI+1)); }
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
-[ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "150.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
+[ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "70.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
 grep -q "Contanti attesi" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
-python3 - "$D" <<'PYEOF' && echo "  ok   file Excel compilati" || { echo "  ERRORE file Excel"; ERRORI=$((ERRORI+1)); }
+PYTHONPATH=$HOME/.termux/tasker python3 - "$D" <<'PYEOF' && echo "  ok   file Excel compilati" || { echo "  ERRORE file Excel"; ERRORI=$((ERRORI+1)); }
 import glob, sys, openpyxl
 d = sys.argv[1]
 files = sorted(glob.glob(d + "/*.xlsx"))
@@ -95,12 +102,21 @@ assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litr
 assert ws['I5'].value == 0.1                                              # abbuono
 scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]
 assert scontrini[:2] == [26, 7] and scontrini[2] is None, scontrini        # un scontrino per vendita in cassa
-assert ws['D9'].value == 7 and ws['D12'].value == 104 and ws['D14'].value == 36.5, \
+assert ws['D9'].value == 107 and ws['D12'].value == 144 and ws['D14'].value == 36.5, \
     (ws['D9'].value, ws['D12'].value, ws['D14'].value)                    # petrolifere, POS nero, POS bianco
 assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo turno: ora chiusura precedente sconosciuta
-assert ws['I28'].value == 20 and ws['D34'].value == 130.5, ws['D34'].value   # cassaforte, contanti attesi nel cassetto
+assert ws['I28'].value == 20 and ws['D34'].value == 50.5, ws['D34'].value   # cassaforte, contanti attesi nel cassetto
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
 assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte
+assert (ws['I8'].value, ws['L8'].value, ws['I9'].value) == ('Rossi Mario', 50, None)          # crediti clienti
+assert (ws['M8'].value, ws['O8'].value, ws['M9'].value, ws['O9'].value) == ('Bianchi', 30, 'Verdi', 20)  # riscossi
+import excel_turno                                                         # caselle finite: si riparte dalla prima
+prova, avv = {}, []
+excel_turno.riempi(prova, ['A', 'B', 'C'], [1, 2, 3, 4, 5], avv, "PROVA")
+assert prova == {'A': 5, 'B': 7, 'C': 3} and avv, prova
+prova = {}
+excel_turno.riempi(prova, [('A', 'B')], [10, 5], [], "CREDITI", nomi=['Rossi', 'Verdi'])
+assert prova == {'A': 'Rossi + Verdi', 'B': 15}, prova
 import zipfile
 assert 'fullCalcOnLoad="1"' in zipfile.ZipFile(oggi[0]).read('xl/workbook.xml').decode()   # Excel ricalcola all'apertura
 dopo = [f for f in files if f not in oggi][0]
@@ -110,7 +126,7 @@ assert str(w2['I24'].value) == '14:05:32' and w2['I28'].value == 20     # orario
 import json, os
 stato = json.load(open(os.path.expanduser('~/stato_cassa.json')))
 assert stato['orario_chiusura'] == '14:05:32' and stato['contatore'] == 1020.5 and stato['taniche'] == 9, stato
-assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 150.5 and w2['I22'].value == dopo_atteso, \
+assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 70.5 and w2['I22'].value == dopo_atteso, \
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
