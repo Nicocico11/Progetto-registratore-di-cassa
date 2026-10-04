@@ -40,10 +40,14 @@ CENTESIMI
 
 ADBLUE
 • Sfuso, a litri: "adblue 20 litri" (20 × 1,30 €)  oppure  "adblue 13 euro"
-• Taniche: "2 taniche di adblue"
+• Taniche: "2 taniche di adblue" (dire sempre "adblue": "tanica" da sola è la tanica da 10 litri)
 
-MARKET
-• "2 red bull", "un mars bancomat": il prezzo lo calcola da solo dal listino.
+MARKET (tutti i prodotti di Danea, con i prezzi del listino)
+• "2 red bull", "una coca cola carta", "3 ghiaccioli", "kinder bueno e twix"
+• Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
+  "formula excel plus", "lampadina h7".
+• Se il nome vale per più prodotti (es. "lampadina") il telefono chiede quale:
+  ripeti con il nome completo (es. "lampadina h4").
 
 FAX / FOTOCOPIE (0,30 € a foglio)
 • "5 fax", "10 fotocopie", "2 lettere di vettura"
@@ -128,5 +132,7 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 • "❌ IA spenta, la sto avviando": aspetta 30 secondi e ripeti la frase.
 • Il testo capito è tagliato o sbagliato: ripeti, parlando subito dopo il doppio tap.
 • Vendita sbagliata: "correggi ultima …" oppure "cancella ultima".
+• Prezzi cambiati in Danea: esporta di nuovo i Prodotti in Excel, mettili in Download, poi in Termux:
+  python3 ~/.termux/tasker/danea_listino.py ~/storage/downloads/Prodotti.xlsx
 • Per aggiornare il programma, in Termux:
   curl -L -o ~/.termux/tasker/installa.sh https://raw.githubusercontent.com/Nicocico11/Progetto-registratore-di-cassa/claude/cash-register-ai-latency-n0e165/termux/installa.sh && bash ~/.termux/tasker/installa.sh

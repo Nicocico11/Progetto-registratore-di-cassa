@@ -73,7 +73,8 @@ PAGAMENTI = {
     'Bancomat': ['bancomat'],
     'Contanti': ['contanti', 'cash'],
 }
-NUMERO = r'(\d+(?:[.,]\d+)?)'
+# Un numero "da solo": non le cifre dentro i codici dei prodotti (q8, h7, 5w-40)
+NUMERO = r'(?<![\w-])(\d+(?:[.,]\d+)?)(?![\w-])'
 
 # Listino: {"Red Bull": {"prezzo": 3.0, "alias": ["red bull", "redbull"], "reparto": "Market", "unita": "pz"}}
 # (accetta anche il vecchio formato {"redbull": 3.0})
@@ -95,18 +96,37 @@ def contiene(parola, testo):
     return re.search(r'\b' + re.escape(parola) + r'\b', testo) is not None
 
 
+def radice(parola):
+    # "lampadine"/"lampadina" -> "lampadin", "ghiaccioli"/"ghiacciolo" -> "ghiacciol": così valgono i plurali
+    return parola[:-1] if len(parola) > 3 and parola[-1] in 'aeiou' else parola
+
+
+def radici(testo):
+    return " " + " ".join(radice(w) for w in re.findall(r"[\w&'-]+", testo.lower())) + " "
+
+
+AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
+
+
 def trova_prodotto_listino(testo):
     # Vince il nome/alias più lungo trovato nella frase
-    # ("taniche adblue" batte "adblue", "acqua grande" batte "acqua").
+    # ("acqua grande" batte "acqua", "lampadina h7" batte "lampadina").
     testo_unito = testo.replace(' ', '')
-    migliore, lunghezza = None, 0
+    testo_radici = radici(testo)
+    trovati, lunghezza = [], 0
     for nome, p in listino.items():
         for alias in [nome] + p.get('alias', []):
             alias = alias.lower()
-            if contiene(alias, testo) or (len(alias) >= 5 and alias.replace(' ', '') in testo_unito):
+            if (contiene(alias, testo) or radici(alias) in testo_radici
+                    or (len(alias) >= 5 and alias.replace(' ', '') in testo_unito)):
                 if len(alias) > lunghezza:
-                    migliore, lunghezza = nome, len(alias)
-    return migliore
+                    trovati, lunghezza = [nome], len(alias)
+                elif len(alias) == lunghezza and nome not in trovati:
+                    trovati.append(nome)
+    if len(trovati) > 1 and len({listino[n]['prezzo'] for n in trovati}) > 1:
+        AMBIGUI[:] = trovati      # stesso nome, prezzi diversi: meglio chiedere
+        return None
+    return trovati[0] if trovati else None
 
 
 def carburante_detto(testo):
@@ -385,6 +405,11 @@ metodo = metodo_pagamento(testo_basso)
 pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
 origine = 'regole'
+
+if AMBIGUI:
+    print(f"❓ Quale prodotto? {', '.join(AMBIGUI[:6])}{' …' if len(AMBIGUI) > 6 else ''}. "
+          "Ripeti con il nome completo. Niente salvato.")
+    sys.exit(1)
 
 if len(pezzi) > 1 and None in voci:
     # Vendita mista con un pezzo non capito: meglio ridettare che salvare a metà

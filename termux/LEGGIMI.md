@@ -91,3 +91,13 @@ Senza turno aperto: le vendite non vengono salvate (messaggio e vibrazione lunga
 nessuna notifica nella tendina, IA spenta (anche "accendi ia" viene rifiutato).
 I pulsanti della notifica IA scrivono in `~/debug_tasker.log` ("stato_ia spegni"):
 se il pulsante non lascia traccia, Android non lo sta facendo arrivare a Termux.
+
+## Listino Danea
+
+`prezzi_danea.json` è generato da `danea_listino.py` partendo dall'esportazione Prodotti di
+Easyfatt (Categoria, Descrizione, Listino 1 ivato). Per ogni prodotto crea i nomi a voce
+(senza formati e misure; con e senza codici tipo H7). Carburanti esclusi; AdBlue e fax hanno
+reparto e unità propri. Se un nome detto vale per più prodotti con prezzi diversi, la vendita
+viene rifiutata chiedendo il nome completo. `installa.sh` installa il listino solo se è cambiato.
+
+`installa.sh` si genera con `bash termux/genera_installa.sh` (non va modificato a mano).
