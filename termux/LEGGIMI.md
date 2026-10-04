@@ -78,8 +78,8 @@ ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiorn
 ## Quadratura cassa
 
 - Apertura: popup "Avanzo cassa turno precedente" (suggerisce l'ultimo conteggio).
-- Chiusura: popup orario terminale, "Contanti contati", "In cassaforte" (si possono saltare).
-- Nel documento: avanzo + vendite contanti = contanti attesi, confronto con i contati.
+- Chiusura: popup orario terminale e "In cassaforte". I contanti non si chiedono:
+  avanzo + vendite contanti - versamenti = contanti attesi (D34), proposti come avanzo al turno dopo.
 
 ## Termux:Widget
 

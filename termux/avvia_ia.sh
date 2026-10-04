@@ -72,11 +72,10 @@ case "$FRASE" in
       if [ -z "$ORARIO" ]; then
         ORARIO=$(chiedi "Orario terminale pompe" "ore minuti secondi, es. 140532" -n)
       fi
-      # Quadratura: si possono lasciare vuoti
-      CONTATI=$(chiedi "Contanti contati in cassa (€)" "es. 455,50 — vuoto per saltare")
+      # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
       CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$CASSAFORTE"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"

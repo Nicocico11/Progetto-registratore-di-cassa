@@ -107,16 +107,17 @@ Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 ━━━━━━━━━━━━━━━━━━━━━━━━
 6. FINE TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "CHIUSURA TURNO". Compaiono tre riquadri:
+Di': "CHIUSURA TURNO". Compaiono due riquadri:
 1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
    140532 = 14:05:32
-2) CONTANTI CONTATI in cassa (si può lasciare vuoto)
-3) IN CASSAFORTE (vuoto se non c'è niente)
+2) IN CASSAFORTE (vuoto se non c'è niente)
+I contanti non si contano: li calcola il telefono dalle vendite
+(avanzo + vendite in contanti - versamenti).
 
 Il documento di chiusura viene salvato in:
   Download → Chiusure_Turno → es. 2026-10-02_Mattina.txt
 Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
-(avanzo + contanti = attesi, confrontati con i contati) e l'elenco di tutte le vendite.
+(avanzo + contanti - versamenti = contanti attesi) e l'elenco di tutte le vendite.
 
 Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
   • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
@@ -131,7 +132,7 @@ Nella stessa cartella vengono creati anche i due file EXCEL del distributore:
   ricariche, versamento, operatore (e i totali dei POS se vuoi correggerli).
 
 Dopo la chiusura l'IA si spegne e le notifiche spariscono.
-Il conteggio dei contanti viene proposto come avanzo al turno successivo.
+I contanti attesi vengono proposti come avanzo all'apertura del turno dopo.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 7. LA NOTIFICA "IA"

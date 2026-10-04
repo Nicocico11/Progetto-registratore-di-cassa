@@ -22,7 +22,6 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
-  *Contanti*) echo '{"code": -1, "text": "200"}' ;;
   *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
   *)          echo '{"code": -2, "text": ""}' ;;
@@ -80,8 +79,9 @@ grep -q "Gasolio\|gasolio" $D/*_dati.csv && echo "  ok   copia dati aggiornata i
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
+[ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "150.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
-grep -q "Contanti contati" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
+grep -q "Contanti attesi" $D/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
 python3 - "$D" <<'PYEOF' && echo "  ok   file Excel compilati" || { echo "  ERRORE file Excel"; ERRORI=$((ERRORI+1)); }
 import glob, sys, openpyxl
 d = sys.argv[1]
@@ -98,7 +98,7 @@ assert scontrini[:2] == [26, 7] and scontrini[2] is None, scontrini        # un 
 assert ws['D9'].value == 7 and ws['D12'].value == 104 and ws['D14'].value == 36.5, \
     (ws['D9'].value, ws['D12'].value, ws['D14'].value)                    # petrolifere, POS nero, POS bianco
 assert ws['D7'].value == 160 and ws['I24'].value is None                 # primo turno: ora chiusura precedente sconosciuta
-assert ws['I28'].value == 20                                              # cassaforte
+assert ws['I28'].value == 20 and ws['D34'].value == 130.5, ws['D34'].value   # cassaforte, contanti attesi nel cassetto
 assert ws['D2'].formula if hasattr(ws['D2'], 'formula') else True
 assert ws.protection.sheet and ws['D4'].value.startswith('=')            # protezione e formule intatte
 import zipfile
@@ -110,7 +110,7 @@ assert str(w2['I24'].value) == '14:05:32' and w2['I28'].value == 20     # orario
 import json, os
 stato = json.load(open(os.path.expanduser('~/stato_cassa.json')))
 assert stato['orario_chiusura'] == '14:05:32' and stato['contatore'] == 1020.5 and stato['taniche'] == 9, stato
-assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 220 and w2['I22'].value == dopo_atteso, \
+assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 150.5 and w2['I22'].value == dopo_atteso, \
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 grep -q "CHIUSURA TURNO" $D/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }

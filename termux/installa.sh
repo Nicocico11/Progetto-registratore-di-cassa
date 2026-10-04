@@ -77,11 +77,10 @@ case "$FRASE" in
       if [ -z "$ORARIO" ]; then
         ORARIO=$(chiedi "Orario terminale pompe" "ore minuti secondi, es. 140532" -n)
       fi
-      # Quadratura: si possono lasciare vuoti
-      CONTATI=$(chiedi "Contanti contati in cassa (€)" "es. 455,50 — vuoto per saltare")
+      # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
       CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "$CONTATI" "$CASSAFORTE"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
@@ -1758,7 +1757,10 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
 
     try:
         import excel_turno
-        messaggi_excel, _ = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+        messaggi_excel, stato = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+        if t["contati"] is None and stato.get("avanzo") is not None:
+            with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # avanzo calcolato, proposto all'apertura dopo
+                f.write(f"{stato['avanzo']:.2f}")
     except ImportError:
         messaggi_excel = ["⚠️ Excel non creato: manca openpyxl (riesegui l'installazione con internet)"]
     except Exception as e:

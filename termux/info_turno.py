@@ -552,7 +552,10 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
 
     try:
         import excel_turno
-        messaggi_excel, _ = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+        messaggi_excel, stato = excel_turno.crea_excel(righe, t, orario_terminale, CARTELLA_CHIUSURE)
+        if t["contati"] is None and stato.get("avanzo") is not None:
+            with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # avanzo calcolato, proposto all'apertura dopo
+                f.write(f"{stato['avanzo']:.2f}")
     except ImportError:
         messaggi_excel = ["⚠️ Excel non creato: manca openpyxl (riesegui l'installazione con internet)"]
     except Exception as e:
