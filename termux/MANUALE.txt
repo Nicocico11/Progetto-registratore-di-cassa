@@ -190,5 +190,6 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 • Vendita sbagliata: "correggi ultima …" oppure "cancella ultima".
 • Prezzi cambiati in Danea: esporta di nuovo i Prodotti in Excel, mettili in Download, poi in Termux:
   python3 ~/.termux/tasker/danea_listino.py ~/storage/downloads/Prodotti.xlsx
+• Il manuale aggiornato è in Download → MANUALE_Cassa_Vocale.txt (si rinnova a ogni aggiornamento).
 • Per aggiornare il programma, in Termux:
   curl -L -o ~/.termux/tasker/installa.sh https://raw.githubusercontent.com/Nicocico11/Progetto-registratore-di-cassa/claude/cash-register-ai-latency-n0e165/termux/installa.sh && bash ~/.termux/tasker/installa.sh

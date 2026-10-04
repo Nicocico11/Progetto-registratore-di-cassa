@@ -33,6 +33,9 @@ echo '# File di Tasker da importare: li mettiamo nella cartella Download'
 echo 'if [ -d ~/storage/downloads ]; then'
 echo "cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'"; cat Cassa_Vocale.tsk.xml; echo "FINE_FILE"
 echo "cat > ~/storage/downloads/Continuazione.prf.xml <<'FINE_FILE'"; cat Continuazione.prf.xml; echo "FINE_FILE"
+echo '# Manuale d'"'"'uso, sempre aggiornato'
+echo "cat > ~/storage/downloads/MANUALE_Cassa_Vocale.txt <<'FINE_FILE'"; cat MANUALE.txt; echo "FINE_FILE"
+echo 'echo "📖 Manuale: Download/MANUALE_Cassa_Vocale.txt"'
 echo 'fi'
 echo 'chmod +x ~/.termux/tasker/*.sh'
 echo '# Libreria per leggere e scrivere i file Excel (serve internet solo la prima volta)'
