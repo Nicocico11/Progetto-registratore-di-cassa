@@ -83,6 +83,8 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
   "nutella" → NUTELLA 2,00 · "leone" → LEONE PASTIGLIE 3,50 · "colli di luni" → 14,00
 • Nomi generici: "cingomme" / "chewing gum" / "cicca" → CHEWING GUM 3,00
   (Vigorsol, Vivident, Happydent, Daygum). Il nome della marca va bene lo stesso.
+• "birra" da sola → lista di tutte le birre (Heineken, Moretti, Ichnusa);
+  "vino" → lista dei vini. Con il nome ("birra moretti", "ichnusa") va diretto.
 
 PREZZO DIVERSO DAL LISTINO
 • "2 red bull 7 euro" → 2 red bull, 7 € in tutto (2 vibrazioni: prezzo diverso dal listino)

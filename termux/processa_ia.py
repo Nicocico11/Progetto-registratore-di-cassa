@@ -211,13 +211,27 @@ GRUPPI = {
                                'chewingum', 'chewing gum', 'cewing gum', 'gomme da masticare',
                                'gomma da masticare', 'cicche', 'cicca', 'ciunga', 'ciungam'],
                     'prodotti': ['VIGORSOL', 'VIVIDENT', 'HAPPYDENT', 'DAYGUM']},
+    # "birra" da sola: tutte le birre, anche quelle senza "birra" nel nome (Ichnusa)
+    'BIRRA': {'parole': ['birra', 'birre', 'birretta', 'birrette'], 'solo_generico': True,
+              'nomi_con': ['BIRRA', 'ICHNUSA', 'HEINEKEN', 'MORETTI', 'PERONI', 'CORONA', 'BECK',
+                           'NASTRO AZZURRO', 'TENNENT', 'MENABREA']},
+    'VINO': {'parole': ['vino', 'vini', 'bottiglia di vino'], 'solo_generico': True,
+             'categorie': ['VINI']},
 }
 
 
 def gruppo_detto(testo):
     for nome, g in GRUPPI.items():
         if any(contiene(p, testo) for p in g['parole']):
-            prodotti = [n for n in g['prodotti'] if n in listino]
+            if g.get('solo_generico'):
+                # vale solo se si dice la parola generica e basta ("una birra", non "birra moretti")
+                parole_gruppo = {w for p in g['parole'] for w in p.split()}
+                if not set(parole_libere(testo, togli_prodotti=False)) <= parole_gruppo:
+                    continue
+            prodotti = [n for n in g.get('prodotti', []) if n in listino]
+            prodotti += sorted(n for n, pr in listino.items() if n not in prodotti and pr.get('reparto', 'Market') == 'Market'
+                               and (any(m in n for m in g.get('nomi_con', []))
+                                    or pr.get('categoria') in g.get('categorie', [])))
             if prodotti:
                 return nome, prodotti
     return None, []
@@ -432,9 +446,9 @@ def voce_resto(testo):
             "importo": -v['importo'], "metodo_pagamento": "Contanti"}
 
 
-def parole_libere(testo):
+def parole_libere(testo, togli_prodotti=True):
     """Le parole che restano togliendo numeri, pagamenti e parole di servizio ("di", "euro"...)."""
-    resto = re.sub(NUMERO, ' ', senza_prodotti(testo))
+    resto = re.sub(NUMERO, ' ', senza_prodotti(testo) if togli_prodotti else testo)
     for parole in list(PAGAMENTI.values()) + [PAGAMENTO_GENERICO]:
         for p in sorted(parole, key=len, reverse=True):
             resto = re.sub(r'\b' + re.escape(p) + r'\b', ' ', resto)
