@@ -236,9 +236,9 @@ Si spegne comunque con la chiusura del turno.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare (in ordine di uso):
-01 Vendita carburante: SENZA finestra del terminale, due riquadri: importo
-   (es. 45,50) e pagamento (Contanti / POS nero / POS bianco / Petrolifere).
-   L'esito compare in un messaggio a schermo, con le solite vibrazioni.
+01 Vendita carburante: due riquadri, importo (es. 45,50) e pagamento
+   (Contanti / POS nero / POS bianco / Petrolifere). L'esito compare in un messaggio
+   a schermo, con le solite vibrazioni, poi si torna da soli alla schermata home.
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
    Si possono scrivere più vendite di fila; Invio vuoto per uscire.

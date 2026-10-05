@@ -27,12 +27,9 @@ echo 'python3 ~/.termux/tasker/migra_prezzi.py'
 echo '# Pulsanti per Termux:Widget (cartella ~/.shortcuts)'
 echo 'mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts'
 echo '# Pulsanti con i numeri vecchi (cambiano quando si riordinano): si tolgono e si riscrivono'
-echo 'mkdir -p ~/.shortcuts/tasks'
 echo 'rm -f ~/.shortcuts/[0-9]\ * ~/.shortcuts/[0-9][0-9]\ * ~/.shortcuts/tasks/[0-9][0-9]\ *'
 for f in widget/[0-9]*; do n=$(basename "$f"); echo "cat > ~/.shortcuts/\"$n\" <<'FINE_FILE'"; cat "$f"; echo "FINE_FILE"; done
-# tasks/: pulsanti senza finestra del terminale
-for f in widget/tasks/*; do n=$(basename "$f"); echo "cat > ~/.shortcuts/tasks/\"$n\" <<'FINE_FILE'"; cat "$f"; echo "FINE_FILE"; done
-echo 'chmod +x ~/.shortcuts/* ~/.shortcuts/tasks/* 2>/dev/null'
+echo 'rmdir ~/.shortcuts/tasks 2>/dev/null; chmod +x ~/.shortcuts/*'
 
 echo '# File di Tasker da importare: li mettiamo nella cartella Download'
 echo 'if [ -d ~/storage/downloads ]; then'

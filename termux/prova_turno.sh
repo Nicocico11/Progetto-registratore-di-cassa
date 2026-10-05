@@ -114,7 +114,7 @@ controlla "negozio sul nero: avviso"  "1 mars sul nero"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "2 marzo = 2 mars"          "2 marzo"                                      "2 × Mars"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-bash "$QUI/widget/tasks/01 Vendita carburante"; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   widget 01 Vendita carburante" || { echo "  ERRORE widget 01"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+bash "$QUI/widget/01 Vendita carburante" > /dev/null; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   widget 01 Vendita carburante" || { echo "  ERRORE widget 01"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

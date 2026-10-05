@@ -7801,8 +7801,40 @@ python3 ~/.termux/tasker/migra_prezzi.py
 # Pulsanti per Termux:Widget (cartella ~/.shortcuts)
 mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts
 # Pulsanti con i numeri vecchi (cambiano quando si riordinano): si tolgono e si riscrivono
-mkdir -p ~/.shortcuts/tasks
 rm -f ~/.shortcuts/[0-9]\ * ~/.shortcuts/[0-9][0-9]\ * ~/.shortcuts/tasks/[0-9][0-9]\ *
+cat > ~/.shortcuts/"01 Vendita carburante" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget: vendita carburante con due riquadri, importo e pagamento.
+# Esito in un messaggio a schermo, poi si torna da soli alla schermata home.
+leggi() {  # testo scritto o scelto nel riquadro, niente se annullato
+  python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    if d.get("code") == -1:
+        print(d.get("text", ""))
+except Exception:
+    pass'
+}
+IMPORTO=$(termux-dialog text -n -t "⛽ Importo carburante (€)" -i "es. 45,50" 2>/dev/null | leggi)
+[ -z "$IMPORTO" ] && { am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1; exit 0; }
+SCELTA=$(termux-dialog radio -t "💳 Pagamento di $IMPORTO €" \
+  -v "Contanti,POS nero,POS bianco,Petrolifere (Cartissima)" 2>/dev/null | leggi)
+case "$SCELTA" in
+  Contanti) PAGATO="contanti" ;;
+  "POS nero") PAGATO="sul nero" ;;
+  "POS bianco") PAGATO="sul bianco" ;;
+  Petrolifere*) PAGATO="petrolifere" ;;
+  *) termux-toast "Niente salvato (pagamento non scelto)"
+     am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1; exit 0 ;;
+esac
+ESITO=$(bash ~/.termux/tasker/avvia_ia.sh "$IMPORTO euro $PAGATO")
+echo "$ESITO"
+termux-toast -g middle "$(grep -m2 -E '✅|⚠️|❌|❓' <<< "$ESITO")"
+# Torna alla schermata home (il terminale resta in sottofondo)
+sleep 1
+am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1
+FINE_FILE
 cat > ~/.shortcuts/"02 Vendita Danea" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: vendita market scritta a mano (niente errori di AutoVoice)
@@ -7959,35 +7991,7 @@ esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/tasks/"01 Vendita carburante" <<'FINE_FILE'
-#!/bin/bash
-# Pulsante Termux:Widget SENZA finestra del terminale (cartella tasks):
-# vendita carburante con due riquadri, importo e pagamento. Esito in un messaggio a schermo.
-leggi() {  # testo scritto o scelto nel riquadro, niente se annullato
-  python3 -c '
-import sys, json
-try:
-    d = json.load(sys.stdin)
-    if d.get("code") == -1:
-        print(d.get("text", ""))
-except Exception:
-    pass'
-}
-IMPORTO=$(termux-dialog text -n -t "⛽ Importo carburante (€)" -i "es. 45,50" 2>/dev/null | leggi)
-[ -z "$IMPORTO" ] && exit 0
-SCELTA=$(termux-dialog radio -t "💳 Pagamento di $IMPORTO €" \
-  -v "Contanti,POS nero,POS bianco,Petrolifere (Cartissima)" 2>/dev/null | leggi)
-case "$SCELTA" in
-  Contanti) PAGATO="contanti" ;;
-  "POS nero") PAGATO="sul nero" ;;
-  "POS bianco") PAGATO="sul bianco" ;;
-  Petrolifere*) PAGATO="petrolifere" ;;
-  *) termux-toast "Niente salvato (pagamento non scelto)"; exit 0 ;;
-esac
-ESITO=$(bash ~/.termux/tasker/avvia_ia.sh "$IMPORTO euro $PAGATO")
-termux-toast -g middle "$(grep -m2 -E '✅|⚠️|❌|❓' <<< "$ESITO")"
-FINE_FILE
-chmod +x ~/.shortcuts/* ~/.shortcuts/tasks/* 2>/dev/null
+rmdir ~/.shortcuts/tasks 2>/dev/null; chmod +x ~/.shortcuts/*
 # File di Tasker da importare: li mettiamo nella cartella Download
 if [ -d ~/storage/downloads ]; then
 cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'
@@ -8523,9 +8527,9 @@ Si spegne comunque con la chiusura del turno.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare (in ordine di uso):
-01 Vendita carburante: SENZA finestra del terminale, due riquadri: importo
-   (es. 45,50) e pagamento (Contanti / POS nero / POS bianco / Petrolifere).
-   L'esito compare in un messaggio a schermo, con le solite vibrazioni.
+01 Vendita carburante: due riquadri, importo (es. 45,50) e pagamento
+   (Contanti / POS nero / POS bianco / Petrolifere). L'esito compare in un messaggio
+   a schermo, con le solite vibrazioni, poi si torna da soli alla schermata home.
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
    Si possono scrivere più vendite di fila; Invio vuoto per uscire.
@@ -8577,4 +8581,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:43"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:48"
