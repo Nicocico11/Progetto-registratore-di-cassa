@@ -72,7 +72,9 @@ case "$FRASE" in
         TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
       fi
       echo "🟢 TURNO APERTO"
-      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE"
+      # "apertura turno notte": turno scelto a voce invece che dall'orario
+      TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
+      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO"
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
@@ -1487,8 +1489,9 @@ def euro(x):
 
 # ---------- turno ----------
 
-def tipo_turno(momento):
-    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio."""
+def tipo_turno(momento, forzato=""):
+    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio.
+    forzato: "mattina"/"pomeriggio"/"notte" detto nella frase ("apertura turno notte")."""
     minuti = momento.hour * 60 + momento.minute
 
     def distanza(nome):
@@ -1496,6 +1499,8 @@ def tipo_turno(momento):
         return min(d, 1440 - d)
 
     nome = min(TURNI, key=distanza)
+    if (forzato or "").capitalize() in TURNI:
+        nome = forzato.capitalize()
     data_inizio = momento.date()
     if nome == 'Notte' and momento.hour >= 12:  # la notte porta la data del giorno dopo (aperta alle 22 del 4 = notte del 5)
         data_inizio += timedelta(days=1)
@@ -1519,13 +1524,13 @@ def turno_aperto():
     return bool(leggi_turno() or leggi_csv())
 
 
-def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo=""):
+def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo="", tipo=""):
     esistente = leggi_turno()
     if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
         return
     adesso = datetime.now()
-    nome, data_inizio = tipo_turno(adesso)
+    nome, data_inizio = tipo_turno(adesso, tipo)
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
     turno["documento"] = nuovo_documento(turno, adesso)
@@ -2038,8 +2043,8 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        argomenti = sys.argv[3:] + ["", "", "", ""]
-        apri_turno(*argomenti[:4])
+        argomenti = sys.argv[3:] + ["", "", "", "", ""]
+        apri_turno(*argomenti[:5])
     elif comando.startswith("stato "):
         print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":
@@ -7649,6 +7654,7 @@ Di': "APERTURA TURNO". Compaiono quattro riquadri:
 Sono i valori lasciati dal collega del turno prima: vanno scritti ogni volta.
 Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
+  Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
 
@@ -7849,4 +7855,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:23"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:28"

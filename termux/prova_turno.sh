@@ -51,7 +51,7 @@ echo "Prova turno completo:"
 controlla "vendita a turno chiuso"    "20 euro di gasolio"                           "Turno non aperto"
 controlla "accendi ia a turno chiuso" "accendi ia"                                   "Turno non aperto"
 sleep 1; grep -q "^mostra" $HOME/notifiche.log 2>/dev/null && { echo "  ERRORE notifiche a turno chiuso"; ERRORI=$((ERRORI+1)); } || echo "  ok   nessuna notifica a turno chiuso"
-controlla "apertura turno con avanzo" "apertura turno"                               "150.50"
+controlla "apertura turno con avanzo" "apertura turno notte"                         "Notte"
 [ "$(python3 $HOME/info_turno.py stato orario_chiusura)" = "13:00:00" ] && echo "  ok   ora chiusura precedente dal riquadro" || { echo "  ERRORE ora chiusura precedente"; ERRORI=$((ERRORI+1)); }
 [ -f $D/*/Documenti/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "contatore adblue"          "contatore adblue 1000 virgola 5"              "1000.5"

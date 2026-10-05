@@ -106,8 +106,9 @@ def euro(x):
 
 # ---------- turno ----------
 
-def tipo_turno(momento):
-    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio."""
+def tipo_turno(momento, forzato=""):
+    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio.
+    forzato: "mattina"/"pomeriggio"/"notte" detto nella frase ("apertura turno notte")."""
     minuti = momento.hour * 60 + momento.minute
 
     def distanza(nome):
@@ -115,6 +116,8 @@ def tipo_turno(momento):
         return min(d, 1440 - d)
 
     nome = min(TURNI, key=distanza)
+    if (forzato or "").capitalize() in TURNI:
+        nome = forzato.capitalize()
     data_inizio = momento.date()
     if nome == 'Notte' and momento.hour >= 12:  # la notte porta la data del giorno dopo (aperta alle 22 del 4 = notte del 5)
         data_inizio += timedelta(days=1)
@@ -138,13 +141,13 @@ def turno_aperto():
     return bool(leggi_turno() or leggi_csv())
 
 
-def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo=""):
+def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo="", tipo=""):
     esistente = leggi_turno()
     if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
         return
     adesso = datetime.now()
-    nome, data_inizio = tipo_turno(adesso)
+    nome, data_inizio = tipo_turno(adesso, tipo)
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
     turno["documento"] = nuovo_documento(turno, adesso)
@@ -657,8 +660,8 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        argomenti = sys.argv[3:] + ["", "", "", ""]
-        apri_turno(*argomenti[:4])
+        argomenti = sys.argv[3:] + ["", "", "", "", ""]
+        apri_turno(*argomenti[:5])
     elif comando.startswith("stato "):
         print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":

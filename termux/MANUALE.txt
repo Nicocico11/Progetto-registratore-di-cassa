@@ -28,6 +28,7 @@ Di': "APERTURA TURNO". Compaiono quattro riquadri:
 Sono i valori lasciati dal collega del turno prima: vanno scritti ogni volta.
 Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
+  Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
 

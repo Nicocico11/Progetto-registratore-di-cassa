@@ -67,7 +67,9 @@ case "$FRASE" in
         TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
       fi
       echo "🟢 TURNO APERTO"
-      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE"
+      # "apertura turno notte": turno scelto a voce invece che dall'orario
+      TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
+      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO"
       bash $CARTELLA/avvia_server.sh
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
