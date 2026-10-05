@@ -103,6 +103,9 @@ PAGAMENTI (si dicono in fondo alla frase)
 • "petrolifere" / "cartissima" ....... Petrolifere → CHIUSURA PETROLIFERE PAX (somma)
 • "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
                                        (una casella per ogni vendita)
+Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
+va da sola IN CASSA; se dici "nero" o "bianco" si salva con 2 vibrazioni e
+"⚠️ CONTROLLA: di solito si pagano in cassa".
 Se dici solo "carta", "pos" o "bancomat" compare il riquadro
 "Pagato con carta: su quale POS?": tocca quello giusto e premi OK.
 Se lo annulli la vendita NON viene salvata.
@@ -254,7 +257,8 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
-• "⚠️ Controlla": la vendita è salvata ma c'è qualcosa di strano (2 vibrazioni):
+• "⚠️ CONTROLLA" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa
+  di strano (2 vibrazioni):
   - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
   - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
   - "prezzo detto … invece di …": prezzo diverso dal listino.

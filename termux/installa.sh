@@ -360,6 +360,7 @@ testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|
 testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
 testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?resto)\b', 'lasciato', testo_basso)  # "resto lasciato"
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
+testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
 testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
@@ -1206,40 +1207,43 @@ except Exception:
 adesso_ora = datetime.datetime.now()
 
 # Pagamento: chiesto solo ora, a vendita capita (popup se è detto solo "carta")
-metodo = metodo_pagamento(testo_basso, carburante=any(v['reparto'] == 'Carburante' for v in voci))
+# Solo prodotti del negozio (market, fax, taniche AdBlue), senza carburante: si pagano in cassa
+SOLO_NEGOZIO = all(v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')
+                   for v in voci if v['reparto'] not in ('Sconto', 'Resto lasciato')) and \
+    any(v['reparto'] not in ('Sconto', 'Resto lasciato') for v in voci)
+if SOLO_NEGOZIO and pagamento_detto(testo_basso) == 'chiedi':
+    metodo = 'POS cassa'      # "2 red bull carta" = POS della cassa, senza chiedere
+else:
+    metodo = metodo_pagamento(testo_basso, carburante=any(v['reparto'] == 'Carburante' for v in voci))
 if metodo == 'POS cassa' and any(v['reparto'] == 'Carburante' for v in voci):
     print(CARBURANTE_IN_CASSA)
     sys.exit(1)
 salva_voci(voci, pezzi, metodo)
 totale = sum(float(v['importo']) for v in voci)
-simbolo = '⚠️' if origine == 'emergenza' else '✅'
+
+# Cose da controllare: si scrivono PRIMA della vendita, così si leggono anche nel messaggio corto a schermo
+if any(v.get('categoria') == 'Carburante' and float(v['importo']) < 5 for v in voci):
+    AVVISI.append("solo un importo piccolo, senza prodotto: era carburante?")   # "2 mars" -> "2"
+if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[0]).total_seconds() < 30:
+    AVVISI.append("frase uguale alla vendita di pochi secondi fa: registrata due volte?")
+IMPORTO_MASSIMO_CARBURANTE = 1200   # camion ~1000 €: oltre, forse "19 90" capito come 1990
+if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CARBURANTE for v in voci):
+    AVVISI.insert(0, "IMPORTO MOLTO ALTO")
+if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco'):
+    AVVISI.append("solo prodotti del negozio: di solito si pagano IN CASSA (\"correggi ultima in cassa\")")
+for detto, nome in SIMILI.items():
+    AVVISI.append(f'"{detto}" capito come {nome}')
+if AVVISI:
+    print("⚠️ CONTROLLA: " + "; ".join(dict.fromkeys(AVVISI)) + " — se è sbagliata: \"cancella ultima\"")
+
+simbolo = '⚠️' if origine == 'emergenza' or AVVISI else '✅'
 if len(voci) == 1:
-    print(f"{simbolo} Vendita salvata ({origine}): {descrivi(voci[0])} - {metodo}")
+    print(f"{simbolo} Vendita salvata: {descrivi(voci[0])} - {metodo}")
 else:
     print(f"{simbolo} Vendita salvata ({len(voci)} voci, {metodo}): "
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
 avviso_ricevuta(voci, metodo)
-
-# Solo un importo piccolo, senza prodotto: forse AutoVoice ha perso il nome ("2 mars" -> "2")
-if any(v.get('categoria') == 'Carburante' and float(v['importo']) < 5 for v in voci):
-    AVVISI.append("solo un importo piccolo, senza prodotto: era carburante?")
-# Stessa frase della vendita prima, pochi secondi fa: forse registrata due volte
-if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[0]).total_seconds() < 30:
-    AVVISI.append("frase uguale alla vendita di pochi secondi fa: registrata due volte?")
-if AVVISI:
-    print("⚠️ Controlla: " + "; ".join(dict.fromkeys(AVVISI)).rstrip('.') + " — se è sbagliata: \"cancella ultima\"")
-
-# Nome capito per somiglianza: salvato, ma con 2 vibrazioni per controllare
-if SIMILI:
-    print("🔎 " + ", ".join(f'"{a}" = {b}' for a, b in SIMILI.items()) + ": controlla che sia giusto")
-    sys.exit(2)
-
-# Rifornimento oltre il massimo normale (camion ~1000 €): forse "19 90" capito come 1990
-IMPORTO_MASSIMO_CARBURANTE = 1200
-if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CARBURANTE for v in voci):
-    print(f"⚠️ Importo molto alto: controlla! Se è sbagliato: \"cancella ultima\" e ridilla.")
-    sys.exit(2)
 
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' or AVVISI else 0)
@@ -8345,6 +8349,9 @@ PAGAMENTI (si dicono in fondo alla frase)
 • "petrolifere" / "cartissima" ....... Petrolifere → CHIUSURA PETROLIFERE PAX (somma)
 • "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
                                        (una casella per ogni vendita)
+Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
+va da sola IN CASSA; se dici "nero" o "bianco" si salva con 2 vibrazioni e
+"⚠️ CONTROLLA: di solito si pagano in cassa".
 Se dici solo "carta", "pos" o "bancomat" compare il riquadro
 "Pagato con carta: su quale POS?": tocca quello giusto e premi OK.
 Se lo annulli la vendita NON viene salvata.
@@ -8496,7 +8503,8 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
-• "⚠️ Controlla": la vendita è salvata ma c'è qualcosa di strano (2 vibrazioni):
+• "⚠️ CONTROLLA" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa
+  di strano (2 vibrazioni):
   - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
   - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
   - "prezzo detto … invece di …": prezzo diverso dal listino.
@@ -8525,4 +8533,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:40"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:04"
