@@ -200,7 +200,7 @@ assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 [ "$(ls $D | wc -l)" = 1 ] && [ "$(ls $D/*/Documenti | wc -l)" = 2 ] && [ "$(ls $D/*/Excel | wc -l)" = 2 ] && echo "  ok   cartella del turno: Documenti (2) ed Excel (2)" || { echo "  ERRORE cartelle"; find $D; ERRORI=$((ERRORI+1)); }
-sleep 2; python3 - $HOME/mail_finte <<'PYEOF' && echo "  ok   mail della chiusura (2 Excel + riepilogo)" || { echo "  ERRORE mail"; ERRORI=$((ERRORI+1)); }
+python3 - $HOME/mail_finte <<'PYEOF' && echo "  ok   mail della chiusura (2 Excel + riepilogo)" || { echo "  ERRORE mail"; ERRORI=$((ERRORI+1)); }
 import email, glob, sys
 f = glob.glob(sys.argv[1] + '/*.eml')
 assert len(f) == 1, f
@@ -219,7 +219,7 @@ cp $HOME/stato_cassa.json $HOME/stato_prima.json
 controlla "apertura turno di prova"   "apertura turno prova notte"                   "TURNO DI PROVA"
 controlla "contatore nel turno prova" "contatore taniche 99"                         "99"
 controlla "vendita nel turno prova"   "20 gasolio"                                   "Gasolio 20.00"
-controlla "chiusura turno di prova"   "chiusura turno"                               "_TEST.xlsx"
+controlla "chiusura turno di prova"   "chiusura turno"                               "Mail inviata"
 cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di prova: stato vero non toccato" || { echo "  ERRORE stato toccato dalla prova"; ERRORI=$((ERRORI+1)); }
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 

@@ -36,6 +36,16 @@ def leggi_config():
         return None
 
 
+def registra(testo):
+    """Esito nel registro (debug_tasker.log), per capire cosa è successo."""
+    try:
+        import datetime
+        with open(os.path.expanduser('~/debug_tasker.log'), 'a') as f:
+            f.write(f"{datetime.datetime.now():%H:%M:%S} mail: {testo}\n")
+    except Exception:
+        pass
+
+
 def notifica(titolo, testo):
     try:
         subprocess.Popen(['termux-notification', '--id', 'cassa_email', '--title', titolo, '--content', testo],
@@ -78,13 +88,14 @@ def file_del_turno(cartella):
 
 
 def invia_turno(cartella):
-    """True se spedita (o non configurata: niente da fare), False se rimasta in coda."""
+    """Spedisce la chiusura; se non riesce la mette in coda. Restituisce il messaggio da mostrare."""
     c = leggi_config()
     if not c:
-        return True
+        return ""
     excel, riepilogo = file_del_turno(cartella)
     if not excel and not riepilogo:
-        return True
+        registra(f"niente da mandare in {cartella}")
+        return "📧 Mail: nessun file da mandare"
     nome = os.path.basename(cartella.rstrip('/'))            # es. 2026-10-05_Notte
     corpo = "Chiusura turno " + nome.replace('_', ' ') + "\n\n"
     if riepilogo:
@@ -93,14 +104,19 @@ def invia_turno(cartella):
     try:
         spedisci(c, f"Chiusura turno {nome.replace('_', ' ')}", corpo, excel + riepilogo)
         notifica("📧 Mail della chiusura inviata", f"{nome} → {c['destinatario']}")
-        return True
+        registra(f"inviata {nome} a {c['destinatario']} ({len(excel + riepilogo)} allegati)")
+        return f"📧 Mail inviata a {c['destinatario']} ({len(excel + riepilogo)} allegati)"
     except smtplib.SMTPAuthenticationError:
         notifica("📧 Mail NON inviata: password sbagliata",
                  "Rifai: python3 ~/.termux/tasker/invia_mail.py configura")
+        registra(f"password rifiutata, {nome} in coda")
+        esito = "📧 Mail NON inviata: password rifiutata (rifai la configurazione). Resta in coda"
     except Exception as e:
         notifica("📧 Mail in coda (niente internet?)", f"{nome}: riparte da sola al prossimo comando")
+        registra(f"non inviata ({e}), {nome} in coda")
+        esito = "📧 Mail in coda (niente internet?): riparte da sola al prossimo comando"
     metti_in_coda(cartella)
-    return False
+    return esito
 
 
 def metti_in_coda(cartella):
@@ -179,8 +195,10 @@ if __name__ == '__main__':
         prova()
     elif comando == 'invia' and len(sys.argv) > 2:
         svuota_coda()
-        invia_turno(sys.argv[2])
+        print(invia_turno(sys.argv[2]))
     elif comando == 'coda':
+        print("📭 Nessuna mail in coda" if not leggi_coda() else f"📤 In coda: {len(leggi_coda())}, riprovo…")
         svuota_coda()
+        print("✅ Coda vuota" if not leggi_coda() else "⚠️ Ancora in coda (guarda il registro)")
     else:
         print(__doc__ or "Uso: invia_mail.py configura | prova | invia <cartella> | coda")

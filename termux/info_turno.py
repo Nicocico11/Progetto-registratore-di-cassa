@@ -667,11 +667,16 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
         messaggi_excel = [f"⚠️ Excel non creato ({e})"]
 
     # Mail con Excel e riepilogo, in sottofondo (se configurata; senza internet resta in coda)
+    # Mail con Excel e riepilogo, subito (qualche secondo); senza internet resta in coda
     if os.path.exists(os.path.expanduser("~/.cassa_email.json")):
-        subprocess.Popen([sys.executable, os.path.expanduser("~/.termux/tasker/invia_mail.py"), "invia",
-                          cartella_turno(t)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True)
-        messaggi_excel.append("📧 Invio della mail in corso (arriva una notifica)")
+        try:
+            import invia_mail
+            invia_mail.svuota_coda()
+            esito = invia_mail.invia_turno(cartella_turno(t))
+        except Exception as e:
+            esito = f"📧 Mail non inviata ({e})"
+        if esito:
+            messaggi_excel.append(esito)
 
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
     shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))

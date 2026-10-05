@@ -1333,6 +1333,16 @@ def leggi_config():
         return None
 
 
+def registra(testo):
+    """Esito nel registro (debug_tasker.log), per capire cosa è successo."""
+    try:
+        import datetime
+        with open(os.path.expanduser('~/debug_tasker.log'), 'a') as f:
+            f.write(f"{datetime.datetime.now():%H:%M:%S} mail: {testo}\n")
+    except Exception:
+        pass
+
+
 def notifica(titolo, testo):
     try:
         subprocess.Popen(['termux-notification', '--id', 'cassa_email', '--title', titolo, '--content', testo],
@@ -1375,13 +1385,14 @@ def file_del_turno(cartella):
 
 
 def invia_turno(cartella):
-    """True se spedita (o non configurata: niente da fare), False se rimasta in coda."""
+    """Spedisce la chiusura; se non riesce la mette in coda. Restituisce il messaggio da mostrare."""
     c = leggi_config()
     if not c:
-        return True
+        return ""
     excel, riepilogo = file_del_turno(cartella)
     if not excel and not riepilogo:
-        return True
+        registra(f"niente da mandare in {cartella}")
+        return "📧 Mail: nessun file da mandare"
     nome = os.path.basename(cartella.rstrip('/'))            # es. 2026-10-05_Notte
     corpo = "Chiusura turno " + nome.replace('_', ' ') + "\n\n"
     if riepilogo:
@@ -1390,14 +1401,19 @@ def invia_turno(cartella):
     try:
         spedisci(c, f"Chiusura turno {nome.replace('_', ' ')}", corpo, excel + riepilogo)
         notifica("📧 Mail della chiusura inviata", f"{nome} → {c['destinatario']}")
-        return True
+        registra(f"inviata {nome} a {c['destinatario']} ({len(excel + riepilogo)} allegati)")
+        return f"📧 Mail inviata a {c['destinatario']} ({len(excel + riepilogo)} allegati)"
     except smtplib.SMTPAuthenticationError:
         notifica("📧 Mail NON inviata: password sbagliata",
                  "Rifai: python3 ~/.termux/tasker/invia_mail.py configura")
+        registra(f"password rifiutata, {nome} in coda")
+        esito = "📧 Mail NON inviata: password rifiutata (rifai la configurazione). Resta in coda"
     except Exception as e:
         notifica("📧 Mail in coda (niente internet?)", f"{nome}: riparte da sola al prossimo comando")
+        registra(f"non inviata ({e}), {nome} in coda")
+        esito = "📧 Mail in coda (niente internet?): riparte da sola al prossimo comando"
     metti_in_coda(cartella)
-    return False
+    return esito
 
 
 def metti_in_coda(cartella):
@@ -1476,9 +1492,11 @@ if __name__ == '__main__':
         prova()
     elif comando == 'invia' and len(sys.argv) > 2:
         svuota_coda()
-        invia_turno(sys.argv[2])
+        print(invia_turno(sys.argv[2]))
     elif comando == 'coda':
+        print("📭 Nessuna mail in coda" if not leggi_coda() else f"📤 In coda: {len(leggi_coda())}, riprovo…")
         svuota_coda()
+        print("✅ Coda vuota" if not leggi_coda() else "⚠️ Ancora in coda (guarda il registro)")
     else:
         print(__doc__ or "Uso: invia_mail.py configura | prova | invia <cartella> | coda")
 FINE_FILE
@@ -2565,11 +2583,16 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
         messaggi_excel = [f"⚠️ Excel non creato ({e})"]
 
     # Mail con Excel e riepilogo, in sottofondo (se configurata; senza internet resta in coda)
+    # Mail con Excel e riepilogo, subito (qualche secondo); senza internet resta in coda
     if os.path.exists(os.path.expanduser("~/.cassa_email.json")):
-        subprocess.Popen([sys.executable, os.path.expanduser("~/.termux/tasker/invia_mail.py"), "invia",
-                          cartella_turno(t)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True)
-        messaggi_excel.append("📧 Invio della mail in corso (arriva una notifica)")
+        try:
+            import invia_mail
+            invia_mail.svuota_coda()
+            esito = invia_mail.invia_turno(cartella_turno(t))
+        except Exception as e:
+            esito = f"📧 Mail non inviata ({e})"
+        if esito:
+            messaggi_excel.append(esito)
 
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
     shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
@@ -7804,7 +7827,7 @@ FINE_FILE
 cat > ~/.shortcuts/"04 Cancella ultima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
-python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
+python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [[ "$R" == [sS]* ]] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
@@ -7898,7 +7921,11 @@ FINE_FILE
 cat > ~/.shortcuts/"12 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
-read -p "Chiudere il turno? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "chiusura turno"
+read -p "Chiudere il turno? (s/n) " R
+case "$R" in
+  [sS]*) bash ~/.termux/tasker/avvia_ia.sh "chiusura turno" ;;   # s, S, si, Sì
+  *) echo "Turno NON chiuso." ;;
+esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
@@ -8425,11 +8452,12 @@ Nella sottocartella Excel vengono creati i due file del distributore:
   ricariche, versamento, operatore (e i totali dei POS se vuoi correggerli).
 
 📧 MAIL AUTOMATICA (se configurata): alla chiusura parte da sola una mail con i
-due Excel e il riepilogo. Arriva la notifica "📧 Mail della chiusura inviata".
+due Excel e il riepilogo. Nel messaggio di chiusura compare "📧 Mail inviata a …".
 Senza internet resta in coda e riparte da sola al primo comando successivo.
 Configurazione (una volta sola, in Termux):
   python3 ~/.termux/tasker/invia_mail.py configura   (Gmail o Libero, password, destinatario)
   python3 ~/.termux/tasker/invia_mail.py prova       (manda una mail di prova)
+  python3 ~/.termux/tasker/invia_mail.py coda        (rimanda subito le mail in coda)
 La password resta solo sul telefono.
 
 Dopo la chiusura l'IA si spegne e le notifiche spariscono.
@@ -8497,4 +8525,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:14"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:40"

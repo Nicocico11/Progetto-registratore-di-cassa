@@ -1,5 +1,5 @@
 #!/bin/bash
 # Pulsante Termux:Widget
-python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [ "$R" = s ] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
+python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [[ "$R" == [sS]* ]] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
 echo
 read -p "Premi Invio per chiudere… "

@@ -210,11 +210,12 @@ Nella sottocartella Excel vengono creati i due file del distributore:
   ricariche, versamento, operatore (e i totali dei POS se vuoi correggerli).
 
 📧 MAIL AUTOMATICA (se configurata): alla chiusura parte da sola una mail con i
-due Excel e il riepilogo. Arriva la notifica "📧 Mail della chiusura inviata".
+due Excel e il riepilogo. Nel messaggio di chiusura compare "📧 Mail inviata a …".
 Senza internet resta in coda e riparte da sola al primo comando successivo.
 Configurazione (una volta sola, in Termux):
   python3 ~/.termux/tasker/invia_mail.py configura   (Gmail o Libero, password, destinatario)
   python3 ~/.termux/tasker/invia_mail.py prova       (manda una mail di prova)
+  python3 ~/.termux/tasker/invia_mail.py coda        (rimanda subito le mail in coda)
 La password resta solo sul telefono.
 
 Dopo la chiusura l'IA si spegne e le notifiche spariscono.
