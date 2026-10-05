@@ -7,7 +7,7 @@ echo '#!/bin/bash'
 echo '# Installa / aggiorna la cassa vocale. Generato da genera_installa.sh: non modificarlo a mano.'
 echo '# Copia di sicurezza dei file attuali (solo la prima volta: le copie .vecchio non vengono sovrascritte)'
 echo 'for f in ~/.termux/tasker/avvia_ia.sh ~/.termux/tasker/avvia_server.sh ~/.termux/tasker/processa_ia.py ~/.termux/tasker/notifica.sh ~/info_turno.py; do [ -f "$f" ] && [ ! -f "$f.vecchio" ] && cp "$f" "$f.vecchio"; done'
-for f in avvia_ia.sh widget_comune.sh avvia_server.sh stato_ia.sh notifica.sh processa_ia.py numeri.py invia_mail.py vibra.sh migra_prezzi.py danea_listino.py excel_turno.py; do
+for f in avvia_ia.sh widget_comune.sh pulsante.sh avvia_server.sh stato_ia.sh notifica.sh processa_ia.py numeri.py invia_mail.py vibra.sh migra_prezzi.py danea_listino.py excel_turno.py; do
   echo "cat > ~/.termux/tasker/$f <<'FINE_FILE'"; cat $f; echo "FINE_FILE"
 done
 echo "cat > ~/info_turno.py <<'FINE_FILE'"; cat info_turno.py; echo "FINE_FILE"
@@ -35,6 +35,8 @@ echo '# File di Tasker da importare: li mettiamo nella cartella Download'
 echo 'if [ -d ~/storage/downloads ]; then'
 echo "cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'"; cat Cassa_Vocale.tsk.xml; echo "FINE_FILE"
 echo "cat > ~/storage/downloads/Continuazione.prf.xml <<'FINE_FILE'"; cat Continuazione.prf.xml; echo "FINE_FILE"
+python3 genera_tasker_pulsanti.py > /dev/null
+echo "cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'"; cat Cassa_Pulsanti.prj.xml; echo "FINE_FILE"
 echo '# Manuale d'"'"'uso, sempre aggiornato'
 echo "cat > ~/storage/downloads/MANUALE_Cassa_Vocale.txt <<'FINE_FILE'"; cat MANUALE.txt; echo "FINE_FILE"
 echo 'echo "📖 Manuale: Download/MANUALE_Cassa_Vocale.txt"'

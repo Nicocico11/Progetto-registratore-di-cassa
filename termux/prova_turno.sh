@@ -27,6 +27,7 @@ case "$*" in
   *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
+  *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
   *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
@@ -118,6 +119,9 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "2 marzo = 2 mars"          "2 marzo"                                      "2 × Mars"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 bash "$QUI/widget/01 Vendita carburante" > /dev/null; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   widget 01 Vendita carburante" || { echo "  ERRORE widget 01"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+mkdir -p $HOME/.shortcuts && cp "$QUI"/widget/[0-9]* $HOME/.shortcuts/ && : > $HOME/toast.log
+bash $HOME/.termux/tasker/pulsante.sh menu > /dev/null 2>&1; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   menu Cassa da Tasker (senza Termux)" || { echo "  ERRORE menu Tasker"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

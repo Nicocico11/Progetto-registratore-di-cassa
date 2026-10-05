@@ -125,3 +125,9 @@ l'altro è in `~/stato_cassa.json`. Comandi: "contatore adblue N", "contatore ta
 della cartella del turno. Dati di accesso solo sul telefono in `~/.cassa_email.json` (chmod 600, mai su
 GitHub); configurazione con `invia_mail.py configura`, prova con `invia_mail.py prova`. Senza internet la
 cartella va in `~/.cassa_email_coda` e `avvia_ia.sh` riprova a ogni comando.
+
+## Pulsanti senza Termux (Tasker)
+
+`pulsante.sh menu|NN` lancia gli stessi script dei pulsanti (`~/.shortcuts`) con `SENZA_TERMINALE=1`.
+`genera_tasker_pulsanti.py` crea `Cassa_Pulsanti.prj.xml` (progetto Tasker: "Cassa Menu" + un task per
+pulsante, plugin Termux:Tasker in sottofondo, senza attesa del risultato), copiato in Download dall'installazione.

@@ -231,7 +231,8 @@ esito() {
   echo "$1"
 }
 
-casa() {    # torna alla schermata home e chiude il pulsante
+casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serve: Termux non si apre)
+  if [ -n "$SENZA_TERMINALE" ]; then exit 0; fi
   sleep 1
   am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1
   exit 0
@@ -251,6 +252,25 @@ pagamento() {   # pagamento "titolo" [senza_cassa]
     Petrolifere*) echo "petrolifere" ;;
   esac
 }
+FINE_FILE
+cat > ~/.termux/tasker/pulsante.sh <<'FINE_FILE'
+#!/bin/bash
+# Pulsanti della cassa SENZA la finestra di Termux: li lancia Tasker (plugin Termux:Tasker).
+#   pulsante.sh menu   -> lista di tutte le funzioni, si sceglie e parte
+#   pulsante.sh 01     -> direttamente il pulsante 01 (Vendita carburante), ecc.
+# Usa gli stessi script dei pulsanti del widget (~/.shortcuts).
+export SENZA_TERMINALE=1   # niente ritorno alla home: Termux non si apre proprio
+. ~/.termux/tasker/widget_comune.sh
+QUALE="${1:-menu}"
+if [ "$QUALE" = menu ]; then
+  ELENCO=$(cd ~/.shortcuts && ls -1 [0-9][0-9]\ * | paste -sd, -)
+  SCELTA=$(scegli "🧾 Cassa" "$ELENCO")
+  [ -z "$SCELTA" ] && exit 0
+  QUALE="${SCELTA%% *}"
+fi
+FILE=$(ls ~/.shortcuts/"$QUALE "* 2>/dev/null | head -1)
+[ -z "$FILE" ] && { termux-toast "Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
+exec bash "$FILE"
 FINE_FILE
 cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
@@ -8290,6 +8310,646 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 	</Task>
 </TaskerData>
 FINE_FILE
+cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
+<TaskerData sr="" dvi="1" tv="6.6.20">
+	<Project sr="proj0" ve="2">
+		<cdate>1791000000000</cdate>
+		<name>Cassa Pulsanti</name>
+		<pid>31</pid>
+		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315</tids>
+	</Project>
+	<Task sr="task301">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>301</id>
+		<nme>Cassa Menu</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>menu</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh menu</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task302">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>302</id>
+		<nme>Cassa 01 Vendita carburante</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>01</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 01</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task303">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>303</id>
+		<nme>Cassa 02 Vendita Danea</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>02</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 02</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task304">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>304</id>
+		<nme>Cassa 03 Totali</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>03</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 03</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task305">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>305</id>
+		<nme>Cassa 04 Ultime vendite</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>04</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 04</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task306">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>306</id>
+		<nme>Cassa 05 Cancella ultima</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>05</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 05</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task307">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>307</id>
+		<nme>Cassa 06 Abbuono o resto</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>06</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 06</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task308">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>308</id>
+		<nme>Cassa 07 Credito cliente</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>07</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 07</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task309">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>309</id>
+		<nme>Cassa 08 Credito riscosso</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>08</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 08</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task310">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>310</id>
+		<nme>Cassa 09 Anticipo Cartissima</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>09</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 09</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task311">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>311</id>
+		<nme>Cassa 10 Prodotti venduti</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>10</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 10</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task312">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>312</id>
+		<nme>Cassa 11 Erogazioni AdBlue</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>11</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 11</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task313">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>313</id>
+		<nme>Cassa 12 Apertura turno</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>12</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 12</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task314">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>314</id>
+		<nme>Cassa 13 Chiusura turno</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>13</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 13</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task315">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>315</id>
+		<nme>Cassa 14 Stato IA</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>14</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 14</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+</TaskerData>
+FINE_FILE
 # Manuale d'uso, sempre aggiornato
 cat > ~/storage/downloads/MANUALE_Cassa_Vocale.txt <<'FINE_FILE'
 🎙️ CASSA VOCALE Q8 – MANUALE D'USO
@@ -8544,6 +9204,14 @@ si scrive o si sceglie, poi compare l'esito e il telefono torna da solo alla hom
 13 Chiusura turno: chiede conferma, poi orario e cassaforte
 14 Stato IA
 
+SENZA VEDERE TERMUX (con Tasker)
+Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
+• In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
+  (tieni premuto sulla barra in basso dei progetti → Importa progetto).
+• Sulla schermata home: widget di Tasker "Scorciatoia attività" → "Cassa Menu":
+  un'icona sola che apre la lista di tutte le funzioni.
+  Si possono mettere anche icone singole, es. "Cassa 01 Vendita carburante".
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 9. SICUREZZA DEI DATI
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -8585,4 +9253,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:55"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 08:00"

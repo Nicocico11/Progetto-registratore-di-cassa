@@ -30,7 +30,8 @@ esito() {
   echo "$1"
 }
 
-casa() {    # torna alla schermata home e chiude il pulsante
+casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serve: Termux non si apre)
+  if [ -n "$SENZA_TERMINALE" ]; then exit 0; fi
   sleep 1
   am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1
   exit 0

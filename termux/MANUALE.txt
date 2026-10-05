@@ -250,6 +250,14 @@ si scrive o si sceglie, poi compare l'esito e il telefono torna da solo alla hom
 13 Chiusura turno: chiede conferma, poi orario e cassaforte
 14 Stato IA
 
+SENZA VEDERE TERMUX (con Tasker)
+Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
+• In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
+  (tieni premuto sulla barra in basso dei progetti → Importa progetto).
+• Sulla schermata home: widget di Tasker "Scorciatoia attività" → "Cassa Menu":
+  un'icona sola che apre la lista di tutte le funzioni.
+  Si possono mettere anche icone singole, es. "Cassa 01 Vendita carburante".
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 9. SICUREZZA DEI DATI
 ━━━━━━━━━━━━━━━━━━━━━━━━
