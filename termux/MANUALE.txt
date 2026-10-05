@@ -59,6 +59,7 @@ ADBLUE
 
 MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
+• Basta UNA parola del nome: "ichnusa", "heineken", "moretti", "luxury".
 • Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
   "formula excel plus", "lampadina h7".
 • Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista

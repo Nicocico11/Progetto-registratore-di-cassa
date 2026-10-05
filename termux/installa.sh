@@ -412,16 +412,38 @@ def radici(testo):
     return " " + " ".join(radice(w) for w in re.findall(r"[\w&'-]+", testo.lower())) + " "
 
 
-# Prima parola dei nomi dei prodotti market (lunga almeno 5 lettere e non una parola comune)
+# Indice parola -> prodotti market: basta una parola del nome ("ichnusa", "heineken", "moretti");
+# se la parola vale per più prodotti compare la lista "Quale prodotto?"
 PAROLE_COMUNI = {'carta', 'carico', 'lettere', 'numeri', 'primo', 'super', 'multi', 'micro', 'power',
-                 'porta', 'linea', 'tanica', 'double', 'travel', 'universal', 'dynamic', 'atomic', 'amica',
-                 'gasolio', 'benzina', 'diesel', 'verde', 'adblue', 'litri', 'contanti', 'bianco', 'cassa'}
-PRIMA_PAROLA = []
+                 'porta', 'linea', 'tanica', 'taniche', 'double', 'travel', 'universal', 'dynamic', 'atomic',
+                 'amica', 'gasolio', 'benzina', 'diesel', 'verde', 'adblue', 'litri', 'litro', 'contanti',
+                 'bianco', 'cassa', 'nero', 'della', 'delle', 'dello', 'degli', 'dalla', 'alla', 'alle',
+                 'type', 'fuel', 'auto', 'gusti', 'vari', 'misti', 'senza', 'euro', 'danea', 'pezzi'}
+PAROLE_PRODOTTI = {}
 for _nome, _p in listino.items():
     if _p.get('reparto', 'Market') == 'Market':
-        _parole = senza_accenti(((_p.get('alias') or [_nome])[0]).lower()).split()
-        if _parole and len(_parole[0]) >= 5 and _parole[0] not in PAROLE_COMUNI:
-            PRIMA_PAROLA.append((_nome, _parole[0]))
+        for _alias in _p.get('alias') or [_nome.lower()]:
+            for _w in senza_accenti(_alias.lower()).split():
+                if len(_w) >= 4 and _w.isalpha() and _w not in PAROLE_COMUNI:
+                    PAROLE_PRODOTTI.setdefault(_w, set()).add(_nome)
+
+
+def prodotti_da_parole(testo):
+    """Prodotti che hanno nel nome le parole dette (tutte quelle riconosciute)."""
+    gruppi = []
+    for w in re.findall(r"[a-z]+", testo):
+        if len(w) < 4 or w in PAROLE_COMUNI:
+            continue
+        trovati = PAROLE_PRODOTTI.get(w)
+        if not trovati and len(w) >= 6:   # plurale: "lampadine" -> lampadina (solo parole lunghe)
+            trovati = set().union(*[n for k, n in PAROLE_PRODOTTI.items() if len(k) >= 6 and radice(k) == radice(w)])
+        if trovati:
+            gruppi.append(trovati)
+    if not gruppi:
+        return []
+    comuni = set.intersection(*gruppi)
+    return sorted(comuni or min(gruppi, key=len))
+
 
 SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
@@ -432,7 +454,7 @@ def trova_prodotto_listino(testo):
     # ("acqua grande" batte "acqua", "lampadina h7" batte "lampadina").
     testo_unito = testo.replace(' ', '')
     testo_radici = radici(testo)
-    trovati, lunghezza = [], 0
+    trovati, lunghezza, vincente = [], 0, ""
     for nome, p in listino.items():
         for alias in [nome] + p.get('alias', []):
             alias = senza_accenti(alias.lower())
@@ -441,19 +463,20 @@ def trova_prodotto_listino(testo):
                     or (len(alias) >= 5 and (radici(alias) in testo_radici
                                              or alias.replace(' ', '') in testo_unito))):
                 if len(alias) > lunghezza:
-                    trovati, lunghezza = [nome], len(alias)
+                    trovati, lunghezza, vincente = [nome], len(alias), alias
                 elif len(alias) == lunghezza and nome not in trovati:
                     trovati.append(nome)
+    if len(trovati) == 1 and " " not in vincente and len(PAROLE_PRODOTTI.get(vincente, ())) > 1:
+        # Detta una sola parola che sta nel nome di più prodotti ("deodorante"): lista
+        trovati = sorted(PAROLE_PRODOTTI[vincente])
     if not trovati and not carburante_detto(testo):
-        # Ultima possibilità: la prima parola del nome ("ichnusa" -> ICHNUSA METODO LENTO,
-        # "birra" -> chiede quale tra le birre)
-        parole_dette = set(re.findall(r"[\w'&-]+", testo))
-        trovati = [n for n, w in PRIMA_PAROLA if w in parole_dette]   # parola esatta: "pasti" non è "pasta"
-    if len(trovati) > 1 and len({listino[n]['prezzo'] for n in trovati}) > 1:
+        # Ultima possibilità: una parola del nome ("ichnusa", "heineken"; "birra" -> lista)
+        trovati = prodotti_da_parole(testo)
+    if len(trovati) > 1:
         scelto = [n for n in trovati if n in SCELTI]
         if scelto:
             return scelto[0]      # già scelto dalla lista
-        AMBIGUI[:] = trovati      # stesso nome, prezzi diversi: meglio chiedere
+        AMBIGUI[:] = trovati      # stesso nome per più prodotti: si sceglie dalla lista
         return None
     return trovati[0] if trovati else None
 
@@ -7787,6 +7810,7 @@ ADBLUE
 
 MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
+• Basta UNA parola del nome: "ichnusa", "heineken", "moretti", "luxury".
 • Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
   "formula excel plus", "lampadina h7".
 • Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista
@@ -7970,4 +7994,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:53"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 03:33"
