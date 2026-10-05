@@ -1476,6 +1476,7 @@ def importo_da_testo(testo):
         testo = in_cifre(testo or "")
     except ImportError:
         pass
+    testo = re.sub(r'(\d+):(\d{2})\b', r'\1.\2', testo or "")   # "20:30" scritto come un orario = 20,30
     m = re.search(r'\d+(?:[.,]\d{1,2})?', (testo or "").replace(" ", ""))
     return float(m.group(0).replace(",", ".")) if m else None
 
@@ -1615,6 +1616,7 @@ def imposta_contatore(testo):
     except ImportError:
         pass
     testo = re.sub(r'\s+virgola\s+', ',', testo.lower())
+    testo = re.sub(r'(\d+):(\d+)\b', r'\1.\2', testo)
     valore = re.search(r'\d+(?:[.,]\d+)?', testo)
     if not valore:
         print("❓ Di' il numero, es. \"contatore adblue 68624,4\" o \"contatore taniche 59\".")
@@ -7847,4 +7849,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:21"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:23"
