@@ -1,9 +1,9 @@
 #!/bin/bash
-# Pulsante Termux:Widget
-read -p "Chiudere il turno? (s/n) " R
-case "$R" in
-  [sS]*) bash ~/.termux/tasker/avvia_ia.sh "chiusura turno" ;;   # s, S, si, Sì
-  *) echo "Turno NON chiuso." ;;
-esac
-echo
-read -p "Premi Invio per chiudere… "
+# Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
+. ~/.termux/tasker/widget_comune.sh
+if ! conferma "🔴 Chiudere il turno?" "Poi chiede l'orario del terminale e la cassaforte"; then
+  termux-toast "Turno NON chiuso" 2>/dev/null; casa
+fi
+RISULTATO=$(bash $CASSA "chiusura turno")
+finestra "🔴 Turno chiuso" "$(grep -E '📗|📘|📧|⚠️|💾|Contanti attesi|Attesi nel cassetto|Totale|TOTALE' <<< "$RISULTATO" | head -15)"
+casa

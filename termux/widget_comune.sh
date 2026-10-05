@@ -1,0 +1,52 @@
+#!/bin/bash
+# Funzioni comuni ai pulsanti del widget: riquadri (termux-dialog) invece del terminale,
+# esito in un messaggio a schermo, poi ritorno alla schermata home.
+CASSA=~/.termux/tasker/avvia_ia.sh
+
+_leggi() {  # testo scritto o scelto nel riquadro; niente se annullato
+  python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    if d.get("code") == -1:
+        print(d.get("text", ""))
+except Exception:
+    pass'
+}
+
+testo()    { termux-dialog text -t "$1" -i "$2" 2>/dev/null | _leggi; }         # testo "titolo" "esempio"
+numero()   { termux-dialog text -n -t "$1" -i "$2" 2>/dev/null | _leggi; }      # numero "titolo" "esempio"
+scegli()   { termux-dialog radio -t "$1" -v "$2" 2>/dev/null | _leggi; }        # scegli "titolo" "a,b,c"
+conferma() { [ "$(termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | _leggi)" = "yes" ]; }
+
+# Finestra con un testo lungo (riepiloghi), da chiudere con OK
+finestra() { termux-dialog confirm -t "$1" -i "$2" > /dev/null 2>&1; }
+
+# Esito breve a schermo: le righe con ✅ ⚠️ ❌ ❓ 🧾 (o la prima riga)
+esito() {
+  local corto
+  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢' <<< "$1")
+  termux-toast -g middle "${corto:-$(head -1 <<< "$1")}" 2>/dev/null
+  echo "$1"
+}
+
+casa() {    # torna alla schermata home e chiude il pulsante
+  sleep 1
+  am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1
+  exit 0
+}
+
+annullato() { termux-toast "Niente salvato" 2>/dev/null; casa; }
+
+# Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
+pagamento() {   # pagamento "titolo" [senza_cassa]
+  local scelte="Contanti,POS cassa (negozio),POS nero,POS bianco,Petrolifere (Cartissima)"
+  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima)"
+  case "$(scegli "$1" "$scelte")" in
+    Contanti) echo "contanti" ;;
+    "POS cassa"*) echo "in cassa" ;;
+    "POS nero") echo "sul nero" ;;
+    "POS bianco") echo "sul bianco" ;;
+    Petrolifere*) echo "petrolifere" ;;
+  esac
+}

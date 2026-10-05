@@ -97,6 +97,8 @@ def invia_turno(cartella):
         registra(f"niente da mandare in {cartella}")
         return "📧 Mail: nessun file da mandare"
     nome = os.path.basename(cartella.rstrip('/'))            # es. 2026-10-05_Notte
+    if nome.endswith('_TEST'):
+        c = dict(c, destinatario=c['mittente'])   # turno di prova: la mail arriva solo a me, non al lavoro
     corpo = "Chiusura turno " + nome.replace('_', ' ') + "\n\n"
     if riepilogo:
         with open(riepilogo[0], encoding='utf-8') as f:

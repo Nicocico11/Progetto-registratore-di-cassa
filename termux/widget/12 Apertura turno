@@ -1,5 +1,12 @@
 #!/bin/bash
-# Pulsante Termux:Widget
-bash ~/.termux/tasker/avvia_ia.sh "apertura turno"
-echo
-read -p "Premi Invio per chiudere… "
+# Pulsante: apertura turno (vero o di prova); poi i 4 riquadri dei valori del collega
+. ~/.termux/tasker/widget_comune.sh
+TIPO=$(scegli "🟢 Apertura turno" "Turno vero,Turno di PROVA (file TEST - mail solo a me)")
+[ -z "$TIPO" ] && annullato
+case "$TIPO" in
+  *PROVA*) FRASE="apertura turno prova" ;;
+  *)       FRASE="apertura turno" ;;
+esac
+RISULTATO=$(bash $CASSA "$FRASE")
+finestra "🟢 Turno aperto" "$RISULTATO"
+casa

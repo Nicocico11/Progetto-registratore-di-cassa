@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pulsante Termux:Widget
-python3 ~/info_turno.py totali
-echo
-read -p "Premi Invio per chiudere… "
+# Pulsante: riepilogo completo del turno in una finestra
+. ~/.termux/tasker/widget_comune.sh
+finestra "📊 Totali del turno" "$(python3 ~/info_turno.py totali | sed '/📋 TUTTE LE VENDITE/,$d')"
+casa

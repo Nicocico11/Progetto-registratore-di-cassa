@@ -28,6 +28,9 @@ case "$*" in
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
+  *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
+  *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
+  *"Quanti centesimi"*) echo '{"code": -1, "text": "7"}' ;;
   *"Pagamento di"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;
   *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
   *)          echo '{"code": -2, "text": ""}' ;;
@@ -93,7 +96,7 @@ controlla "codice staccato"           "lampadina h 4"                           
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "nome quasi giusto"         "2 red bul"                                    "capito come red bull"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-printf '2 red bull\n1\n\n' | bash "$QUI/widget/02 Vendita Danea" 2>&1 | grep -q "Red Bull 6.00 € - POS nero" && echo "  ok   widget 02 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
+bash "$QUI/widget/02 Vendita Danea" > /dev/null 2>&1; grep -q "Red Bull 6.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 02 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"
@@ -106,7 +109,7 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto da solo"             "resto lasciato 5 centesimi"                   "Resto lasciato dal cliente 0.05"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-printf '1\n7\n\n' | bash "$QUI/widget/06 Abbuono o resto" 2>&1 | grep -q "Abbuono -0.07" && echo "  ok   widget 06 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
+bash "$QUI/widget/06 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 06 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "negozio con carta = cassa"  "2 red bull carta"                             "POS cassa"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
@@ -232,6 +235,12 @@ controlla "apertura turno di prova"   "apertura turno prova notte"              
 controlla "contatore nel turno prova" "contatore taniche 99"                         "99"
 controlla "vendita nel turno prova"   "20 gasolio"                                   "Gasolio 20.00"
 controlla "chiusura turno di prova"   "chiusura turno"                               "Mail inviata"
+python3 -c "
+import email, glob, sys; from email import policy
+m = [email.message_from_bytes(open(f, 'rb').read(), policy=policy.default) for f in glob.glob(sys.argv[1] + '/*.eml')]
+prova = [x for x in m if 'TEST' in x['Subject']]
+assert prova and prova[0]['To'] == 'prova@gmail.com', [(x['Subject'], x['To']) for x in m]
+" $HOME/mail_finte && echo "  ok   mail del turno di prova solo al mittente" || { echo "  ERRORE mail di prova"; ERRORI=$((ERRORI+1)); }
 cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di prova: stato vero non toccato" || { echo "  ERRORE stato toccato dalla prova"; ERRORI=$((ERRORI+1)); }
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 

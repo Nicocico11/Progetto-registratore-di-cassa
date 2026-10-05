@@ -1,16 +1,12 @@
 #!/bin/bash
-# Pulsante Termux:Widget: centesimi da aggiungere dopo la vendita
-#   abbuono = il cliente paga qualche centesimo in meno (mancano nel cassetto)
-#   resto   = il cliente lascia qualche centesimo (in più nel cassetto)
-echo "🪙 CENTESIMI DA AGGIUNGERE"
-echo "1 = ABBUONO (mancano: il cliente ha pagato meno)"
-echo "2 = RESTO LASCIATO (in più: il cliente non ha voluto il resto)"
-read -p "Scelta: " T
-read -p "Quanti centesimi? (es. 10): " C
-case "$T" in
-  1) [ -n "$C" ] && bash ~/.termux/tasker/avvia_ia.sh "abbuono $C centesimi" ;;
-  2) [ -n "$C" ] && bash ~/.termux/tasker/avvia_ia.sh "lasciato $C centesimi" ;;
-  *) echo "Niente salvato." ;;
+# Pulsante: centesimi da aggiungere dopo la vendita
+#   abbuono = il cliente paga qualche centesimo in meno; resto = lascia qualche centesimo
+. ~/.termux/tasker/widget_comune.sh
+TIPO=$(scegli "🪙 Cosa aggiungi?" "Abbuono (mancano: ha pagato meno),Resto lasciato (in più: non ha voluto il resto)")
+[ -z "$TIPO" ] && annullato
+CENT=$(numero "🪙 Quanti centesimi?" "es. 10"); [ -z "$CENT" ] && annullato
+case "$TIPO" in
+  Abbuono*) esito "$(bash $CASSA "abbuono $CENT centesimi")" ;;
+  *)        esito "$(bash $CASSA "lasciato $CENT centesimi")" ;;
 esac
-echo
-read -p "Premi Invio per chiudere… "
+casa

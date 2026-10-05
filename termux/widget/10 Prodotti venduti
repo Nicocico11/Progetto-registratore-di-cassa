@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pulsante Termux:Widget
-bash ~/.termux/tasker/avvia_ia.sh "market"
-echo
-read -p "Premi Invio per chiudere… "
+# Pulsante: elenco dei prodotti market venduti nel turno
+. ~/.termux/tasker/widget_comune.sh
+finestra "🛒 Prodotti venduti" "$(python3 ~/info_turno.py market)"
+casa

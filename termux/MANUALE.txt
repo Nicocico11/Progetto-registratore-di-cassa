@@ -34,6 +34,7 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 
 🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
 "apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
+(la mail di prova arriva solo a te, cioè all'indirizzo che invia, non al lavoro)
 (es. 05_10_2026_notte_TEST.xlsx) e contatore AdBlue, taniche e orari veri NON
 vengono toccati: dopo la prova basta cancellare la cartella …_TEST.
 
@@ -235,19 +236,19 @@ Si spegne comunque con la chiusura del turno.
 ━━━━━━━━━━━━━━━━━━━━━━━━
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Per quando non si può parlare (in ordine di uso):
-01 Vendita carburante: due riquadri, importo (es. 45,50) e pagamento
-   (Contanti / POS nero / POS bianco / Petrolifere). L'esito compare in un messaggio
-   a schermo, con le solite vibrazioni, poi si torna da soli alla schermata home.
+Per quando non si può parlare (in ordine di uso). Tutti funzionano con i riquadri:
+si scrive o si sceglie, poi compare l'esito e il telefono torna da solo alla home.
+01 Vendita carburante: importo e pagamento
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
-   Si possono scrivere più vendite di fila; Invio vuoto per uscire.
-03 Totali · 04 Ultime vendite · 05 Cancella ultima
-06 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
+03 Totali (finestra) · 04 Ultime vendite (finestra)
+05 Cancella ultima: mostra le ultime vendite e chiede conferma
+06 Abbuono o resto: scegli quale e quanti centesimi
 07 Credito cliente · 08 Credito riscosso · 09 Anticipo Cartissima
-10 Prodotti venduti (elenco) · 11 Erogazioni AdBlue
-12 Apertura turno · 13 Chiusura turno · 14 Stato IA
-Si apre una finestra con il risultato: premi Invio per chiuderla.
+10 Prodotti venduti (finestra) · 11 Erogazioni AdBlue (finestra)
+12 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+13 Chiusura turno: chiede conferma, poi orario e cassaforte
+14 Stato IA
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 9. SICUREZZA DEI DATI

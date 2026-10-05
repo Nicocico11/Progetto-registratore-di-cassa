@@ -1,11 +1,6 @@
 #!/bin/bash
-# Pulsante Termux:Widget: il cliente paga con Cartissima (come gasolio, senza rifornimento)
-# e riceve lo stesso importo in contanti
-read -p "Importo pagato con Cartissima e dato in contanti (€): " IMPORTO
-if [ -n "$IMPORTO" ]; then
-  bash ~/.termux/tasker/avvia_ia.sh "anticipo cartissima $IMPORTO euro"
-else
-  echo "Niente salvato (importo vuoto)."
-fi
-echo
-read -p "Premi Invio per chiudere… "
+# Pulsante: paga con Cartissima (come gasolio, senza rifornimento) e riceve i contanti
+. ~/.termux/tasker/widget_comune.sh
+IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "pagato con Cartissima e dato in contanti"); [ -z "$IMPORTO" ] && annullato
+esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")"
+casa

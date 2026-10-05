@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pulsante Termux:Widget
-bash ~/.termux/tasker/avvia_ia.sh "erogazioni"
-echo
-read -p "Premi Invio per chiudere… "
+# Pulsante: AdBlue erogato nel turno
+. ~/.termux/tasker/widget_comune.sh
+finestra "🧪 Erogazioni AdBlue" "$(python3 ~/info_turno.py adblue)"
+casa

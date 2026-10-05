@@ -1,31 +1,7 @@
 #!/bin/bash
-# Pulsante Termux:Widget: vendita carburante con due riquadri, importo e pagamento.
-# Esito in un messaggio a schermo, poi si torna da soli alla schermata home.
-leggi() {  # testo scritto o scelto nel riquadro, niente se annullato
-  python3 -c '
-import sys, json
-try:
-    d = json.load(sys.stdin)
-    if d.get("code") == -1:
-        print(d.get("text", ""))
-except Exception:
-    pass'
-}
-IMPORTO=$(termux-dialog text -n -t "⛽ Importo carburante (€)" -i "es. 45,50" 2>/dev/null | leggi)
-[ -z "$IMPORTO" ] && { am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1; exit 0; }
-SCELTA=$(termux-dialog radio -t "💳 Pagamento di $IMPORTO €" \
-  -v "Contanti,POS nero,POS bianco,Petrolifere (Cartissima)" 2>/dev/null | leggi)
-case "$SCELTA" in
-  Contanti) PAGATO="contanti" ;;
-  "POS nero") PAGATO="sul nero" ;;
-  "POS bianco") PAGATO="sul bianco" ;;
-  Petrolifere*) PAGATO="petrolifere" ;;
-  *) termux-toast "Niente salvato (pagamento non scelto)"
-     am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1; exit 0 ;;
-esac
-ESITO=$(bash ~/.termux/tasker/avvia_ia.sh "$IMPORTO euro $PAGATO")
-echo "$ESITO"
-termux-toast -g middle "$(grep -m2 -E '✅|⚠️|❌|❓' <<< "$ESITO")"
-# Torna alla schermata home (il terminale resta in sottofondo)
-sleep 1
-am start -a android.intent.action.MAIN -c android.intent.category.HOME > /dev/null 2>&1
+# Pulsante: vendita carburante con i riquadri (importo e pagamento)
+. ~/.termux/tasker/widget_comune.sh
+IMPORTO=$(numero "⛽ Importo carburante (€)" "es. 45,50"); [ -z "$IMPORTO" ] && annullato
+PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" senza_cassa); [ -z "$PAGATO" ] && annullato
+esito "$(bash $CASSA "$IMPORTO euro $PAGATO")"
+casa
