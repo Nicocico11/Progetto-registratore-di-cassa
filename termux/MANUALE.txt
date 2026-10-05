@@ -69,6 +69,12 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
   "formula excel plus", "lampadina h7".
 • Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista
   "Quale prodotto?" con i prezzi: tocca quello giusto e premi OK.
+  Compare anche per lo stesso prodotto in formati diversi
+  ("deodorante luxury" → 150 ml / 300 ml, "miele di acacia" → 400 g / 1 kg).
+• OLIO MOTORE: compare sempre la lista di tutti gli oli motore, con quelli detti
+  in cima ("olio motore", "olio 5w40", "formula ultra").
+• Alimentari simili con lo stesso prezzo si salvano col nome generico, senza lista:
+  "nutella" → NUTELLA 2,00 · "leone" → LEONE PASTIGLIE 3,50 · "colli di luni" → 14,00
 
 PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
 • "danea 15 euro"                    → DANEA (a mano) 15 €

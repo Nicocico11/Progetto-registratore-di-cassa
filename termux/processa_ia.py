@@ -202,6 +202,10 @@ def normalizza_codici(testo):
 
 testo_basso = normalizza_codici(testo_basso)
 
+CATEGORIE_CIBO = {'SNACK DOLCI', 'CARAMELLE', 'SNACK SALATI', 'BEVANDE', 'GELATI', 'SALUMI FORMAGGI',
+                  'PRODOTTI TIPICI', 'VINI'}
+OLI_MOTORE = sorted(n for n, p in listino.items()
+                    if p.get('categoria') == 'LUBRIFICANTI' and re.search(r'\d+W-?\d+', n))   # 5W-40, 0W-20...
 SIMILI = {}     # parole sentite male e il nome del listino più simile ("icnusa": "ichnusa")
 SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
@@ -224,19 +228,41 @@ def trova_prodotto_listino(testo):
                     trovati, lunghezza, vincente = [nome], len(alias), alias
                 elif len(alias) == lunghezza and nome not in trovati:
                     trovati.append(nome)
-    if len(trovati) == 1 and " " not in vincente and len(PAROLE_PRODOTTI.get(vincente, ())) > 1:
-        # Detta una sola parola che sta nel nome di più prodotti ("deodorante"): lista
-        trovati = sorted(PAROLE_PRODOTTI[vincente])
+    if trovati and all(listino[n].get('reparto', 'Market') == 'Market' for n in trovati):
+        # Lo stesso nome in altri prodotti ("deodorante luxury" -> 150 ml e 300 ml;
+        # "miele di acacia" -> 400 gr e 1 kg): si sceglie dalla lista
+        parole = set(vincente.split())
+        simili = sorted(n for n, pr in listino.items() if n not in trovati and pr.get('reparto', 'Market') == 'Market'
+                        and any(parole <= set(senza_accenti(a.lower()).split()) for a in pr.get('alias', [])))
+        trovati = trovati + simili
+    if re.search(r'\bolio\s+(?:motore|auto|macchina|camion)\b|\blubrificant', testo) and not any(
+            n in OLI_MOTORE for n in trovati):
+        trovati = list(OLI_MOTORE)
     if not trovati and not carburante_detto(testo):
         # Ultima possibilità: una parola del nome ("ichnusa", "heineken"; "birra" -> lista)
         trovati = prodotti_da_parole(testo)
+    if any(n in OLI_MOTORE for n in trovati):
+        # Olio motore: sempre la lista di tutti gli oli, quelli detti per primi
+        trovati = [n for n in trovati if n in OLI_MOTORE] + [n for n in OLI_MOTORE if n not in trovati]
     if len(trovati) > 1:
         scelto = [n for n in trovati if n in SCELTI]
         if scelto:
             return scelto[0]      # già scelto dalla lista
-        AMBIGUI[:] = trovati      # stesso nome per più prodotti: si sceglie dalla lista
+        if (all(listino[n].get('categoria') in CATEGORIE_CIBO for n in trovati)
+                and len({listino[n]['prezzo'] for n in trovati}) == 1):
+            return prodotto_generico(trovati)   # cibo simile, stesso prezzo: nome generico
+        AMBIGUI[:] = trovati      # stesso nome per più prodotti (es. formati diversi): si sceglie dalla lista
         return None
     return trovati[0] if trovati else None
+
+
+def prodotto_generico(nomi):
+    """"NUTELLA BISCUITS" + "NUTELLA BREADY" (stesso prezzo) -> "NUTELLA": le parole in comune."""
+    comuni = set(nomi[0].split()).intersection(*[set(n.split()) for n in nomi[1:]])
+    nome = " ".join(w for w in nomi[0].split() if w in comuni) or nomi[0]
+    if nome not in listino:
+        listino[nome] = dict(listino[nomi[0]], alias=[])
+    return nome
 
 
 def carburante_detto(testo):
