@@ -8322,7 +8322,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>301</id>
-		<nme>Cassa Menu</nme>
+		<nme>Cassa</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8364,7 +8364,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>302</id>
-		<nme>Cassa 01 Vendita carburante</nme>
+		<nme>Carburante</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8406,7 +8406,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>303</id>
-		<nme>Cassa 02 Vendita Danea</nme>
+		<nme>Danea</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8448,7 +8448,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>304</id>
-		<nme>Cassa 03 Totali</nme>
+		<nme>Totali</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8490,7 +8490,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>305</id>
-		<nme>Cassa 04 Ultime vendite</nme>
+		<nme>Ultime</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8532,7 +8532,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>306</id>
-		<nme>Cassa 05 Cancella ultima</nme>
+		<nme>Cancella</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8574,7 +8574,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>307</id>
-		<nme>Cassa 06 Abbuono o resto</nme>
+		<nme>Centesimi</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8616,7 +8616,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>308</id>
-		<nme>Cassa 07 Credito cliente</nme>
+		<nme>Credito</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8658,7 +8658,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>309</id>
-		<nme>Cassa 08 Credito riscosso</nme>
+		<nme>Riscosso</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8700,7 +8700,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>310</id>
-		<nme>Cassa 09 Anticipo Cartissima</nme>
+		<nme>Anticipo</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8742,7 +8742,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>311</id>
-		<nme>Cassa 10 Prodotti venduti</nme>
+		<nme>Venduti</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8784,7 +8784,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>312</id>
-		<nme>Cassa 11 Erogazioni AdBlue</nme>
+		<nme>AdBlue</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8826,7 +8826,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>313</id>
-		<nme>Cassa 12 Apertura turno</nme>
+		<nme>Apertura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8868,7 +8868,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>314</id>
-		<nme>Cassa 13 Chiusura turno</nme>
+		<nme>Chiusura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -8910,7 +8910,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>315</id>
-		<nme>Cassa 14 Stato IA</nme>
+		<nme>IA</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -9208,9 +9208,11 @@ SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
   (tieni premuto sulla barra in basso dei progetti → Importa progetto).
-• Sulla schermata home: widget di Tasker "Scorciatoia attività" → "Cassa Menu":
+• Sulla schermata home: widget di Tasker "Task 1×1" → "Cassa":
   un'icona sola che apre la lista di tutte le funzioni.
-  Si possono mettere anche icone singole, es. "Cassa 01 Vendita carburante".
+  Si possono mettere anche icone singole: Carburante, Danea, Totali, Chiusura…
+• Dopo aver modificato o importato qualcosa in Tasker, esci con il tasto indietro
+  finché Tasker si chiude, altrimenti compare "dati bloccati".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 9. SICUREZZA DEI DATI
@@ -9253,4 +9255,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 08:00"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 08:15"

@@ -254,9 +254,11 @@ SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
   (tieni premuto sulla barra in basso dei progetti → Importa progetto).
-• Sulla schermata home: widget di Tasker "Scorciatoia attività" → "Cassa Menu":
+• Sulla schermata home: widget di Tasker "Task 1×1" → "Cassa":
   un'icona sola che apre la lista di tutte le funzioni.
-  Si possono mettere anche icone singole, es. "Cassa 01 Vendita carburante".
+  Si possono mettere anche icone singole: Carburante, Danea, Totali, Chiusura…
+• Dopo aver modificato o importato qualcosa in Tasker, esci con il tasto indietro
+  finché Tasker si chiude, altrimenti compare "dati bloccati".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 9. SICUREZZA DEI DATI

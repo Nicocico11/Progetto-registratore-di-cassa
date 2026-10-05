@@ -58,7 +58,11 @@ def task(tid, nome, argomento):
 
 
 pulsanti = sorted(os.path.basename(f) for f in glob.glob(os.path.join(QUI, 'widget', '[0-9][0-9] *')))
-voci = [("Cassa Menu", "menu")] + [(f"Cassa {p}", p.split(' ', 1)[0]) for p in pulsanti]
+# Nomi corti: sotto le icone della home c'è poco spazio
+CORTI = {'01': 'Carburante', '02': 'Danea', '03': 'Totali', '04': 'Ultime', '05': 'Cancella',
+         '06': 'Centesimi', '07': 'Credito', '08': 'Riscosso', '09': 'Anticipo', '10': 'Venduti',
+         '11': 'AdBlue', '12': 'Apertura', '13': 'Chiusura', '14': 'IA'}
+voci = [("Cassa", "menu")] + [(CORTI.get(p[:2], p[3:]), p[:2]) for p in pulsanti]
 ids = list(range(301, 301 + len(voci)))
 testo = '<TaskerData sr="" dvi="1" tv="6.6.20">\n'
 testo += f"""	<Project sr="proj0" ve="2">

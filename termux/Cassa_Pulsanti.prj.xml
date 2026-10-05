@@ -9,7 +9,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>301</id>
-		<nme>Cassa Menu</nme>
+		<nme>Cassa</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -51,7 +51,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>302</id>
-		<nme>Cassa 01 Vendita carburante</nme>
+		<nme>Carburante</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -93,7 +93,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>303</id>
-		<nme>Cassa 02 Vendita Danea</nme>
+		<nme>Danea</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -135,7 +135,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>304</id>
-		<nme>Cassa 03 Totali</nme>
+		<nme>Totali</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -177,7 +177,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>305</id>
-		<nme>Cassa 04 Ultime vendite</nme>
+		<nme>Ultime</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -219,7 +219,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>306</id>
-		<nme>Cassa 05 Cancella ultima</nme>
+		<nme>Cancella</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -261,7 +261,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>307</id>
-		<nme>Cassa 06 Abbuono o resto</nme>
+		<nme>Centesimi</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -303,7 +303,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>308</id>
-		<nme>Cassa 07 Credito cliente</nme>
+		<nme>Credito</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -345,7 +345,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>309</id>
-		<nme>Cassa 08 Credito riscosso</nme>
+		<nme>Riscosso</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -387,7 +387,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>310</id>
-		<nme>Cassa 09 Anticipo Cartissima</nme>
+		<nme>Anticipo</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -429,7 +429,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>311</id>
-		<nme>Cassa 10 Prodotti venduti</nme>
+		<nme>Venduti</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -471,7 +471,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>312</id>
-		<nme>Cassa 11 Erogazioni AdBlue</nme>
+		<nme>AdBlue</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -513,7 +513,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>313</id>
-		<nme>Cassa 12 Apertura turno</nme>
+		<nme>Apertura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -555,7 +555,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>314</id>
-		<nme>Cassa 13 Chiusura turno</nme>
+		<nme>Chiusura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
@@ -597,7 +597,7 @@
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>315</id>
-		<nme>Cassa 14 Stato IA</nme>
+		<nme>IA</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
