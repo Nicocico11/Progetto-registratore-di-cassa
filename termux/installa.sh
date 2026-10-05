@@ -105,7 +105,8 @@ case "$FRASE" in
         *) if pgrep -x llama-server > /dev/null || pgrep -f "llama-server -m" > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
       esac
     fi ;;
-  *"market"*|*"danea"*|*"negozio"*)
+  "market"|"danea"|"negozio"|*"vendite market"*|*"vendite danea"*|*"prodotti venduti"*)
+    # Solo la parola: elenco dei prodotti venduti. "danea 15 euro" invece è una vendita (sotto)
     python3 ~/info_turno.py market ;;
   *"erogazion"*|*"quanto adblue"*|*"quante adblue"*)
     python3 ~/info_turno.py adblue ;;
@@ -543,8 +544,35 @@ def voce_resto(testo):
             "importo": -v['importo'], "metodo_pagamento": "Contanti"}
 
 
+def voce_danea(testo):
+    """"danea 15 euro", "danea caricabatterie 15 euro", "danea red bull 3 e 50":
+    prodotto market con l'importo detto (non nel listino, o prezzo cambiato)."""
+    t = re.sub(r'\bdanea\b', ' ', testo)
+    prodotto = trova_prodotto_listino(t)
+    AMBIGUI.clear()                      # col nome generico va bene lo stesso: decide l'importo detto
+    numeri = [float(n.replace(',', '.')) for n in re.findall(NUMERO, t)]
+    importo = numero_in_euro(t) or (numeri[-1] if numeri else None)
+    if not importo:
+        return None
+    altri = [n for n in numeri if n != importo]
+    quantita = altri[0] if altri and altri[0] == int(altri[0]) and altri[0] < 50 else 1
+    if not prodotto:
+        resto = re.sub(NUMERO, ' ', senza_prodotti(t))
+        for parole in list(PAGAMENTI.values()) + [PAGAMENTO_GENERICO]:
+            for p in sorted(parole, key=len, reverse=True):
+                resto = re.sub(r'\b' + re.escape(p) + r'\b', ' ', resto)
+        resto = re.sub(PAROLE_CREDITO, ' ', resto)
+        parole_nome = [w for w in re.findall(r"[\w'&.-]+", resto) if not w.isdigit()]
+        prodotto = " ".join(parole_nome).upper() or "DANEA (a mano)"
+    return {"categoria": prodotto, "prodotto": prodotto, "reparto": "Market", "unita": "pz",
+            "quantita": quantita, "prezzo_unitario": round(importo / quantita, 2),
+            "importo": round(importo, 2), "danea_a_mano": True}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(r'\bdanea\b', testo):
+        return voce_danea(testo)
     if re.search(PAROLE_RESTO, testo):
         return voce_resto(testo)
     if re.search(PAROLE_SCONTO, testo):
@@ -556,7 +584,7 @@ def voce(testo):
 
 
 def ha_voce(testo):
-    return bool(re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):
@@ -7688,6 +7716,13 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • Se il nome vale per più prodotti (es. "lampadina") il telefono chiede quale:
   ripeti con il nome completo (es. "lampadina h4").
 
+PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
+• "danea 15 euro"                    → DANEA (a mano) 15 €
+• "danea caricabatterie 15 euro"     → CARICABATTERIE 15 €
+• "danea red bull 3 e 50"            → RED BULL a 3,50 (invece del prezzo del listino)
+• "danea 2 red bull 7 euro in cassa" → 2 × RED BULL, 7 € in tutto
+La parola "danea" da sola mostra invece l'elenco dei prodotti venduti.
+
 FAX / FOTOCOPIE (0,30 € a foglio)
 • "5 fax", "10 fotocopie", "2 lettere di vettura"
 
@@ -7855,4 +7890,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:28"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:33"

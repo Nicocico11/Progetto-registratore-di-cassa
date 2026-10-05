@@ -62,6 +62,13 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • Se il nome vale per più prodotti (es. "lampadina") il telefono chiede quale:
   ripeti con il nome completo (es. "lampadina h4").
 
+PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
+• "danea 15 euro"                    → DANEA (a mano) 15 €
+• "danea caricabatterie 15 euro"     → CARICABATTERIE 15 €
+• "danea red bull 3 e 50"            → RED BULL a 3,50 (invece del prezzo del listino)
+• "danea 2 red bull 7 euro in cassa" → 2 × RED BULL, 7 € in tutto
+La parola "danea" da sola mostra invece l'elenco dei prodotti venduti.
+
 FAX / FOTOCOPIE (0,30 € a foglio)
 • "5 fax", "10 fotocopie", "2 lettere di vettura"
 

@@ -100,7 +100,8 @@ case "$FRASE" in
         *) if pgrep -x llama-server > /dev/null || pgrep -f "llama-server -m" > /dev/null; then echo "🟡 IA in avvio"; else echo "⚫ IA spenta"; fi ;;
       esac
     fi ;;
-  *"market"*|*"danea"*|*"negozio"*)
+  "market"|"danea"|"negozio"|*"vendite market"*|*"vendite danea"*|*"prodotti venduti"*)
+    # Solo la parola: elenco dei prodotti venduti. "danea 15 euro" invece è una vendita (sotto)
     python3 ~/info_turno.py market ;;
   *"erogazion"*|*"quanto adblue"*|*"quante adblue"*)
     python3 ~/info_turno.py adblue ;;
