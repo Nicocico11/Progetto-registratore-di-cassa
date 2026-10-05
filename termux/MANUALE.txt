@@ -114,6 +114,7 @@ RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
 • Il cliente fa 19,90, ti dà 20 e non vuole il resto:
   "19 e 90 di gasolio, ha lasciato 10 centesimi"
   (oppure subito dopo la vendita: "lasciato 10 centesimi")
+  (oppure dopo, anche a vendita già salvata: "resto 10 centesimi", "lasciato 10 centesimi")
   I centesimi si sommano ai contanti attesi (spiccioli cassetto). Nell'Excel
   compaiono come differenza in più, e nelle NOTE viene scritto da dove vengono.
 
@@ -221,6 +222,7 @@ Per quando non si può parlare:
 1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Prodotti venduti (elenco)
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
 9 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
+13 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
 12 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
    Si possono scrivere più vendite di fila; Invio vuoto per uscire.

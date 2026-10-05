@@ -33,6 +33,7 @@ testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)               
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
                      r'\1.\2', testo_basso)
 testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
+testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?resto)\b', 'lasciato', testo_basso)  # "resto lasciato"
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -419,7 +420,7 @@ def voce_sconto(testo):
 
 
 # Il contrario dell'abbuono: il cliente lascia qualche centesimo (contanti in più nel cassetto)
-PAROLE_RESTO = r'\b(lasciat\w*|lascia|eccedenz\w*)\b'
+PAROLE_RESTO = r'\b(lasciat\w*|lascia|eccedenz\w*|resto)\b'
 
 
 def voce_resto(testo):
@@ -491,7 +492,7 @@ def dividi_in_pezzi(testo):
     # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
     testo = re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo)
     # "19.90 di gasolio ha lasciato 10 centesimi" -> "19.90 di gasolio, ha lasciato 10 centesimi"
-    testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz))', ', ', testo)
+    testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz|resto\b))', ', ', testo)
     grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo) if p.strip()]
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,

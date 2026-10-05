@@ -354,6 +354,7 @@ testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)               
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
                      r'\1.\2', testo_basso)
 testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
+testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?resto)\b', 'lasciato', testo_basso)  # "resto lasciato"
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -740,7 +741,7 @@ def voce_sconto(testo):
 
 
 # Il contrario dell'abbuono: il cliente lascia qualche centesimo (contanti in più nel cassetto)
-PAROLE_RESTO = r'\b(lasciat\w*|lascia|eccedenz\w*)\b'
+PAROLE_RESTO = r'\b(lasciat\w*|lascia|eccedenz\w*|resto)\b'
 
 
 def voce_resto(testo):
@@ -812,7 +813,7 @@ def dividi_in_pezzi(testo):
     # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
     testo = re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo)
     # "19.90 di gasolio ha lasciato 10 centesimi" -> "19.90 di gasolio, ha lasciato 10 centesimi"
-    testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz))', ', ', testo)
+    testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz|resto\b))', ', ', testo)
     grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo) if p.strip()]
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
@@ -7674,6 +7675,24 @@ while true; do
   echo
 done
 FINE_FILE
+cat > ~/.shortcuts/"13 Abbuono o resto" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget: centesimi da aggiungere dopo la vendita
+#   abbuono = il cliente paga qualche centesimo in meno (mancano nel cassetto)
+#   resto   = il cliente lascia qualche centesimo (in più nel cassetto)
+echo "🪙 CENTESIMI DA AGGIUNGERE"
+echo "1 = ABBUONO (mancano: il cliente ha pagato meno)"
+echo "2 = RESTO LASCIATO (in più: il cliente non ha voluto il resto)"
+read -p "Scelta: " T
+read -p "Quanti centesimi? (es. 10): " C
+case "$T" in
+  1) [ -n "$C" ] && bash ~/.termux/tasker/avvia_ia.sh "abbuono $C centesimi" ;;
+  2) [ -n "$C" ] && bash ~/.termux/tasker/avvia_ia.sh "lasciato $C centesimi" ;;
+  *) echo "Niente salvato." ;;
+esac
+echo
+read -p "Premi Invio per chiudere… "
+FINE_FILE
 chmod +x ~/.shortcuts/*
 # File di Tasker da importare: li mettiamo nella cartella Download
 if [ -d ~/storage/downloads ]; then
@@ -8088,6 +8107,7 @@ RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
 • Il cliente fa 19,90, ti dà 20 e non vuole il resto:
   "19 e 90 di gasolio, ha lasciato 10 centesimi"
   (oppure subito dopo la vendita: "lasciato 10 centesimi")
+  (oppure dopo, anche a vendita già salvata: "resto 10 centesimi", "lasciato 10 centesimi")
   I centesimi si sommano ai contanti attesi (spiccioli cassetto). Nell'Excel
   compaiono come differenza in più, e nelle NOTE viene scritto da dove vengono.
 
@@ -8195,6 +8215,7 @@ Per quando non si può parlare:
 1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Prodotti venduti (elenco)
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
 9 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
+13 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
 12 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
    Si possono scrivere più vendite di fila; Invio vuoto per uscire.
@@ -8240,4 +8261,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 05:02"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 05:11"
