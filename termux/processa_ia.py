@@ -202,6 +202,25 @@ def normalizza_codici(testo):
 
 testo_basso = normalizza_codici(testo_basso)
 
+# Nomi generici per gruppi di prodotti ("cingomme" = Vigorsol, Vivident, Happydent, Daygum).
+# Stesso prezzo: si salva col nome del gruppo; prezzi diversi: lista.
+GRUPPI = {
+    'CHEWING GUM': {'parole': ['cingomme', 'cingomma', 'chingomme', 'chingomma', 'cingum', 'chewing gum',
+                               'chewingum', 'chewing gum', 'cewing gum', 'gomme da masticare',
+                               'gomma da masticare', 'cicche', 'cicca', 'ciunga', 'ciungam'],
+                    'prodotti': ['VIGORSOL', 'VIVIDENT', 'HAPPYDENT', 'DAYGUM']},
+}
+
+
+def gruppo_detto(testo):
+    for nome, g in GRUPPI.items():
+        if any(contiene(p, testo) for p in g['parole']):
+            prodotti = [n for n in g['prodotti'] if n in listino]
+            if prodotti:
+                return nome, prodotti
+    return None, []
+
+
 CATEGORIE_CIBO = {'SNACK DOLCI', 'CARAMELLE', 'SNACK SALATI', 'BEVANDE', 'GELATI', 'SALUMI FORMAGGI',
                   'PRODOTTI TIPICI', 'VINI'}
 OLI_MOTORE = sorted(n for n, p in listino.items()
@@ -216,6 +235,15 @@ def trova_prodotto_listino(testo):
     # ("acqua grande" batte "acqua", "lampadina h7" batte "lampadina").
     testo_unito = testo.replace(' ', '')
     testo_radici = radici(testo)
+    gruppo, nel_gruppo = gruppo_detto(testo)
+    if gruppo:
+        scelto = [n for n in nel_gruppo if n in SCELTI]
+        if scelto:
+            return scelto[0]
+        if len({listino[n]['prezzo'] for n in nel_gruppo}) == 1:
+            return prodotto_generico(nel_gruppo, gruppo)
+        AMBIGUI[:] = nel_gruppo
+        return None
     trovati, lunghezza, vincente = [], 0, ""
     for nome, p in listino.items():
         for alias in [nome] + p.get('alias', []):
@@ -256,10 +284,10 @@ def trova_prodotto_listino(testo):
     return trovati[0] if trovati else None
 
 
-def prodotto_generico(nomi):
+def prodotto_generico(nomi, nome=None):
     """"NUTELLA BISCUITS" + "NUTELLA BREADY" (stesso prezzo) -> "NUTELLA": le parole in comune."""
     comuni = set(nomi[0].split()).intersection(*[set(n.split()) for n in nomi[1:]])
-    nome = " ".join(w for w in nomi[0].split() if w in comuni) or nomi[0]
+    nome = nome or " ".join(w for w in nomi[0].split() if w in comuni) or nomi[0]
     if nome not in listino:
         listino[nome] = dict(listino[nomi[0]], alias=[])
     return nome

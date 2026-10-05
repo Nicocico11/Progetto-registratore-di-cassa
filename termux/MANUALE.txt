@@ -75,6 +75,8 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
   in cima ("olio motore", "olio 5w40", "formula ultra").
 • Alimentari simili con lo stesso prezzo si salvano col nome generico, senza lista:
   "nutella" → NUTELLA 2,00 · "leone" → LEONE PASTIGLIE 3,50 · "colli di luni" → 14,00
+• Nomi generici: "cingomme" / "chewing gum" / "cicca" → CHEWING GUM 3,00
+  (Vigorsol, Vivident, Happydent, Daygum). Il nome della marca va bene lo stesso.
 
 PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
 • "danea 15 euro"                    → DANEA (a mano) 15 €
