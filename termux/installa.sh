@@ -1298,7 +1298,7 @@ cat > ~/.termux/tasker/invia_mail.py <<'FINE_FILE'
 import glob, json, os, smtplib, ssl, subprocess, sys
 from email.message import EmailMessage
 
-# Invio automatico della chiusura per email (Gmail).
+# Invio automatico della chiusura per email (Gmail, Libero, Outlook: il server si sceglie dall'indirizzo).
 # I dati di accesso stanno SOLO sul telefono, in ~/.cassa_email.json (mai su GitHub).
 #
 # Uso:  python3 invia_mail.py configura          -> chiede mittente, password per app, destinatario
@@ -1307,6 +1307,19 @@ from email.message import EmailMessage
 #       python3 invia_mail.py coda               -> rimanda le mail rimaste in coda (senza internet)
 
 CONFIG = os.path.expanduser('~/.cassa_email.json')
+# dominio -> (server, porta, SSL diretto); con SSL False si usa STARTTLS
+SERVER = {
+    'gmail.com': ('smtp.gmail.com', 465, True), 'googlemail.com': ('smtp.gmail.com', 465, True),
+    'libero.it': ('smtp.libero.it', 465, True), 'inwind.it': ('smtp.libero.it', 465, True),
+    'iol.it': ('smtp.libero.it', 465, True), 'blu.it': ('smtp.libero.it', 465, True),
+    'outlook.com': ('smtp-mail.outlook.com', 587, False), 'outlook.it': ('smtp-mail.outlook.com', 587, False),
+    'hotmail.com': ('smtp-mail.outlook.com', 587, False), 'hotmail.it': ('smtp-mail.outlook.com', 587, False),
+    'live.com': ('smtp-mail.outlook.com', 587, False), 'live.it': ('smtp-mail.outlook.com', 587, False),
+}
+
+
+def server_di(mittente):
+    return SERVER.get(mittente.split('@')[-1].lower(), ('smtp.gmail.com', 465, True))
 CODA = os.path.expanduser('~/.cassa_email_coda')
 FINTO = os.environ.get('INVIA_MAIL_FINTO')   # solo per la prova su computer: salva la mail invece di spedirla
 
@@ -1344,7 +1357,13 @@ def spedisci(c, oggetto, corpo, allegati):
         with open(os.path.join(FINTO, 'mail_%d.eml' % len(os.listdir(FINTO))), 'wb') as f:
             f.write(bytes(msg))
         return
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=ssl.create_default_context(), timeout=30) as s:
+    host, porta, ssl_diretto = server_di(c['mittente'])
+    if ssl_diretto:
+        server = smtplib.SMTP_SSL(host, porta, context=ssl.create_default_context(), timeout=30)
+    else:
+        server = smtplib.SMTP(host, porta, timeout=30)
+        server.starttls(context=ssl.create_default_context())
+    with server as s:
         s.login(c['mittente'], c['password'])
         s.send_message(msg)
 
@@ -1409,13 +1428,14 @@ def svuota_coda():
 
 def configura():
     import getpass
-    print("📧 CONFIGURAZIONE EMAIL (Gmail)")
-    print("Serve la 'password per le app' di Google (16 lettere), NON la password normale.")
+    print("📧 CONFIGURAZIONE EMAIL")
+    print("Gmail: serve la 'password per le app' di Google (16 lettere), NON la password normale.")
+    print("Libero: di solito va bene la password normale della casella.")
     print("I dati restano solo su questo telefono.\n")
     vecchia = leggi_config() or {}
-    mittente = input(f"Gmail che invia{' [' + vecchia['mittente'] + ']' if vecchia.get('mittente') else ''}: ").strip() \
+    mittente = input(f"Indirizzo che invia (Gmail o Libero){' [' + vecchia['mittente'] + ']' if vecchia.get('mittente') else ''}: ").strip() \
         or vecchia.get('mittente', '')
-    password = getpass.getpass("Password per le app (non si vede mentre scrivi): ").replace(' ', '') \
+    password = getpass.getpass("Password (non si vede mentre scrivi): ").replace(' ', '') \
         or vecchia.get('password', '')
     destinatario = input(f"Indirizzo a cui mandare la chiusura"
                          f"{' [' + vecchia['destinatario'] + ']' if vecchia.get('destinatario') else ''}: ").strip() \
@@ -1438,8 +1458,10 @@ def prova():
         spedisci(c, "Prova cassa vocale", "Se leggi questa mail, l'invio automatico della chiusura funziona.", [])
         print(f"✅ Mail di prova inviata a {c['destinatario']}")
     except smtplib.SMTPAuthenticationError:
-        print("❌ Gmail non accetta mittente/password. Serve la 'password per le app' (16 lettere):\n"
-              "   rifai: python3 ~/.termux/tasker/invia_mail.py configura")
+        print("❌ Il server non accetta indirizzo/password.\n"
+              "   Gmail: serve la 'password per le app' (16 lettere). Libero: controlla la password e che\n"
+              "   nelle impostazioni di Libero Mail sia permesso l'accesso da programmi esterni.\n"
+              "   Poi rifai: python3 ~/.termux/tasker/invia_mail.py configura")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Invio non riuscito ({e}). C'è internet?")
@@ -8406,7 +8428,7 @@ Nella sottocartella Excel vengono creati i due file del distributore:
 due Excel e il riepilogo. Arriva la notifica "📧 Mail della chiusura inviata".
 Senza internet resta in coda e riparte da sola al primo comando successivo.
 Configurazione (una volta sola, in Termux):
-  python3 ~/.termux/tasker/invia_mail.py configura   (Gmail, password per le app, destinatario)
+  python3 ~/.termux/tasker/invia_mail.py configura   (Gmail o Libero, password, destinatario)
   python3 ~/.termux/tasker/invia_mail.py prova       (manda una mail di prova)
 La password resta solo sul telefono.
 
@@ -8475,4 +8497,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:08"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:14"

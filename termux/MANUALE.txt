@@ -213,7 +213,7 @@ Nella sottocartella Excel vengono creati i due file del distributore:
 due Excel e il riepilogo. Arriva la notifica "📧 Mail della chiusura inviata".
 Senza internet resta in coda e riparte da sola al primo comando successivo.
 Configurazione (una volta sola, in Termux):
-  python3 ~/.termux/tasker/invia_mail.py configura   (Gmail, password per le app, destinatario)
+  python3 ~/.termux/tasker/invia_mail.py configura   (Gmail o Libero, password, destinatario)
   python3 ~/.termux/tasker/invia_mail.py prova       (manda una mail di prova)
 La password resta solo sul telefono.
 
