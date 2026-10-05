@@ -38,6 +38,12 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 (es. 05_10_2026_notte_TEST.xlsx) e contatore AdBlue, taniche e orari veri NON
 vengono toccati: dopo la prova basta cancellare la cartella …_TEST.
 
+📛 PERIODO DI PROVA (turni veri, ma file con TEST nel nome per non confonderli con
+quelli fatti a mano): in Termux
+  python3 ~/info_turno.py nomi test si    → da ora i turni veri hanno TEST nel nome
+  python3 ~/info_turno.py nomi test no    → si torna ai nomi normali
+La mail dei turni veri va comunque al lavoro; contatori, taniche e avanzo si aggiornano.
+
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 

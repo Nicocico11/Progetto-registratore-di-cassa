@@ -18,6 +18,8 @@ sys.path.insert(0, os.path.expanduser("~/.termux/tasker"))
 PATH_CSV = os.path.expanduser("~/transazioni_turno.csv")
 PATH_TURNO = os.path.expanduser("~/turno_corrente.json")
 PATH_ULTIMO_CONTEGGIO = os.path.expanduser("~/ultimo_conteggio.txt")
+# Se esiste: i turni VERI hanno comunque TEST nel nome dei file (per non confonderli con quelli fatti a mano)
+PATH_NOMI_TEST = os.path.expanduser("~/.cassa_nomi_test")
 CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
@@ -153,9 +155,13 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
     if prova:
         turno["prova"] = True     # file con TEST nel nome, stato vero (contatore, taniche...) non toccato
+    elif os.path.exists(PATH_NOMI_TEST):
+        turno["nomi_test"] = True  # periodo di prova: turno vero (mail al lavoro), ma file con TEST nel nome
     turno["documento"] = nuovo_documento(turno, adesso)
     turno["avanzo"] = importo_da_testo(avanzo_testo)
     salva_turno(turno)
+    if turno.get("nomi_test"):
+        print("📛 Turno vero, file con TEST nel nome (periodo di prova): mail al lavoro")
     if prova:
         print("🧪 TURNO DI PROVA: file con TEST nel nome, contatori veri non toccati")
         try:
@@ -209,7 +215,7 @@ def nuovo_documento(turno, adesso):
     """Documento del turno in Download, ogni turno nella sua cartella:
     Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt  (e .../Excel/ per i due Excel).
     Se la cartella esiste già (turno riaperto) si aggiunge l'ora."""
-    nome = f"{turno['data_file']}_{turno['tipo']}" + ("_TEST" if turno.get("prova") else "")
+    nome = f"{turno['data_file']}_{turno['tipo']}" + ("_TEST" if turno.get("prova") or turno.get("nomi_test") else "")
     if os.path.exists(os.path.join(CARTELLA_CHIUSURE, nome)):
         nome += f"_{adesso.strftime('%H%M')}"
     return os.path.join(CARTELLA_CHIUSURE, nome, "Documenti", nome + ".txt")
@@ -699,6 +705,16 @@ def main():
     elif comando.startswith("apri turno"):
         argomenti = sys.argv[3:] + ["", "", "", "", "", ""]
         apri_turno(*argomenti[:6])
+    elif comando.startswith("nomi test"):
+        if comando.endswith(("si", "sì", "on")):
+            open(PATH_NOMI_TEST, 'w').close()
+            print("📛 Da ora i turni veri hanno TEST nel nome dei file (la mail va comunque al lavoro).")
+        elif comando.endswith(("no", "off")):
+            if os.path.exists(PATH_NOMI_TEST):
+                os.remove(PATH_NOMI_TEST)
+            print("✅ Da ora i turni veri hanno il nome normale dei file.")
+        else:
+            print("📛 TEST nei nomi dei turni veri: " + ("SÌ" if os.path.exists(PATH_NOMI_TEST) else "no"))
     elif comando.startswith("stato "):
         print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":

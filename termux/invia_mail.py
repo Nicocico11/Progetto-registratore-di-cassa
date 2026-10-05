@@ -97,7 +97,7 @@ def invia_turno(cartella, prova=False):
         registra(f"niente da mandare in {cartella}")
         return "📧 Mail: nessun file da mandare"
     nome = os.path.basename(cartella.rstrip('/'))            # es. 2026-10-05_Notte
-    if prova or '_TEST' in nome:
+    if prova:
         c = dict(c, destinatario=c['mittente'])   # turno di prova: la mail arriva solo a me, non al lavoro
     corpo = "Chiusura turno " + nome.replace('_', ' ') + "\n\n"
     if riepilogo:
@@ -117,24 +117,29 @@ def invia_turno(cartella, prova=False):
         notifica("📧 Mail in coda (niente internet?)", f"{nome}: riparte da sola al prossimo comando")
         registra(f"non inviata ({e}), {nome} in coda")
         esito = "📧 Mail in coda (niente internet?): riparte da sola al prossimo comando"
-    metti_in_coda(cartella)
+    metti_in_coda(cartella, prova)
     return esito
 
 
-def metti_in_coda(cartella):
-    coda = leggi_coda()
-    if cartella not in coda:
-        coda.append(cartella)
+def metti_in_coda(cartella, prova=False):
+    # una riga per cartella: "<cartella>\t1" = turno di prova (mail solo a me), "\t0" = turno vero
+    coda = [r for r in leggi_coda() if r[0] != cartella] + [(cartella, bool(prova))]
     with open(CODA, 'w', encoding='utf-8') as f:
-        f.write("\n".join(coda) + "\n")
+        f.write("".join(f"{c}\t{int(p)}\n" for c, p in coda))
 
 
 def leggi_coda():
+    """[(cartella, prova)]; le righe vecchie senza segno valgono come prova se il nome ha TEST."""
     try:
         with open(CODA, encoding='utf-8') as f:
-            return [r.strip() for r in f if r.strip()]
+            righe = [r.rstrip('\n') for r in f if r.strip()]
     except Exception:
         return []
+    coda = []
+    for r in righe:
+        cartella, _, segno = r.partition('\t')
+        coda.append((cartella, segno == '1' if segno else '_TEST' in cartella))
+    return coda
 
 
 def svuota_coda():
@@ -142,9 +147,9 @@ def svuota_coda():
     if not coda:
         return
     os.remove(CODA)
-    for cartella in coda:
+    for cartella, prova in coda:
         if os.path.isdir(cartella):
-            invia_turno(cartella)   # se fallisce di nuovo torna in coda
+            invia_turno(cartella, prova)   # se fallisce di nuovo torna in coda
 
 
 def configura():

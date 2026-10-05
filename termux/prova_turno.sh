@@ -238,6 +238,15 @@ PYEOF
 grep -q "CHIUSURA TURNO" $D/*/Documenti/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }
 
+# Periodo di prova: turno VERO con TEST nel nome dei file, mail al lavoro, stato aggiornato
+python3 $HOME/info_turno.py nomi test si > /dev/null
+controlla "turno vero con nomi TEST"  "apertura turno pomeriggio"                    "file con TEST nel nome"
+controlla "vendita"                   "30 gasolio"                                   "Gasolio 30.00"
+controlla "chiusura vero nomi TEST"   "chiusura turno"                               "Mail inviata a capo@example.com"
+ls $D | grep -q "_Pomeriggio_TEST$" && ls $D/*_Pomeriggio_TEST/Excel | grep -q "pomeriggio_TEST.xlsx" && echo "  ok   turno vero: file con TEST, mail al lavoro" || { echo "  ERRORE nomi TEST nel turno vero"; ls $D; ERRORI=$((ERRORI+1)); }
+python3 $HOME/info_turno.py nomi test no > /dev/null
+rm -rf $D/*_Pomeriggio_TEST
+
 # Turno di prova: file con TEST nel nome, stato vero (contatore, taniche, orario) non toccato
 cp $HOME/stato_cassa.json $HOME/stato_prima.json
 controlla "apertura turno di prova"   "apertura turno prova notte"                   "TURNO DI PROVA"
@@ -247,7 +256,7 @@ controlla "chiusura turno di prova"   "chiusura turno"                          
 python3 -c "
 import email, glob, sys; from email import policy
 m = [email.message_from_bytes(open(f, 'rb').read(), policy=policy.default) for f in glob.glob(sys.argv[1] + '/*.eml')]
-prova = [x for x in m if 'TEST' in x['Subject']]
+prova = [x for x in m if 'Notte TEST' in x['Subject']]
 assert prova and prova[0]['To'] == 'prova@gmail.com', [(x['Subject'], x['To']) for x in m]
 " $HOME/mail_finte && echo "  ok   mail del turno di prova solo al mittente" || { echo "  ERRORE mail di prova"; ERRORI=$((ERRORI+1)); }
 cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di prova: stato vero non toccato" || { echo "  ERRORE stato toccato dalla prova"; ERRORI=$((ERRORI+1)); }

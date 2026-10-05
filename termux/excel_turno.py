@@ -193,7 +193,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
-    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova')))
+    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova') or turno.get('nomi_test')))
     wb.save(path_turno)
 
     # Turno successivo "imbastito"
@@ -215,7 +215,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
         ws2['K30'] = taniche_attuali
-    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova')))
+    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova') or turno.get('nomi_test')))
     if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
         wb2.save(path_dopo)
 

@@ -1515,7 +1515,7 @@ def invia_turno(cartella, prova=False):
         registra(f"niente da mandare in {cartella}")
         return "📧 Mail: nessun file da mandare"
     nome = os.path.basename(cartella.rstrip('/'))            # es. 2026-10-05_Notte
-    if prova or '_TEST' in nome:
+    if prova:
         c = dict(c, destinatario=c['mittente'])   # turno di prova: la mail arriva solo a me, non al lavoro
     corpo = "Chiusura turno " + nome.replace('_', ' ') + "\n\n"
     if riepilogo:
@@ -1535,24 +1535,29 @@ def invia_turno(cartella, prova=False):
         notifica("📧 Mail in coda (niente internet?)", f"{nome}: riparte da sola al prossimo comando")
         registra(f"non inviata ({e}), {nome} in coda")
         esito = "📧 Mail in coda (niente internet?): riparte da sola al prossimo comando"
-    metti_in_coda(cartella)
+    metti_in_coda(cartella, prova)
     return esito
 
 
-def metti_in_coda(cartella):
-    coda = leggi_coda()
-    if cartella not in coda:
-        coda.append(cartella)
+def metti_in_coda(cartella, prova=False):
+    # una riga per cartella: "<cartella>\t1" = turno di prova (mail solo a me), "\t0" = turno vero
+    coda = [r for r in leggi_coda() if r[0] != cartella] + [(cartella, bool(prova))]
     with open(CODA, 'w', encoding='utf-8') as f:
-        f.write("\n".join(coda) + "\n")
+        f.write("".join(f"{c}\t{int(p)}\n" for c, p in coda))
 
 
 def leggi_coda():
+    """[(cartella, prova)]; le righe vecchie senza segno valgono come prova se il nome ha TEST."""
     try:
         with open(CODA, encoding='utf-8') as f:
-            return [r.strip() for r in f if r.strip()]
+            righe = [r.rstrip('\n') for r in f if r.strip()]
     except Exception:
         return []
+    coda = []
+    for r in righe:
+        cartella, _, segno = r.partition('\t')
+        coda.append((cartella, segno == '1' if segno else '_TEST' in cartella))
+    return coda
 
 
 def svuota_coda():
@@ -1560,9 +1565,9 @@ def svuota_coda():
     if not coda:
         return
     os.remove(CODA)
-    for cartella in coda:
+    for cartella, prova in coda:
         if os.path.isdir(cartella):
-            invia_turno(cartella)   # se fallisce di nuovo torna in coda
+            invia_turno(cartella, prova)   # se fallisce di nuovo torna in coda
 
 
 def configura():
@@ -1999,7 +2004,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
-    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova')))
+    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova') or turno.get('nomi_test')))
     wb.save(path_turno)
 
     # Turno successivo "imbastito"
@@ -2021,7 +2026,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
         ws2['K30'] = taniche_attuali
-    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova')))
+    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova') or turno.get('nomi_test')))
     if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
         wb2.save(path_dopo)
 
@@ -2057,6 +2062,8 @@ sys.path.insert(0, os.path.expanduser("~/.termux/tasker"))
 PATH_CSV = os.path.expanduser("~/transazioni_turno.csv")
 PATH_TURNO = os.path.expanduser("~/turno_corrente.json")
 PATH_ULTIMO_CONTEGGIO = os.path.expanduser("~/ultimo_conteggio.txt")
+# Se esiste: i turni VERI hanno comunque TEST nel nome dei file (per non confonderli con quelli fatti a mano)
+PATH_NOMI_TEST = os.path.expanduser("~/.cassa_nomi_test")
 CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
@@ -2192,9 +2199,13 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
     if prova:
         turno["prova"] = True     # file con TEST nel nome, stato vero (contatore, taniche...) non toccato
+    elif os.path.exists(PATH_NOMI_TEST):
+        turno["nomi_test"] = True  # periodo di prova: turno vero (mail al lavoro), ma file con TEST nel nome
     turno["documento"] = nuovo_documento(turno, adesso)
     turno["avanzo"] = importo_da_testo(avanzo_testo)
     salva_turno(turno)
+    if turno.get("nomi_test"):
+        print("📛 Turno vero, file con TEST nel nome (periodo di prova): mail al lavoro")
     if prova:
         print("🧪 TURNO DI PROVA: file con TEST nel nome, contatori veri non toccati")
         try:
@@ -2248,7 +2259,7 @@ def nuovo_documento(turno, adesso):
     """Documento del turno in Download, ogni turno nella sua cartella:
     Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt  (e .../Excel/ per i due Excel).
     Se la cartella esiste già (turno riaperto) si aggiunge l'ora."""
-    nome = f"{turno['data_file']}_{turno['tipo']}" + ("_TEST" if turno.get("prova") else "")
+    nome = f"{turno['data_file']}_{turno['tipo']}" + ("_TEST" if turno.get("prova") or turno.get("nomi_test") else "")
     if os.path.exists(os.path.join(CARTELLA_CHIUSURE, nome)):
         nome += f"_{adesso.strftime('%H%M')}"
     return os.path.join(CARTELLA_CHIUSURE, nome, "Documenti", nome + ".txt")
@@ -2738,6 +2749,16 @@ def main():
     elif comando.startswith("apri turno"):
         argomenti = sys.argv[3:] + ["", "", "", "", "", ""]
         apri_turno(*argomenti[:6])
+    elif comando.startswith("nomi test"):
+        if comando.endswith(("si", "sì", "on")):
+            open(PATH_NOMI_TEST, 'w').close()
+            print("📛 Da ora i turni veri hanno TEST nel nome dei file (la mail va comunque al lavoro).")
+        elif comando.endswith(("no", "off")):
+            if os.path.exists(PATH_NOMI_TEST):
+                os.remove(PATH_NOMI_TEST)
+            print("✅ Da ora i turni veri hanno il nome normale dei file.")
+        else:
+            print("📛 TEST nei nomi dei turni veri: " + ("SÌ" if os.path.exists(PATH_NOMI_TEST) else "no"))
     elif comando.startswith("stato "):
         print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":
@@ -9377,6 +9398,12 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 (es. 05_10_2026_notte_TEST.xlsx) e contatore AdBlue, taniche e orari veri NON
 vengono toccati: dopo la prova basta cancellare la cartella …_TEST.
 
+📛 PERIODO DI PROVA (turni veri, ma file con TEST nel nome per non confonderli con
+quelli fatti a mano): in Termux
+  python3 ~/info_turno.py nomi test si    → da ora i turni veri hanno TEST nel nome
+  python3 ~/info_turno.py nomi test no    → si torna ai nomi normali
+La mail dei turni veri va comunque al lavoro; contatori, taniche e avanzo si aggiornano.
+
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 
@@ -9643,4 +9670,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 09:14"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 09:42"
