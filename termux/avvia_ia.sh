@@ -144,8 +144,19 @@ case "$FRASE" in
   *)
     # Una vendita: solo a turno aperto
     if turno_aperto; then
-      python3 $CARTELLA/processa_ia.py "$TESTO"
+      RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$TESTO")
       ESITO=$?
+      echo "$RISPOSTA"
+      # Frase non capita (parola sentita male): riquadro per scriverla giusta
+      if [ $ESITO -eq 1 ] && [[ "$RISPOSTA" == *"❓"* ]] && [[ "$RISPOSTA" != *"Quale prodotto"* ]]; then
+        CORRETTA=$(chiedi "✏️ Non capito: scrivi la frase giusta" "$TESTO")
+        if [ -n "$CORRETTA" ]; then
+          echo "$(date) - Corretta a mano: '$CORRETTA'" >> ~/debug_tasker.log
+          echo "✏️ $CORRETTA"
+          python3 $CARTELLA/processa_ia.py "$CORRETTA"
+          ESITO=$?
+        fi
+      fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;

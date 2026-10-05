@@ -24,6 +24,8 @@ case "$*" in
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
   *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
+  *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
+  *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
   *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
   *)          echo '{"code": -2, "text": ""}' ;;
 esac
@@ -31,7 +33,7 @@ EOF
 printf '#!/bin/bash\nsleep 1\n' > $HOME/llama.cpp/build/bin/llama-server
 chmod +x $HOME/bin/termux-dialog $HOME/llama.cpp/build/bin/llama-server
 export PATH=$HOME/bin:$PATH
-echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00}' > $HOME/prezzi.json
+echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00,"birra_moretti":4.00,"birra_heineken":3.50}' > $HOME/prezzi.json
 python3 $HOME/.termux/tasker/migra_prezzi.py > /dev/null
 
 S=$HOME/.termux/tasker/avvia_ia.sh
@@ -73,7 +75,10 @@ controlla "70 07 bianco"              "70 07 bianco"                            
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "pasti bianco = pos"        "€20 pasti bianco"                             "20.00 € - POS bianco"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-controlla "parola sconosciuta"        "2 xyz"                                        "Non conosco \"xyz\""
+controlla "parola sconosciuta"        "2 xyz"                                        "Mars 2.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "birra: lista prodotti"     "una birra"                                    "Birra Heineken 3.50"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "lascia un centesimo"       "83 39 lascia un centesimo"                    "Carburante 83.39 € + Resto lasciato dal cliente 0.01"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo e prodotto"        "50 e 2 red bull sul nero"                     "Carburante 50.00 € + 2"

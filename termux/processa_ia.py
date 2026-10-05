@@ -103,6 +103,7 @@ for _nome, _p in listino.items():
         if _parole and len(_parole[0]) >= 5 and _parole[0] not in PAROLE_COMUNI:
             PRIMA_PAROLA.append((_nome, _parole[0]))
 
+SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
@@ -129,6 +130,9 @@ def trova_prodotto_listino(testo):
         parole_dette = set(re.findall(r"[\w'&-]+", testo))
         trovati = [n for n, w in PRIMA_PAROLA if w in parole_dette]   # parola esatta: "pasti" non è "pasta"
     if len(trovati) > 1 and len({listino[n]['prezzo'] for n in trovati}) > 1:
+        scelto = [n for n in trovati if n in SCELTI]
+        if scelto:
+            return scelto[0]      # già scelto dalla lista
         AMBIGUI[:] = trovati      # stesso nome, prezzi diversi: meglio chiedere
         return None
     return trovati[0] if trovati else None
@@ -302,8 +306,17 @@ def voce(testo):
     return voce_carburante(testo)
 
 
+def prodotto_o_ambiguo(testo):
+    """Vero se c'è un prodotto, anche se il nome vale per più prodotti (si sceglierà dopo)."""
+    AMBIGUI.clear()
+    trovato = trova_prodotto_listino(testo) or bool(AMBIGUI)
+    AMBIGUI.clear()
+    return trovato
+
+
 def ha_voce(testo):
-    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo)
+                or prodotto_o_ambiguo(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):
@@ -619,9 +632,38 @@ pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
 origine = 'regole'
 
+def scegli_prodotto(candidati):
+    """Lista "Quale prodotto?" con i prezzi: il nome scelto, None se annullata."""
+    candidati = candidati[:20]
+    voci_lista = [f"{n} {listino[n]['prezzo']:.2f}€".replace(',', ' ') for n in candidati]
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', '🛒 Quale prodotto?', '-v', ','.join(voci_lista)],
+                           capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        return None
+    if d.get('code') != -1:
+        return None
+    if d.get('text') in voci_lista:
+        return candidati[voci_lista.index(d['text'])]
+    i = d.get('index')
+    return candidati[i] if isinstance(i, int) and 0 <= i < len(candidati) else None
+
+
+for _ in range(3):   # una vendita può avere più nomi da scegliere
+    if not AMBIGUI:
+        break
+    candidati = list(AMBIGUI)
+    scelto = scegli_prodotto(candidati)
+    if not scelto:
+        print(f"❓ Quale prodotto? {', '.join(candidati[:6])}{' …' if len(candidati) > 6 else ''}. "
+              "Ripeti con il nome completo. Niente salvato.")
+        sys.exit(1)
+    SCELTI.add(scelto)
+    AMBIGUI.clear()
+    voci = [voce(p) for p in pezzi]
 if AMBIGUI:
-    print(f"❓ Quale prodotto? {', '.join(AMBIGUI[:6])}{' …' if len(AMBIGUI) > 6 else ''}. "
-          "Ripeti con il nome completo. Niente salvato.")
+    print("❓ Troppi prodotti da scegliere: ripeti con i nomi completi. Niente salvato.")
     sys.exit(1)
 
 if len(pezzi) > 1 and None in voci:

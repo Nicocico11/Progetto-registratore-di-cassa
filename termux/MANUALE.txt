@@ -61,8 +61,8 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
 • Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
   "formula excel plus", "lampadina h7".
-• Se il nome vale per più prodotti (es. "lampadina") il telefono chiede quale:
-  ripeti con il nome completo (es. "lampadina h4").
+• Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista
+  "Quale prodotto?" con i prezzi: tocca quello giusto e premi OK.
 
 PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
 • "danea 15 euro"                    → DANEA (a mano) 15 €
@@ -218,10 +218,10 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
-• "❓ Non conosco …": quella parola non è nel listino. Ripeti, oppure di'
-  "danea" e l'importo (es. "danea caricabatterie 15 euro").
-• "❓ Quale prodotto?": il nome vale per più prodotti (es. "birra"): di' quello
-  completo ("birra moretti").
+• Frase non capita (parola sentita male): compare il riquadro
+  "✏️ Non capito: scrivi la frase giusta", con la frase sentita scritta in grigio.
+  Scrivi la frase corretta (es. "20 pos bianco") e premi OK: viene registrata.
+  Annulla = niente salvato. Se la parola non è nel listino usa "danea … euro".
 • "❌ Turno non aperto": di' prima "apertura turno".
 • "❌ IA spenta, la sto avviando": aspetta 30 secondi e ripeti la frase.
 • Il testo capito è tagliato o sbagliato: ripeti, parlando subito dopo il doppio tap.

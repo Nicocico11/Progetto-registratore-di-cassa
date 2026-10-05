@@ -149,8 +149,19 @@ case "$FRASE" in
   *)
     # Una vendita: solo a turno aperto
     if turno_aperto; then
-      python3 $CARTELLA/processa_ia.py "$TESTO"
+      RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$TESTO")
       ESITO=$?
+      echo "$RISPOSTA"
+      # Frase non capita (parola sentita male): riquadro per scriverla giusta
+      if [ $ESITO -eq 1 ] && [[ "$RISPOSTA" == *"❓"* ]] && [[ "$RISPOSTA" != *"Quale prodotto"* ]]; then
+        CORRETTA=$(chiedi "✏️ Non capito: scrivi la frase giusta" "$TESTO")
+        if [ -n "$CORRETTA" ]; then
+          echo "$(date) - Corretta a mano: '$CORRETTA'" >> ~/debug_tasker.log
+          echo "✏️ $CORRETTA"
+          python3 $CARTELLA/processa_ia.py "$CORRETTA"
+          ESITO=$?
+        fi
+      fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;
@@ -412,6 +423,7 @@ for _nome, _p in listino.items():
         if _parole and len(_parole[0]) >= 5 and _parole[0] not in PAROLE_COMUNI:
             PRIMA_PAROLA.append((_nome, _parole[0]))
 
+SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
@@ -438,6 +450,9 @@ def trova_prodotto_listino(testo):
         parole_dette = set(re.findall(r"[\w'&-]+", testo))
         trovati = [n for n, w in PRIMA_PAROLA if w in parole_dette]   # parola esatta: "pasti" non è "pasta"
     if len(trovati) > 1 and len({listino[n]['prezzo'] for n in trovati}) > 1:
+        scelto = [n for n in trovati if n in SCELTI]
+        if scelto:
+            return scelto[0]      # già scelto dalla lista
         AMBIGUI[:] = trovati      # stesso nome, prezzi diversi: meglio chiedere
         return None
     return trovati[0] if trovati else None
@@ -611,8 +626,17 @@ def voce(testo):
     return voce_carburante(testo)
 
 
+def prodotto_o_ambiguo(testo):
+    """Vero se c'è un prodotto, anche se il nome vale per più prodotti (si sceglierà dopo)."""
+    AMBIGUI.clear()
+    trovato = trova_prodotto_listino(testo) or bool(AMBIGUI)
+    AMBIGUI.clear()
+    return trovato
+
+
 def ha_voce(testo):
-    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo) or trova_prodotto_listino(testo) or carburante_detto(testo))
+    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo)
+                or prodotto_o_ambiguo(testo) or carburante_detto(testo))
 
 
 def dividi_in_pezzi(testo):
@@ -928,9 +952,38 @@ pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
 origine = 'regole'
 
+def scegli_prodotto(candidati):
+    """Lista "Quale prodotto?" con i prezzi: il nome scelto, None se annullata."""
+    candidati = candidati[:20]
+    voci_lista = [f"{n} {listino[n]['prezzo']:.2f}€".replace(',', ' ') for n in candidati]
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', '🛒 Quale prodotto?', '-v', ','.join(voci_lista)],
+                           capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        return None
+    if d.get('code') != -1:
+        return None
+    if d.get('text') in voci_lista:
+        return candidati[voci_lista.index(d['text'])]
+    i = d.get('index')
+    return candidati[i] if isinstance(i, int) and 0 <= i < len(candidati) else None
+
+
+for _ in range(3):   # una vendita può avere più nomi da scegliere
+    if not AMBIGUI:
+        break
+    candidati = list(AMBIGUI)
+    scelto = scegli_prodotto(candidati)
+    if not scelto:
+        print(f"❓ Quale prodotto? {', '.join(candidati[:6])}{' …' if len(candidati) > 6 else ''}. "
+              "Ripeti con il nome completo. Niente salvato.")
+        sys.exit(1)
+    SCELTI.add(scelto)
+    AMBIGUI.clear()
+    voci = [voce(p) for p in pezzi]
 if AMBIGUI:
-    print(f"❓ Quale prodotto? {', '.join(AMBIGUI[:6])}{' …' if len(AMBIGUI) > 6 else ''}. "
-          "Ripeti con il nome completo. Niente salvato.")
+    print("❓ Troppi prodotti da scegliere: ripeti con i nomi completi. Niente salvato.")
     sys.exit(1)
 
 if len(pezzi) > 1 and None in voci:
@@ -7736,8 +7789,8 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
 • Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
   "formula excel plus", "lampadina h7".
-• Se il nome vale per più prodotti (es. "lampadina") il telefono chiede quale:
-  ripeti con il nome completo (es. "lampadina h4").
+• Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista
+  "Quale prodotto?" con i prezzi: tocca quello giusto e premi OK.
 
 PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
 • "danea 15 euro"                    → DANEA (a mano) 15 €
@@ -7893,10 +7946,10 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
-• "❓ Non conosco …": quella parola non è nel listino. Ripeti, oppure di'
-  "danea" e l'importo (es. "danea caricabatterie 15 euro").
-• "❓ Quale prodotto?": il nome vale per più prodotti (es. "birra"): di' quello
-  completo ("birra moretti").
+• Frase non capita (parola sentita male): compare il riquadro
+  "✏️ Non capito: scrivi la frase giusta", con la frase sentita scritta in grigio.
+  Scrivi la frase corretta (es. "20 pos bianco") e premi OK: viene registrata.
+  Annulla = niente salvato. Se la parola non è nel listino usa "danea … euro".
 • "❌ Turno non aperto": di' prima "apertura turno".
 • "❌ IA spenta, la sto avviando": aspetta 30 secondi e ripeti la frase.
 • Il testo capito è tagliato o sbagliato: ripeti, parlando subito dopo il doppio tap.
@@ -7917,4 +7970,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:44"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:53"
