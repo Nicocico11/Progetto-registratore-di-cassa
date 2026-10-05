@@ -90,7 +90,7 @@ controlla "codice staccato"           "lampadina h 4"                           
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "nome quasi giusto"         "2 red bul"                                    "controlla che sia giusto"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-printf '2 red bull\n1\n\n' | bash "$QUI/widget/12 Vendita Danea" 2>&1 | grep -q "Red Bull 6.00 € - POS nero" && echo "  ok   widget 12 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
+printf '2 red bull\n1\n\n' | bash "$QUI/widget/01 Vendita Danea" 2>&1 | grep -q "Red Bull 6.00 € - POS nero" && echo "  ok   widget 01 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"
@@ -103,7 +103,7 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto da solo"             "resto lasciato 5 centesimi"                   "Resto lasciato dal cliente 0.05"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-printf '1\n7\n\n' | bash "$QUI/widget/13 Abbuono o resto" 2>&1 | grep -q "Abbuono -0.07" && echo "  ok   widget 13 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
+printf '1\n7\n\n' | bash "$QUI/widget/05 Abbuono o resto" 2>&1 | grep -q "Abbuono -0.07" && echo "  ok   widget 05 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

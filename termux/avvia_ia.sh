@@ -133,7 +133,7 @@ case "$FRASE" in
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
-    # il riepilogo completo è nel pulsante 03 Totali
+    # il riepilogo completo è nel pulsante 02 Totali
     RIEPILOGO=$(python3 ~/info_turno.py totali breve)
     nohup termux-dialog confirm -t "📊 Totali del turno" -i "$RIEPILOGO" > /dev/null 2>&1 &
     echo "📊 Totali sullo schermo" ;;
