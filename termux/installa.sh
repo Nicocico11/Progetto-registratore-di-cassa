@@ -143,7 +143,7 @@ case "$FRASE" in
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
-    # il riepilogo completo è nel pulsante 02 Totali
+    # il riepilogo completo è nel pulsante 03 Totali
     RIEPILOGO=$(python3 ~/info_turno.py totali breve)
     nohup termux-dialog confirm -t "📊 Totali del turno" -i "$RIEPILOGO" > /dev/null 2>&1 &
     echo "📊 Totali sullo schermo" ;;
@@ -2425,7 +2425,7 @@ def prospetto_completo(righe, titolo, t=None):
 
 
 def totali_brevi(righe):
-    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 02)."""
+    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 03)."""
     vv = vendite(righe)
     t = leggi_turno() or {}
     per_metodo = totali_per(vv, "metodo")
@@ -7801,8 +7801,9 @@ python3 ~/.termux/tasker/migra_prezzi.py
 # Pulsanti per Termux:Widget (cartella ~/.shortcuts)
 mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts
 # Pulsanti con i numeri vecchi (cambiano quando si riordinano): si tolgono e si riscrivono
-rm -f ~/.shortcuts/[0-9]\ * ~/.shortcuts/[0-9][0-9]\ *
-cat > ~/.shortcuts/"01 Vendita Danea" <<'FINE_FILE'
+mkdir -p ~/.shortcuts/tasks
+rm -f ~/.shortcuts/[0-9]\ * ~/.shortcuts/[0-9][0-9]\ * ~/.shortcuts/tasks/[0-9][0-9]\ *
+cat > ~/.shortcuts/"02 Vendita Danea" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: vendita market scritta a mano (niente errori di AutoVoice)
 echo "🛒 VENDITA DANEA (scritta)"
@@ -7826,28 +7827,28 @@ while true; do
   echo
 done
 FINE_FILE
-cat > ~/.shortcuts/"02 Totali" <<'FINE_FILE'
+cat > ~/.shortcuts/"03 Totali" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 python3 ~/info_turno.py totali
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"03 Ultime vendite" <<'FINE_FILE'
+cat > ~/.shortcuts/"04 Ultime vendite" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 python3 ~/info_turno.py notifica
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"04 Cancella ultima" <<'FINE_FILE'
+cat > ~/.shortcuts/"05 Cancella ultima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 python3 ~/info_turno.py ultimi | tail -6; echo; read -p "Cancellare l'ultima vendita? (s/n) " R; [[ "$R" == [sS]* ]] && bash ~/.termux/tasker/avvia_ia.sh "cancella ultima"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"05 Abbuono o resto" <<'FINE_FILE'
+cat > ~/.shortcuts/"06 Abbuono o resto" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: centesimi da aggiungere dopo la vendita
 #   abbuono = il cliente paga qualche centesimo in meno (mancano nel cassetto)
@@ -7865,7 +7866,7 @@ esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"06 Credito cliente" <<'FINE_FILE'
+cat > ~/.shortcuts/"07 Credito cliente" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: credito cliente (il cliente prende e paga più avanti)
 read -p "Nome cliente: " NOME
@@ -7878,7 +7879,7 @@ fi
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"07 Credito riscosso" <<'FINE_FILE'
+cat > ~/.shortcuts/"08 Credito riscosso" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: credito riscosso (il cliente paga un vecchio credito)
 read -p "Nome cliente: " NOME
@@ -7900,7 +7901,7 @@ fi
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"08 Anticipo Cartissima" <<'FINE_FILE'
+cat > ~/.shortcuts/"09 Anticipo Cartissima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: il cliente paga con Cartissima (come gasolio, senza rifornimento)
 # e riceve lo stesso importo in contanti
@@ -7913,28 +7914,28 @@ fi
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"09 Prodotti venduti" <<'FINE_FILE'
+cat > ~/.shortcuts/"10 Prodotti venduti" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "market"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"10 Erogazioni AdBlue" <<'FINE_FILE'
+cat > ~/.shortcuts/"11 Erogazioni AdBlue" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "erogazioni"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"11 Apertura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"12 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "apertura turno"
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"12 Chiusura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"13 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 read -p "Chiudere il turno? (s/n) " R
@@ -7945,7 +7946,7 @@ esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"13 Stato IA" <<'FINE_FILE'
+cat > ~/.shortcuts/"14 Stato IA" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget: stato dell'IA, con accensione e spegnimento a mano
 bash ~/.termux/tasker/avvia_ia.sh "stato ia"
@@ -7958,7 +7959,35 @@ esac
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-chmod +x ~/.shortcuts/*
+cat > ~/.shortcuts/tasks/"01 Vendita carburante" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget SENZA finestra del terminale (cartella tasks):
+# vendita carburante con due riquadri, importo e pagamento. Esito in un messaggio a schermo.
+leggi() {  # testo scritto o scelto nel riquadro, niente se annullato
+  python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    if d.get("code") == -1:
+        print(d.get("text", ""))
+except Exception:
+    pass'
+}
+IMPORTO=$(termux-dialog text -n -t "⛽ Importo carburante (€)" -i "es. 45,50" 2>/dev/null | leggi)
+[ -z "$IMPORTO" ] && exit 0
+SCELTA=$(termux-dialog radio -t "💳 Pagamento di $IMPORTO €" \
+  -v "Contanti,POS nero,POS bianco,Petrolifere (Cartissima)" 2>/dev/null | leggi)
+case "$SCELTA" in
+  Contanti) PAGATO="contanti" ;;
+  "POS nero") PAGATO="sul nero" ;;
+  "POS bianco") PAGATO="sul bianco" ;;
+  Petrolifere*) PAGATO="petrolifere" ;;
+  *) termux-toast "Niente salvato (pagamento non scelto)"; exit 0 ;;
+esac
+ESITO=$(bash ~/.termux/tasker/avvia_ia.sh "$IMPORTO euro $PAGATO")
+termux-toast -g middle "$(grep -m2 -E '✅|⚠️|❌|❓' <<< "$ESITO")"
+FINE_FILE
+chmod +x ~/.shortcuts/* ~/.shortcuts/tasks/* 2>/dev/null
 # File di Tasker da importare: li mettiamo nella cartella Download
 if [ -d ~/storage/downloads ]; then
 cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'
@@ -8430,7 +8459,7 @@ VERSAMENTI
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "totali": si apre una finestra con i contanti attesi e i totali dei POS
-  (resta finché non premi OK). Il riepilogo completo è nel pulsante 02 Totali.
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 03 Totali.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
@@ -8494,14 +8523,17 @@ Si spegne comunque con la chiusura del turno.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare (in ordine di uso):
-01 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
+01 Vendita carburante: SENZA finestra del terminale, due riquadri: importo
+   (es. 45,50) e pagamento (Contanti / POS nero / POS bianco / Petrolifere).
+   L'esito compare in un messaggio a schermo, con le solite vibrazioni.
+02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
    Si possono scrivere più vendite di fila; Invio vuoto per uscire.
-02 Totali · 03 Ultime vendite · 04 Cancella ultima
-05 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
-06 Credito cliente · 07 Credito riscosso · 08 Anticipo Cartissima
-09 Prodotti venduti (elenco) · 10 Erogazioni AdBlue
-11 Apertura turno · 12 Chiusura turno · 13 Stato IA
+03 Totali · 04 Ultime vendite · 05 Cancella ultima
+06 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
+07 Credito cliente · 08 Credito riscosso · 09 Anticipo Cartissima
+10 Prodotti venduti (elenco) · 11 Erogazioni AdBlue
+12 Apertura turno · 13 Chiusura turno · 14 Stato IA
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -8545,4 +8577,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:38"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:43"

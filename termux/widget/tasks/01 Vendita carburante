@@ -1,0 +1,26 @@
+#!/bin/bash
+# Pulsante Termux:Widget SENZA finestra del terminale (cartella tasks):
+# vendita carburante con due riquadri, importo e pagamento. Esito in un messaggio a schermo.
+leggi() {  # testo scritto o scelto nel riquadro, niente se annullato
+  python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    if d.get("code") == -1:
+        print(d.get("text", ""))
+except Exception:
+    pass'
+}
+IMPORTO=$(termux-dialog text -n -t "⛽ Importo carburante (€)" -i "es. 45,50" 2>/dev/null | leggi)
+[ -z "$IMPORTO" ] && exit 0
+SCELTA=$(termux-dialog radio -t "💳 Pagamento di $IMPORTO €" \
+  -v "Contanti,POS nero,POS bianco,Petrolifere (Cartissima)" 2>/dev/null | leggi)
+case "$SCELTA" in
+  Contanti) PAGATO="contanti" ;;
+  "POS nero") PAGATO="sul nero" ;;
+  "POS bianco") PAGATO="sul bianco" ;;
+  Petrolifere*) PAGATO="petrolifere" ;;
+  *) termux-toast "Niente salvato (pagamento non scelto)"; exit 0 ;;
+esac
+ESITO=$(bash ~/.termux/tasker/avvia_ia.sh "$IMPORTO euro $PAGATO")
+termux-toast -g middle "$(grep -m2 -E '✅|⚠️|❌|❓' <<< "$ESITO")"

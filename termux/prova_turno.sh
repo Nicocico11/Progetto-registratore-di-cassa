@@ -9,6 +9,7 @@ export HOME=$(mktemp -d)
 mkdir -p $HOME/.termux/tasker $HOME/bin $HOME/storage/downloads $HOME/llama.cpp/build/bin
 cp $QUI/*.sh $QUI/processa_ia.py $QUI/numeri.py $QUI/invia_mail.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
 cp $QUI/info_turno.py $HOME/
+printf '#!/bin/bash\necho "$*" >> ~/toast.log\n' > $HOME/bin/termux-toast; chmod +x $HOME/bin/termux-toast
 for c in termux-vibrate termux-wake-lock termux-wake-unlock; do
   printf '#!/bin/bash\n' > $HOME/bin/$c; chmod +x $HOME/bin/$c
 done
@@ -26,6 +27,8 @@ case "$*" in
   *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
+  *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
+  *"Pagamento di"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;
   *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
   *)          echo '{"code": -2, "text": ""}' ;;
 esac
@@ -90,7 +93,7 @@ controlla "codice staccato"           "lampadina h 4"                           
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "nome quasi giusto"         "2 red bul"                                    "capito come red bull"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-printf '2 red bull\n1\n\n' | bash "$QUI/widget/01 Vendita Danea" 2>&1 | grep -q "Red Bull 6.00 € - POS nero" && echo "  ok   widget 01 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
+printf '2 red bull\n1\n\n' | bash "$QUI/widget/02 Vendita Danea" 2>&1 | grep -q "Red Bull 6.00 € - POS nero" && echo "  ok   widget 02 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"
@@ -103,13 +106,15 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto da solo"             "resto lasciato 5 centesimi"                   "Resto lasciato dal cliente 0.05"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-printf '1\n7\n\n' | bash "$QUI/widget/05 Abbuono o resto" 2>&1 | grep -q "Abbuono -0.07" && echo "  ok   widget 05 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
+printf '1\n7\n\n' | bash "$QUI/widget/06 Abbuono o resto" 2>&1 | grep -q "Abbuono -0.07" && echo "  ok   widget 06 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "negozio con carta = cassa"  "2 red bull carta"                             "POS cassa"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "negozio sul nero: avviso"  "1 mars sul nero"                              "di solito si pagano IN CASSA"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "2 marzo = 2 mars"          "2 marzo"                                      "2 × Mars"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+bash "$QUI/widget/tasks/01 Vendita carburante"; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   widget 01 Vendita carburante" || { echo "  ERRORE widget 01"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

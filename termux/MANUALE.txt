@@ -172,7 +172,7 @@ VERSAMENTI
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "totali": si apre una finestra con i contanti attesi e i totali dei POS
-  (resta finché non premi OK). Il riepilogo completo è nel pulsante 02 Totali.
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 03 Totali.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
@@ -236,14 +236,17 @@ Si spegne comunque con la chiusura del turno.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare (in ordine di uso):
-01 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
+01 Vendita carburante: SENZA finestra del terminale, due riquadri: importo
+   (es. 45,50) e pagamento (Contanti / POS nero / POS bianco / Petrolifere).
+   L'esito compare in un messaggio a schermo, con le solite vibrazioni.
+02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
    Si possono scrivere più vendite di fila; Invio vuoto per uscire.
-02 Totali · 03 Ultime vendite · 04 Cancella ultima
-05 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
-06 Credito cliente · 07 Credito riscosso · 08 Anticipo Cartissima
-09 Prodotti venduti (elenco) · 10 Erogazioni AdBlue
-11 Apertura turno · 12 Chiusura turno · 13 Stato IA
+03 Totali · 04 Ultime vendite · 05 Cancella ultima
+06 Abbuono o resto: centesimi dimenticati, da aggiungere dopo (1 = abbuono, 2 = resto)
+07 Credito cliente · 08 Credito riscosso · 09 Anticipo Cartissima
+10 Prodotti venduti (elenco) · 11 Erogazioni AdBlue
+12 Apertura turno · 13 Chiusura turno · 14 Stato IA
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
