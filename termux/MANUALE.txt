@@ -32,6 +32,11 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compare la notifica "Stato Turno".
 
+🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
+"apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
+(es. 05_10_2026_notte_TEST.xlsx) e contatore AdBlue, taniche e orari veri NON
+vengono toccati: dopo la prova basta cancellare la cartella …_TEST.
+
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 

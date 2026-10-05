@@ -214,5 +214,14 @@ PYEOF
 grep -q "CHIUSURA TURNO" $D/*/Documenti/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }
 
+# Turno di prova: file con TEST nel nome, stato vero (contatore, taniche, orario) non toccato
+cp $HOME/stato_cassa.json $HOME/stato_prima.json
+controlla "apertura turno di prova"   "apertura turno prova notte"                   "TURNO DI PROVA"
+controlla "contatore nel turno prova" "contatore taniche 99"                         "99"
+controlla "vendita nel turno prova"   "20 gasolio"                                   "Gasolio 20.00"
+controlla "chiusura turno di prova"   "chiusura turno"                               "_TEST.xlsx"
+cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di prova: stato vero non toccato" || { echo "  ERRORE stato toccato dalla prova"; ERRORI=$((ERRORI+1)); }
+ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
+
 [ -n "${TIENI:-}" ] && cp $D/*/Documenti/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
 if [ $ERRORI -eq 0 ]; then echo "✅ Tutto ok"; else echo "❌ $ERRORI errori"; exit 1; fi

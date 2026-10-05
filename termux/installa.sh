@@ -74,7 +74,9 @@ case "$FRASE" in
       echo "🟢 TURNO APERTO"
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
-      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO"
+      # "apertura turno prova" / "test": file con TEST nel nome, contatori veri non toccati
+      PROVA=$(grep -oE 'prova|test' <<< "$FRASE" | head -1)
+      python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO" "$PROVA"
       # L'IA non si accende più da sola: le vendite si capiscono con le regole ("accendi ia" se serve)
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
@@ -1660,16 +1662,30 @@ CREDITI_RISCOSSI = [(f'M{r}', f'O{r}') for r in range(8, 16)]
 SUCCESSIVO = {'Mattina': ('Pomeriggio', 0), 'Pomeriggio': ('Notte', 1), 'Notte': ('Mattina', 0)}
 
 
+def turno_di_prova():
+    """Vero se il turno aperto è di prova ("apertura turno prova")."""
+    try:
+        with open(os.path.expanduser('~/turno_corrente.json'), encoding='utf-8') as f:
+            return bool(json.load(f).get('prova'))
+    except Exception:
+        return False
+
+
+def path_stato():
+    # Turno di prova: contatore, taniche e orari in un file a parte, quello vero non si tocca
+    return PATH_STATO.replace('.json', '_prova.json') if turno_di_prova() else PATH_STATO
+
+
 def leggi_stato():
     try:
-        with open(PATH_STATO, encoding='utf-8') as f:
+        with open(path_stato(), encoding='utf-8') as f:
             return json.load(f)
     except Exception:
         return {}
 
 
 def salva_stato(stato):
-    with open(PATH_STATO, 'w', encoding='utf-8') as f:
+    with open(path_stato(), 'w', encoding='utf-8') as f:
         json.dump(stato, f)
 
 
@@ -1695,8 +1711,8 @@ def riempi(ws, caselle, valori, avvisi, nome, nomi=None):
             ws[caselle[k][1]] = v
 
 
-def nome_file(giorno, tipo):
-    return f"{giorno.strftime('%d_%m_%Y')}_{tipo.lower()}.xlsx"
+def nome_file(giorno, tipo, prova=False):
+    return f"{giorno.strftime('%d_%m_%Y')}_{tipo.lower()}{'_TEST' if prova else ''}.xlsx"
 
 
 def ora_da_testo(testo):
@@ -1820,7 +1836,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
-    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo']))
+    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova')))
     wb.save(path_turno)
 
     # Turno successivo "imbastito"
@@ -1842,7 +1858,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
         ws2['K30'] = taniche_attuali
-    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo))
+    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova')))
     if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
         wb2.save(path_dopo)
 
@@ -2002,7 +2018,7 @@ def turno_aperto():
     return bool(leggi_turno() or leggi_csv())
 
 
-def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo="", tipo=""):
+def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo="", tipo="", prova=""):
     esistente = leggi_turno()
     if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
@@ -2011,9 +2027,18 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
     nome, data_inizio = tipo_turno(adesso, tipo)
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
+    if prova:
+        turno["prova"] = True     # file con TEST nel nome, stato vero (contatore, taniche...) non toccato
     turno["documento"] = nuovo_documento(turno, adesso)
     turno["avanzo"] = importo_da_testo(avanzo_testo)
     salva_turno(turno)
+    if prova:
+        print("🧪 TURNO DI PROVA: file con TEST nel nome, contatori veri non toccati")
+        try:
+            import excel_turno
+            shutil.copy(excel_turno.PATH_STATO, excel_turno.path_stato())
+        except Exception:
+            pass
     print(f"📅 {descrivi_turno(turno)}")
     print(f"💶 Avanzo cassa turno precedente: {euro(turno['avanzo']) if turno['avanzo'] is not None else '(non inserito)'}")
     try:
@@ -2060,7 +2085,7 @@ def nuovo_documento(turno, adesso):
     """Documento del turno in Download, ogni turno nella sua cartella:
     Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt  (e .../Excel/ per i due Excel).
     Se la cartella esiste già (turno riaperto) si aggiunge l'ora."""
-    nome = f"{turno['data_file']}_{turno['tipo']}"
+    nome = f"{turno['data_file']}_{turno['tipo']}" + ("_TEST" if turno.get("prova") else "")
     if os.path.exists(os.path.join(CARTELLA_CHIUSURE, nome)):
         nome += f"_{adesso.strftime('%H%M')}"
     return os.path.join(CARTELLA_CHIUSURE, nome, "Documenti", nome + ".txt")
@@ -2498,7 +2523,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
-    if t["contati"] is not None:
+    if t["contati"] is not None and not t.get("prova"):
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")
     adesso = datetime.now()
@@ -2509,7 +2534,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
         import excel_turno
         messaggi_excel, stato = excel_turno.crea_excel(righe, t, orario_terminale,
                                                          os.path.join(cartella_turno(t), "Excel"))
-        if t["contati"] is None and stato.get("avanzo") is not None:
+        if t["contati"] is None and stato.get("avanzo") is not None and not t.get("prova"):
             with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # avanzo calcolato, proposto all'apertura dopo
                 f.write(f"{stato['avanzo']:.2f}")
     except ImportError:
@@ -2543,8 +2568,8 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        argomenti = sys.argv[3:] + ["", "", "", "", ""]
-        apri_turno(*argomenti[:5])
+        argomenti = sys.argv[3:] + ["", "", "", "", "", ""]
+        apri_turno(*argomenti[:6])
     elif comando.startswith("stato "):
         print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":
@@ -8200,6 +8225,11 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compare la notifica "Stato Turno".
 
+🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
+"apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
+(es. 05_10_2026_notte_TEST.xlsx) e contatore AdBlue, taniche e orari veri NON
+vengono toccati: dopo la prova basta cancellare la cartella …_TEST.
+
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
 
@@ -8445,4 +8475,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:06"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 06:08"

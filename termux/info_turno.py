@@ -142,7 +142,7 @@ def turno_aperto():
     return bool(leggi_turno() or leggi_csv())
 
 
-def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo="", tipo=""):
+def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_testo="", tipo="", prova=""):
     esistente = leggi_turno()
     if esistente:
         print(f"ℹ️ Turno già aperto: {descrivi_turno(esistente)}")
@@ -151,9 +151,18 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
     nome, data_inizio = tipo_turno(adesso, tipo)
     turno = {"tipo": nome, "data": data_inizio.strftime("%d/%m/%Y"),
              "data_file": data_inizio.isoformat(), "apertura": adesso.strftime("%Y-%m-%d %H:%M")}
+    if prova:
+        turno["prova"] = True     # file con TEST nel nome, stato vero (contatore, taniche...) non toccato
     turno["documento"] = nuovo_documento(turno, adesso)
     turno["avanzo"] = importo_da_testo(avanzo_testo)
     salva_turno(turno)
+    if prova:
+        print("🧪 TURNO DI PROVA: file con TEST nel nome, contatori veri non toccati")
+        try:
+            import excel_turno
+            shutil.copy(excel_turno.PATH_STATO, excel_turno.path_stato())
+        except Exception:
+            pass
     print(f"📅 {descrivi_turno(turno)}")
     print(f"💶 Avanzo cassa turno precedente: {euro(turno['avanzo']) if turno['avanzo'] is not None else '(non inserito)'}")
     try:
@@ -200,7 +209,7 @@ def nuovo_documento(turno, adesso):
     """Documento del turno in Download, ogni turno nella sua cartella:
     Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt  (e .../Excel/ per i due Excel).
     Se la cartella esiste già (turno riaperto) si aggiunge l'ora."""
-    nome = f"{turno['data_file']}_{turno['tipo']}"
+    nome = f"{turno['data_file']}_{turno['tipo']}" + ("_TEST" if turno.get("prova") else "")
     if os.path.exists(os.path.join(CARTELLA_CHIUSURE, nome)):
         nome += f"_{adesso.strftime('%H%M')}"
     return os.path.join(CARTELLA_CHIUSURE, nome, "Documenti", nome + ".txt")
@@ -638,7 +647,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
-    if t["contati"] is not None:
+    if t["contati"] is not None and not t.get("prova"):
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")
     adesso = datetime.now()
@@ -649,7 +658,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
         import excel_turno
         messaggi_excel, stato = excel_turno.crea_excel(righe, t, orario_terminale,
                                                          os.path.join(cartella_turno(t), "Excel"))
-        if t["contati"] is None and stato.get("avanzo") is not None:
+        if t["contati"] is None and stato.get("avanzo") is not None and not t.get("prova"):
             with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # avanzo calcolato, proposto all'apertura dopo
                 f.write(f"{stato['avanzo']:.2f}")
     except ImportError:
@@ -683,8 +692,8 @@ def main():
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
-        argomenti = sys.argv[3:] + ["", "", "", "", ""]
-        apri_turno(*argomenti[:5])
+        argomenti = sys.argv[3:] + ["", "", "", "", "", ""]
+        apri_turno(*argomenti[:6])
     elif comando.startswith("stato "):
         print(valore_stato(sys.argv[2] if len(sys.argv) > 2 else ""))
     elif comando == "aperto":

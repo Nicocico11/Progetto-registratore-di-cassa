@@ -19,16 +19,30 @@ CREDITI_RISCOSSI = [(f'M{r}', f'O{r}') for r in range(8, 16)]
 SUCCESSIVO = {'Mattina': ('Pomeriggio', 0), 'Pomeriggio': ('Notte', 1), 'Notte': ('Mattina', 0)}
 
 
+def turno_di_prova():
+    """Vero se il turno aperto è di prova ("apertura turno prova")."""
+    try:
+        with open(os.path.expanduser('~/turno_corrente.json'), encoding='utf-8') as f:
+            return bool(json.load(f).get('prova'))
+    except Exception:
+        return False
+
+
+def path_stato():
+    # Turno di prova: contatore, taniche e orari in un file a parte, quello vero non si tocca
+    return PATH_STATO.replace('.json', '_prova.json') if turno_di_prova() else PATH_STATO
+
+
 def leggi_stato():
     try:
-        with open(PATH_STATO, encoding='utf-8') as f:
+        with open(path_stato(), encoding='utf-8') as f:
             return json.load(f)
     except Exception:
         return {}
 
 
 def salva_stato(stato):
-    with open(PATH_STATO, 'w', encoding='utf-8') as f:
+    with open(path_stato(), 'w', encoding='utf-8') as f:
         json.dump(stato, f)
 
 
@@ -54,8 +68,8 @@ def riempi(ws, caselle, valori, avvisi, nome, nomi=None):
             ws[caselle[k][1]] = v
 
 
-def nome_file(giorno, tipo):
-    return f"{giorno.strftime('%d_%m_%Y')}_{tipo.lower()}.xlsx"
+def nome_file(giorno, tipo, prova=False):
+    return f"{giorno.strftime('%d_%m_%Y')}_{tipo.lower()}{'_TEST' if prova else ''}.xlsx"
 
 
 def ora_da_testo(testo):
@@ -179,7 +193,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
-    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo']))
+    path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova')))
     wb.save(path_turno)
 
     # Turno successivo "imbastito"
@@ -201,7 +215,7 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
         ws2['K30'] = taniche_attuali
-    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo))
+    path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova')))
     if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
         wb2.save(path_dopo)
 
