@@ -213,10 +213,12 @@ Si accende da sola con l'apertura del turno e si spegne con la chiusura.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare:
-1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Market
+1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Prodotti venduti (elenco)
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
 9 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
-  (scrivi nome e importo, poi Invio)
+12 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
+   "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
+   Si possono scrivere più vendite di fila; Invio vuoto per uscire.
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Pulsante Termux:Widget: vendita market scritta a mano (niente errori di AutoVoice)
+echo "🛒 VENDITA DANEA (scritta)"
+echo "Esempi: ichnusa · 2 red bull · deodorante luxury · lampadina h7"
+echo "        danea caricabatterie 15  (prodotto non in listino, con l'importo)"
+echo "Più prodotti insieme: 2 red bull e 1 mars"
+echo
+while true; do
+  read -p "Prodotto (Invio vuoto = esci): " PRODOTTO
+  [ -z "$PRODOTTO" ] && break
+  echo "Pagamento:  Invio = contanti   1 = POS nero   2 = POS bianco   3 = in cassa   4 = petrolifere"
+  read -p "Scelta: " P
+  case "$P" in
+    1) PAGATO="sul nero" ;;
+    2) PAGATO="sul bianco" ;;
+    3) PAGATO="in cassa" ;;
+    4) PAGATO="petrolifere" ;;
+    *) PAGATO="contanti" ;;
+  esac
+  bash ~/.termux/tasker/avvia_ia.sh "$PRODOTTO $PAGATO"
+  echo
+done

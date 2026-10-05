@@ -88,7 +88,7 @@ ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiorn
 ## Termux:Widget
 
 `installa.sh` crea in `~/.shortcuts` i pulsanti (cartella `widget/`): Apertura, Chiusura,
-Totali, Market, Erogazioni AdBlue, Ultime vendite, Cancella ultima (con conferma), Stato IA.
+Totali, Prodotti venduti, Erogazioni AdBlue, Ultime vendite, Cancella ultima (con conferma), Stato IA, Credito cliente, Credito riscosso, Anticipo Cartissima, Vendita Danea (prodotto scritto a mano).
 
 ## Turno chiuso
 

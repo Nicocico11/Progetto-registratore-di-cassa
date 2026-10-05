@@ -89,6 +89,8 @@ controlla "codice staccato"           "lampadina h 4"                           
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "nome quasi giusto"         "2 red bul"                                    "controlla che sia giusto"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
+printf '2 red bull\n1\n\n' | bash "$QUI/widget/12 Vendita Danea" 2>&1 | grep -q "Red Bull 6.00 € - POS nero" && echo "  ok   widget 12 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo molto alto"        "1990 di gasolio"                              "Importo molto alto"

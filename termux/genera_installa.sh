@@ -28,6 +28,7 @@ echo '# Pulsanti per Termux:Widget (cartella ~/.shortcuts)'
 echo 'mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts'
 echo '# Vecchi nomi a una cifra ("1 Apertura turno", "9 Credito cliente"...): ora sono 01, 02... 11'
 echo 'rm -f ~/.shortcuts/[0-9]\ *'
+echo 'rm -f ~/.shortcuts/"04 Market"   # ora si chiama "04 Prodotti venduti"'
 for f in widget/*; do n=$(basename "$f"); echo "cat > ~/.shortcuts/\"$n\" <<'FINE_FILE'"; cat "$f"; echo "FINE_FILE"; done
 echo 'chmod +x ~/.shortcuts/*'
 

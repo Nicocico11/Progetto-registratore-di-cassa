@@ -7450,6 +7450,7 @@ python3 ~/.termux/tasker/migra_prezzi.py
 mkdir -p ~/.shortcuts && chmod 700 ~/.shortcuts
 # Vecchi nomi a una cifra ("1 Apertura turno", "9 Credito cliente"...): ora sono 01, 02... 11
 rm -f ~/.shortcuts/[0-9]\ *
+rm -f ~/.shortcuts/"04 Market"   # ora si chiama "04 Prodotti venduti"
 cat > ~/.shortcuts/"01 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
@@ -7471,7 +7472,7 @@ python3 ~/info_turno.py totali
 echo
 read -p "Premi Invio per chiudere… "
 FINE_FILE
-cat > ~/.shortcuts/"04 Market" <<'FINE_FILE'
+cat > ~/.shortcuts/"04 Prodotti venduti" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante Termux:Widget
 bash ~/.termux/tasker/avvia_ia.sh "market"
@@ -7559,6 +7560,30 @@ else
 fi
 echo
 read -p "Premi Invio per chiudere… "
+FINE_FILE
+cat > ~/.shortcuts/"12 Vendita Danea" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante Termux:Widget: vendita market scritta a mano (niente errori di AutoVoice)
+echo "🛒 VENDITA DANEA (scritta)"
+echo "Esempi: ichnusa · 2 red bull · deodorante luxury · lampadina h7"
+echo "        danea caricabatterie 15  (prodotto non in listino, con l'importo)"
+echo "Più prodotti insieme: 2 red bull e 1 mars"
+echo
+while true; do
+  read -p "Prodotto (Invio vuoto = esci): " PRODOTTO
+  [ -z "$PRODOTTO" ] && break
+  echo "Pagamento:  Invio = contanti   1 = POS nero   2 = POS bianco   3 = in cassa   4 = petrolifere"
+  read -p "Scelta: " P
+  case "$P" in
+    1) PAGATO="sul nero" ;;
+    2) PAGATO="sul bianco" ;;
+    3) PAGATO="in cassa" ;;
+    4) PAGATO="petrolifere" ;;
+    *) PAGATO="contanti" ;;
+  esac
+  bash ~/.termux/tasker/avvia_ia.sh "$PRODOTTO $PAGATO"
+  echo
+done
 FINE_FILE
 chmod +x ~/.shortcuts/*
 # File di Tasker da importare: li mettiamo nella cartella Download
@@ -8073,10 +8098,12 @@ Si accende da sola con l'apertura del turno e si spegne con la chiusura.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare:
-1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Market
+1 Apertura turno · 2 Chiusura turno · 3 Totali · 4 Prodotti venduti (elenco)
 5 Erogazioni AdBlue · 6 Ultime vendite · 7 Cancella ultima · 8 Stato IA
 9 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
-  (scrivi nome e importo, poi Invio)
+12 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
+   "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
+   Si possono scrivere più vendite di fila; Invio vuoto per uscire.
 Si apre una finestra con il risultato: premi Invio per chiuderla.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -8114,4 +8141,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 03:49"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 03:53"
