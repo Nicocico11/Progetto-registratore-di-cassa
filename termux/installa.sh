@@ -2131,7 +2131,7 @@ def prospetto_completo(righe, titolo, t=None):
     per_metodo = totali_per(vv, "metodo")
     contanti = per_metodo.get("Contanti", 0.0)
     out = [titolo, "─────────────────────────",
-           f"Vendite: {len(transazioni(righe))}    TOTALE: {euro(totale)}", ""]
+           f"Vendite: {numero_vendite(righe)}    TOTALE: {euro(totale)}", ""]
 
     out.append("💳 PER PAGAMENTO")
     for m, val in sorted(per_metodo.items()):
@@ -2158,10 +2158,15 @@ def prospetto_completo(righe, titolo, t=None):
         out.append("")
         out.append("📠 FAX / FOTOCOPIE")
         out.append(f"  Fogli: {numero(sum(v['quantita'] for v in fax))}    Totale: {euro(sum(v['importo'] for v in fax))}")
-    sconti = [v for v in vv if v["reparto"] == "Sconto"]
-    if sconti:
+    abbuoni = [v for v in vv if v["reparto"] == "Sconto"]
+    resti = [v for v in vv if v["reparto"] == "Resto lasciato"]
+    if abbuoni or resti:
+        # Centesimi in meno (abbuoni) e in più (resti lasciati): sono già nei contanti
         out.append("")
-        out.append(f"🏷️ SCONTI / ABBUONI ({len(sconti)}): {euro(sum(v['importo'] for v in sconti))}")
+        out.append("🪙 CENTESIMI (già compresi nei contanti)")
+        out.append(f"  {'Abbuoni (' + str(len(abbuoni)) + ')':<20} {sum(v['importo'] for v in abbuoni):>+9.2f} €")
+        out.append(f"  {'Resti lasciati (' + str(len(resti)) + ')':<20} {sum(v['importo'] for v in resti):>+9.2f} €")
+        out.append(f"  {'= Saldo':<20} {sum(v['importo'] for v in abbuoni + resti):>+9.2f} €")
     out.append("")
     out += prospetto_market(vv)
     out += prospetto_cassa(vv, t)
@@ -2177,7 +2182,7 @@ def totali_brevi(righe):
     attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
     nomi = (("POS nero", "POS nero"), ("POS bianco", "POS bianco"), ("POS cassa", "POS cassa"),
             ("Petrolifere", "Petrolifere"), ("Credito", "Crediti clienti"))
-    out = [f"Vendite: {len(transazioni(righe))}",
+    out = [f"Vendite: {numero_vendite(righe)}",
            f"💶 Attesi in cassa: {euro(attesi)}",
            f"   (avanzo {euro(t.get('avanzo') or 0.0)} + contanti {euro(contanti)}"
            + (f" - versamenti {euro(t['versamento'])}" if t.get('versamento') else "") + ")"]
@@ -2196,7 +2201,7 @@ def notifica_breve(righe):
         return
 
     totale = sum(v["importo"] for v in vv)
-    out = [f"📊 Tot: {euro(totale)} ({len(transazioni(righe))} vendite)  {intest}"]
+    out = [f"📊 Tot: {euro(totale)} ({numero_vendite(righe)} vendite)  {intest}"]
 
     # Carburanti per tipo; AdBlue e Market solo come totale
     parti = []
@@ -2248,6 +2253,16 @@ def transazioni(righe):
         else:
             gruppi.append((num, [r]))
     return [g for _, g in gruppi]
+
+
+def numero_vendite(righe):
+    """Vendite vere: un abbuono o un resto detto da solo non è una vendita."""
+    n = 0
+    for gruppo in transazioni(righe):
+        reparti = {(vendita(r) or {}).get("reparto") for r in gruppo}
+        if reparti - {"Sconto", "Resto lasciato"}:
+            n += 1
+    return n
 
 
 def cancella_ultima():
@@ -8225,4 +8240,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 04:55"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 05:02"
