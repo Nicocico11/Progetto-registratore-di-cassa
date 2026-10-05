@@ -493,7 +493,7 @@ def prospetto_completo(righe, titolo, t=None):
 
 
 def totali_brevi(righe):
-    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 03)."""
+    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 04)."""
     vv = vendite(righe)
     t = leggi_turno() or {}
     per_metodo = totali_per(vv, "metodo")

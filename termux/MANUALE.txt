@@ -173,7 +173,7 @@ VERSAMENTI
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "totali": si apre una finestra con i contanti attesi e i totali dei POS
-  (resta finché non premi OK). Il riepilogo completo è nel pulsante 03 Totali.
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 04 Totali.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
@@ -237,18 +237,19 @@ Si spegne comunque con la chiusura del turno.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare (in ordine di uso). Tutti funzionano con i riquadri:
-si scrive o si sceglie, poi compare l'esito e il telefono torna da solo alla home.
+si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo alla home.
 01 Vendita carburante: importo e pagamento
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
-03 Totali (finestra) · 04 Ultime vendite (finestra)
-05 Cancella ultima: mostra le ultime vendite e chiede conferma
-06 Abbuono o resto: scegli quale e quanti centesimi
-07 Credito cliente · 08 Credito riscosso · 09 Anticipo Cartissima
-10 Prodotti venduti (finestra) · 11 Erogazioni AdBlue (finestra)
-12 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-13 Chiusura turno: chiede conferma, poi orario e cassaforte
-14 Stato IA
+03 AdBlue litri: litri e pagamento
+04 Totali (finestra) · 05 Ultime vendite (finestra)
+06 Cancella ultima: mostra le ultime vendite e chiede conferma
+07 Abbuono o resto: scegli quale e quanti centesimi
+08 Credito cliente · 09 Credito riscosso · 10 Anticipo Cartissima
+11 Prodotti venduti (finestra) · 12 Erogazioni AdBlue (finestra)
+13 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+14 Chiusura turno: chiede conferma, poi orario e cassaforte
+15 Stato IA
 
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
@@ -256,7 +257,7 @@ Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
   (tieni premuto sulla barra in basso dei progetti → Importa progetto).
 • Sulla schermata home: widget di Tasker "Task 1×1" → "Cassa":
   un'icona sola che apre la lista di tutte le funzioni.
-  Si possono mettere anche icone singole: Carburante, Danea, Totali, Chiusura…
+  Si possono mettere anche icone singole: Carburante, Danea, AdBlue, Totali, Chiusura…
 • Dopo aver modificato o importato qualcosa in Tasker, esci con il tasto indietro
   finché Tasker si chiude, altrimenti compare "dati bloccati".
 

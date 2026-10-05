@@ -13,7 +13,7 @@ def azione(argomento, blurb):
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>{escape(argomento)}</com.termux.execute.arguments>
+					<com.termux.execute.arguments>{escape(chr(34) + argomento + chr(34))}</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -59,10 +59,13 @@ def task(tid, nome, argomento):
 
 pulsanti = sorted(os.path.basename(f) for f in glob.glob(os.path.join(QUI, 'widget', '[0-9][0-9] *')))
 # Nomi corti: sotto le icone della home c'è poco spazio
-CORTI = {'01': 'Carburante', '02': 'Danea', '03': 'Totali', '04': 'Ultime', '05': 'Cancella',
-         '06': 'Centesimi', '07': 'Credito', '08': 'Riscosso', '09': 'Anticipo', '10': 'Venduti',
-         '11': 'AdBlue', '12': 'Apertura', '13': 'Chiusura', '14': 'IA'}
-voci = [("Cassa", "menu")] + [(CORTI.get(p[:2], p[3:]), p[:2]) for p in pulsanti]
+CORTI = {'Vendita carburante': 'Carburante', 'Vendita Danea': 'Danea', 'AdBlue litri': 'AdBlue',
+         'Totali': 'Totali', 'Ultime vendite': 'Ultime', 'Cancella ultima': 'Cancella',
+         'Abbuono o resto': 'Centesimi', 'Credito cliente': 'Credito', 'Credito riscosso': 'Riscosso',
+         'Anticipo Cartissima': 'Anticipo', 'Prodotti venduti': 'Venduti', 'Erogazioni AdBlue': 'Erogazioni',
+         'Apertura turno': 'Apertura', 'Chiusura turno': 'Chiusura', 'Stato IA': 'IA'}
+# Ogni task chiama il pulsante per NOME (non per numero): se l'ordine cambia, le icone funzionano lo stesso
+voci = [("Cassa", "menu")] + [(CORTI.get(p[3:], p[3:]), p[3:]) for p in pulsanti]
 ids = list(range(301, 301 + len(voci)))
 testo = '<TaskerData sr="" dvi="1" tv="6.6.20">\n'
 testo += f"""	<Project sr="proj0" ve="2">

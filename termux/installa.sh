@@ -143,7 +143,7 @@ case "$FRASE" in
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
-    # il riepilogo completo è nel pulsante 03 Totali
+    # il riepilogo completo è nel pulsante 04 Totali
     RIEPILOGO=$(python3 ~/info_turno.py totali breve)
     nohup termux-dialog confirm -t "📊 Totali del turno" -i "$RIEPILOGO" > /dev/null 2>&1 &
     echo "📊 Totali sullo schermo" ;;
@@ -218,16 +218,24 @@ except Exception:
 testo()    { termux-dialog text -t "$1" -i "$2" 2>/dev/null | _leggi; }         # testo "titolo" "esempio"
 numero()   { termux-dialog text -n -t "$1" -i "$2" 2>/dev/null | _leggi; }      # numero "titolo" "esempio"
 scegli()   { termux-dialog radio -t "$1" -v "$2" 2>/dev/null | _leggi; }        # scegli "titolo" "a,b,c"
-conferma() { [ "$(termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | _leggi)" = "yes" ]; }
+# Sì/No: vale la risposta "yes", qualunque sia il codice restituito dal riquadro
+conferma() {
+  termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    sys.exit(0 if str(json.load(sys.stdin).get("text", "")).strip().lower() in ("yes", "si", "sì") else 1)
+except Exception:
+    sys.exit(1)'
+}
 
 # Finestra con un testo lungo (riepiloghi), da chiudere con OK
 finestra() { termux-dialog confirm -t "$1" -i "$2" > /dev/null 2>&1; }
 
-# Esito breve a schermo: le righe con ✅ ⚠️ ❌ ❓ 🧾 (o la prima riga)
+# Esito breve in basso, come i messaggi di Tasker: le righe con ✅ ⚠️ ❌ ❓ 🧾 (o la prima riga)
 esito() {
   local corto
-  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢' <<< "$1")
-  termux-toast -g middle "${corto:-$(head -1 <<< "$1")}" 2>/dev/null
+  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪' <<< "$1")
+  termux-toast -g bottom "${corto:-$(head -1 <<< "$1")}" 2>/dev/null
   echo "$1"
 }
 
@@ -257,7 +265,7 @@ cat > ~/.termux/tasker/pulsante.sh <<'FINE_FILE'
 #!/bin/bash
 # Pulsanti della cassa SENZA la finestra di Termux: li lancia Tasker (plugin Termux:Tasker).
 #   pulsante.sh menu   -> lista di tutte le funzioni, si sceglie e parte
-#   pulsante.sh 01     -> direttamente il pulsante 01 (Vendita carburante), ecc.
+#   pulsante.sh 01 / pulsante.sh "Totali" -> direttamente quel pulsante (per numero o per nome)
 # Usa gli stessi script dei pulsanti del widget (~/.shortcuts).
 export SENZA_TERMINALE=1   # niente ritorno alla home: Termux non si apre proprio
 . ~/.termux/tasker/widget_comune.sh
@@ -268,7 +276,11 @@ if [ "$QUALE" = menu ]; then
   [ -z "$SCELTA" ] && exit 0
   QUALE="${SCELTA%% *}"
 fi
-FILE=$(ls ~/.shortcuts/"$QUALE "* 2>/dev/null | head -1)
+if [[ "$QUALE" =~ ^[0-9][0-9]$ ]]; then
+  FILE=$(ls ~/.shortcuts/"$QUALE "* 2>/dev/null | head -1)      # per numero: pulsante.sh 01
+else
+  FILE=$(ls ~/.shortcuts/[0-9][0-9]\ "$QUALE" 2>/dev/null | head -1)   # per nome: pulsante.sh "Totali"
+fi
 [ -z "$FILE" ] && { termux-toast "Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
 exec bash "$FILE"
 FINE_FILE
@@ -2501,7 +2513,7 @@ def prospetto_completo(righe, titolo, t=None):
 
 
 def totali_brevi(righe):
-    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 03)."""
+    """Poche righe per la finestra di "totali" (il dettaglio è nel widget 04)."""
     vv = vendite(righe)
     t = leggi_turno() or {}
     per_metodo = totali_per(vv, "metodo")
@@ -7897,21 +7909,30 @@ PAGATO=$(pagamento "💳 Pagamento di: $PRODOTTO"); [ -z "$PAGATO" ] && annullat
 esito "$(bash $CASSA "$PRODOTTO $PAGATO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"03 Totali" <<'FINE_FILE'
+cat > ~/.shortcuts/"03 AdBlue litri" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante: AdBlue sfuso a litri (litri e pagamento)
+. ~/.termux/tasker/widget_comune.sh
+LITRI=$(numero "🧪 AdBlue sfuso: litri" "es. 20"); [ -z "$LITRI" ] && annullato
+PAGATO=$(pagamento "💳 Pagamento di $LITRI litri di AdBlue" senza_cassa); [ -z "$PAGATO" ] && annullato
+esito "$(bash $CASSA "adblue $LITRI litri $PAGATO")"
+casa
+FINE_FILE
+cat > ~/.shortcuts/"04 Totali" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: riepilogo completo del turno in una finestra
 . ~/.termux/tasker/widget_comune.sh
 finestra "📊 Totali del turno" "$(python3 ~/info_turno.py totali | sed '/📋 TUTTE LE VENDITE/,$d')"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"04 Ultime vendite" <<'FINE_FILE'
+cat > ~/.shortcuts/"05 Ultime vendite" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: riepilogo veloce e ultime vendite in una finestra
 . ~/.termux/tasker/widget_comune.sh
 finestra "🔍 Ultime vendite" "$(python3 ~/info_turno.py notifica)"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"05 Cancella ultima" <<'FINE_FILE'
+cat > ~/.shortcuts/"06 Cancella ultima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: cancella l'ultima vendita, dopo averla mostrata
 . ~/.termux/tasker/widget_comune.sh
@@ -7923,7 +7944,7 @@ else
 fi
 casa
 FINE_FILE
-cat > ~/.shortcuts/"06 Abbuono o resto" <<'FINE_FILE'
+cat > ~/.shortcuts/"07 Abbuono o resto" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: centesimi da aggiungere dopo la vendita
 #   abbuono = il cliente paga qualche centesimo in meno; resto = lascia qualche centesimo
@@ -7937,7 +7958,7 @@ case "$TIPO" in
 esac
 casa
 FINE_FILE
-cat > ~/.shortcuts/"07 Credito cliente" <<'FINE_FILE'
+cat > ~/.shortcuts/"08 Credito cliente" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito cliente (il cliente prende ora e paga più avanti)
 . ~/.termux/tasker/widget_comune.sh
@@ -7946,7 +7967,7 @@ IMPORTO=$(numero "📒 Credito di $NOME (€)" "es. 50,50"); [ -z "$IMPORTO" ] &
 esito "$(bash $CASSA "credito cliente $NOME $IMPORTO euro")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"08 Credito riscosso" <<'FINE_FILE'
+cat > ~/.shortcuts/"09 Credito riscosso" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito riscosso (il cliente paga un vecchio credito)
 . ~/.termux/tasker/widget_comune.sh
@@ -7956,7 +7977,7 @@ PAGATO=$(pagamento "💳 Come paga $NOME?"); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "credito riscosso $NOME $IMPORTO euro $PAGATO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"09 Anticipo Cartissima" <<'FINE_FILE'
+cat > ~/.shortcuts/"10 Anticipo Cartissima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: paga con Cartissima (come gasolio, senza rifornimento) e riceve i contanti
 . ~/.termux/tasker/widget_comune.sh
@@ -7964,21 +7985,21 @@ IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "pagato con Cartissima e dato 
 esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"10 Prodotti venduti" <<'FINE_FILE'
+cat > ~/.shortcuts/"11 Prodotti venduti" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: elenco dei prodotti market venduti nel turno
 . ~/.termux/tasker/widget_comune.sh
 finestra "🛒 Prodotti venduti" "$(python3 ~/info_turno.py market)"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"11 Erogazioni AdBlue" <<'FINE_FILE'
+cat > ~/.shortcuts/"12 Erogazioni AdBlue" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: AdBlue erogato nel turno
 . ~/.termux/tasker/widget_comune.sh
 finestra "🧪 Erogazioni AdBlue" "$(python3 ~/info_turno.py adblue)"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"12 Apertura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"13 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: apertura turno (vero o di prova); poi i 4 riquadri dei valori del collega
 . ~/.termux/tasker/widget_comune.sh
@@ -7988,11 +8009,10 @@ case "$TIPO" in
   *PROVA*) FRASE="apertura turno prova" ;;
   *)       FRASE="apertura turno" ;;
 esac
-RISULTATO=$(bash $CASSA "$FRASE")
-finestra "🟢 Turno aperto" "$RISULTATO"
+esito "$(bash $CASSA "$FRASE")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"13 Chiusura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"14 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
 . ~/.termux/tasker/widget_comune.sh
@@ -8000,10 +8020,11 @@ if ! conferma "🔴 Chiudere il turno?" "Poi chiede l'orario del terminale e la 
   termux-toast "Turno NON chiuso" 2>/dev/null; casa
 fi
 RISULTATO=$(bash $CASSA "chiusura turno")
-finestra "🔴 Turno chiuso" "$(grep -E '📗|📘|📧|⚠️|💾|Contanti attesi|Attesi nel cassetto|Totale|TOTALE' <<< "$RISULTATO" | head -15)"
+echo "$RISULTATO"
+termux-toast -g bottom "$(grep -m3 -E '🔴|📧|⚠️' <<< "$RISULTATO")" 2>/dev/null
 casa
 FINE_FILE
-cat > ~/.shortcuts/"14 Stato IA" <<'FINE_FILE'
+cat > ~/.shortcuts/"15 Stato IA" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: stato dell'IA, accensione e spegnimento a mano
 . ~/.termux/tasker/widget_comune.sh
@@ -8316,7 +8337,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<name>Cassa Pulsanti</name>
 		<pid>31</pid>
-		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315</tids>
+		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316</tids>
 	</Project>
 	<Task sr="task301">
 		<cdate>1791000000000</cdate>
@@ -8328,7 +8349,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>menu</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"menu"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8370,7 +8391,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>01</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Vendita carburante"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8388,7 +8409,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 01</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Vendita carburante</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8412,7 +8433,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>02</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Vendita Danea"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8430,7 +8451,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 02</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Vendita Danea</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8448,13 +8469,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>304</id>
-		<nme>Totali</nme>
+		<nme>AdBlue</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>03</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"AdBlue litri"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8472,7 +8493,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 03</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh AdBlue litri</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8490,13 +8511,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>305</id>
-		<nme>Ultime</nme>
+		<nme>Totali</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>04</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Totali"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8514,7 +8535,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 04</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Totali</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8532,13 +8553,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>306</id>
-		<nme>Cancella</nme>
+		<nme>Ultime</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>05</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Ultime vendite"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8556,7 +8577,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 05</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Ultime vendite</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8574,13 +8595,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>307</id>
-		<nme>Centesimi</nme>
+		<nme>Cancella</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>06</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Cancella ultima"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8598,7 +8619,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 06</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Cancella ultima</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8616,13 +8637,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>308</id>
-		<nme>Credito</nme>
+		<nme>Centesimi</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>07</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Abbuono o resto"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8640,7 +8661,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 07</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Abbuono o resto</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8658,13 +8679,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>309</id>
-		<nme>Riscosso</nme>
+		<nme>Credito</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>08</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Credito cliente"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8682,7 +8703,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 08</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Credito cliente</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8700,13 +8721,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>310</id>
-		<nme>Anticipo</nme>
+		<nme>Riscosso</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>09</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Credito riscosso"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8724,7 +8745,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 09</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Credito riscosso</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8742,13 +8763,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>311</id>
-		<nme>Venduti</nme>
+		<nme>Anticipo</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>10</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Anticipo Cartissima"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8766,7 +8787,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 10</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Anticipo Cartissima</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8784,13 +8805,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>312</id>
-		<nme>AdBlue</nme>
+		<nme>Venduti</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>11</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Prodotti venduti"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8808,7 +8829,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 11</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Prodotti venduti</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8826,13 +8847,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>313</id>
-		<nme>Apertura</nme>
+		<nme>Erogazioni</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>12</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Erogazioni AdBlue"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8850,7 +8871,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 12</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Erogazioni AdBlue</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8868,13 +8889,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>314</id>
-		<nme>Chiusura</nme>
+		<nme>Apertura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>13</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Apertura turno"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8892,7 +8913,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 13</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Apertura turno</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -8910,13 +8931,13 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>315</id>
-		<nme>IA</nme>
+		<nme>Chiusura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
 			<code>1256900802</code>
 			<Bundle sr="arg0">
 				<Vals sr="val">
-					<com.termux.execute.arguments>14</com.termux.execute.arguments>
+					<com.termux.execute.arguments>"Chiusura turno"</com.termux.execute.arguments>
 					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
 					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
@@ -8934,7 +8955,49 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
-					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh 14</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Chiusura turno</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="10"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task316">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>316</id>
+		<nme>IA</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>"Stato IA"</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Stato IA</com.twofortyfouram.locale.intent.extra.BLURB>
 					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
 					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
@@ -9127,7 +9190,7 @@ VERSAMENTI
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "totali": si apre una finestra con i contanti attesi e i totali dei POS
-  (resta finché non premi OK). Il riepilogo completo è nel pulsante 03 Totali.
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 04 Totali.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
@@ -9191,18 +9254,19 @@ Si spegne comunque con la chiusura del turno.
 8. PULSANTI SULLA SCHERMATA HOME (widget)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Per quando non si può parlare (in ordine di uso). Tutti funzionano con i riquadri:
-si scrive o si sceglie, poi compare l'esito e il telefono torna da solo alla home.
+si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo alla home.
 01 Vendita carburante: importo e pagamento
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
-03 Totali (finestra) · 04 Ultime vendite (finestra)
-05 Cancella ultima: mostra le ultime vendite e chiede conferma
-06 Abbuono o resto: scegli quale e quanti centesimi
-07 Credito cliente · 08 Credito riscosso · 09 Anticipo Cartissima
-10 Prodotti venduti (finestra) · 11 Erogazioni AdBlue (finestra)
-12 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-13 Chiusura turno: chiede conferma, poi orario e cassaforte
-14 Stato IA
+03 AdBlue litri: litri e pagamento
+04 Totali (finestra) · 05 Ultime vendite (finestra)
+06 Cancella ultima: mostra le ultime vendite e chiede conferma
+07 Abbuono o resto: scegli quale e quanti centesimi
+08 Credito cliente · 09 Credito riscosso · 10 Anticipo Cartissima
+11 Prodotti venduti (finestra) · 12 Erogazioni AdBlue (finestra)
+13 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+14 Chiusura turno: chiede conferma, poi orario e cassaforte
+15 Stato IA
 
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
@@ -9210,7 +9274,7 @@ Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
   (tieni premuto sulla barra in basso dei progetti → Importa progetto).
 • Sulla schermata home: widget di Tasker "Task 1×1" → "Cassa":
   un'icona sola che apre la lista di tutte le funzioni.
-  Si possono mettere anche icone singole: Carburante, Danea, Totali, Chiusura…
+  Si possono mettere anche icone singole: Carburante, Danea, AdBlue, Totali, Chiusura…
 • Dopo aver modificato o importato qualcosa in Tasker, esci con il tasto indietro
   finché Tasker si chiude, altrimenti compare "dati bloccati".
 
@@ -9255,4 +9319,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 08:15"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 08:40"

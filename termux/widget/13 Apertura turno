@@ -7,6 +7,5 @@ case "$TIPO" in
   *PROVA*) FRASE="apertura turno prova" ;;
   *)       FRASE="apertura turno" ;;
 esac
-RISULTATO=$(bash $CASSA "$FRASE")
-finestra "🟢 Turno aperto" "$RISULTATO"
+esito "$(bash $CASSA "$FRASE")"
 casa

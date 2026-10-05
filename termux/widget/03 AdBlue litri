@@ -1,0 +1,7 @@
+#!/bin/bash
+# Pulsante: AdBlue sfuso a litri (litri e pagamento)
+. ~/.termux/tasker/widget_comune.sh
+LITRI=$(numero "🧪 AdBlue sfuso: litri" "es. 20"); [ -z "$LITRI" ] && annullato
+PAGATO=$(pagamento "💳 Pagamento di $LITRI litri di AdBlue" senza_cassa); [ -z "$PAGATO" ] && annullato
+esito "$(bash $CASSA "adblue $LITRI litri $PAGATO")"
+casa

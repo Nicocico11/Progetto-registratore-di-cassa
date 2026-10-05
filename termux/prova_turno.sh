@@ -28,6 +28,7 @@ case "$*" in
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
   *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
+  *"AdBlue sfuso: litri"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
   *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
@@ -110,7 +111,7 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto da solo"             "resto lasciato 5 centesimi"                   "Resto lasciato dal cliente 0.05"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-bash "$QUI/widget/06 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 06 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
+bash "$QUI/widget/07 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 07 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "negozio con carta = cassa"  "2 red bull carta"                             "POS cassa"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
@@ -122,6 +123,10 @@ bash "$QUI/widget/01 Vendita carburante" > /dev/null; grep -q "Carburante 45.50 
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 mkdir -p $HOME/.shortcuts && cp "$QUI"/widget/[0-9]* $HOME/.shortcuts/ && : > $HOME/toast.log
 bash $HOME/.termux/tasker/pulsante.sh menu > /dev/null 2>&1; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   menu Cassa da Tasker (senza Termux)" || { echo "  ERRORE menu Tasker"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 03 AdBlue litri" || { echo "  ERRORE widget 03"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" > /dev/null 2>&1; grep -c "Carburante 45.50" $HOME/toast.log | grep -q 2 && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

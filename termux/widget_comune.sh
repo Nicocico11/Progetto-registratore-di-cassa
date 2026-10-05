@@ -17,16 +17,24 @@ except Exception:
 testo()    { termux-dialog text -t "$1" -i "$2" 2>/dev/null | _leggi; }         # testo "titolo" "esempio"
 numero()   { termux-dialog text -n -t "$1" -i "$2" 2>/dev/null | _leggi; }      # numero "titolo" "esempio"
 scegli()   { termux-dialog radio -t "$1" -v "$2" 2>/dev/null | _leggi; }        # scegli "titolo" "a,b,c"
-conferma() { [ "$(termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | _leggi)" = "yes" ]; }
+# Sì/No: vale la risposta "yes", qualunque sia il codice restituito dal riquadro
+conferma() {
+  termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    sys.exit(0 if str(json.load(sys.stdin).get("text", "")).strip().lower() in ("yes", "si", "sì") else 1)
+except Exception:
+    sys.exit(1)'
+}
 
 # Finestra con un testo lungo (riepiloghi), da chiudere con OK
 finestra() { termux-dialog confirm -t "$1" -i "$2" > /dev/null 2>&1; }
 
-# Esito breve a schermo: le righe con ✅ ⚠️ ❌ ❓ 🧾 (o la prima riga)
+# Esito breve in basso, come i messaggi di Tasker: le righe con ✅ ⚠️ ❌ ❓ 🧾 (o la prima riga)
 esito() {
   local corto
-  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢' <<< "$1")
-  termux-toast -g middle "${corto:-$(head -1 <<< "$1")}" 2>/dev/null
+  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪' <<< "$1")
+  termux-toast -g bottom "${corto:-$(head -1 <<< "$1")}" 2>/dev/null
   echo "$1"
 }
 
