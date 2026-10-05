@@ -73,7 +73,7 @@ controlla "cartissima"                "40 gasolio cartissima"                   
 controlla "fax"                       "5 fax"                                        "5 fogli"
 controlla "frase senza importo"       "ciao"                                         "Niente salvato"
 controlla "totali in finestra"        "totali"                                       "Totali sullo schermo"
-python3 $HOME/info_turno.py totali breve | grep -q "Attesi in cassa" && echo "  ok   testo dei totali" || { echo "  ERRORE testo totali"; ERRORI=$((ERRORI+1)); }
+python3 $HOME/info_turno.py totali breve | grep "Attesi in cassa" > /dev/null && echo "  ok   testo dei totali" || { echo "  ERRORE testo totali"; ERRORI=$((ERRORI+1)); }
 controlla "market"                    "market"                                       "Red Bull"
 controlla "erogazioni adblue"         "erogazioni"                                   "litri erogati"
 controlla "correggi ultima pagamento"  "correggi ultima sul bianco"                   "POS bianco"
