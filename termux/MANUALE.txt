@@ -78,6 +78,9 @@ MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • Nomi generici: "cingomme" / "chewing gum" / "cicca" → CHEWING GUM 3,00
   (Vigorsol, Vivident, Happydent, Daygum). Il nome della marca va bene lo stesso.
 
+PREZZO DIVERSO DAL LISTINO
+• "2 red bull 7 euro" → 2 red bull, 7 € in tutto (2 vibrazioni: prezzo diverso dal listino)
+
 PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
 • "danea 15 euro"                    → DANEA (a mano) 15 €
 • "danea caricabatterie 15 euro"     → CARICABATTERIE 15 €
@@ -146,6 +149,7 @@ e gli dai lo stesso importo in contanti)
 • "cancella ultima" (o "cancella ultimo") / "cancella penultima": toglie la vendita intera.
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo.
+• "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
 • "correggi ultima gasolio": cambia il carburante.
 • Al posto di "ultima" puoi dire "penultima".
 • Nelle vendite con più cose si può correggere solo il pagamento:
@@ -209,7 +213,9 @@ L'IA serve solo per le frasi "strane": tutto il resto funziona anche senza.
 • 🟢 accesa  •  🟡 in avvio  •  ⚫ spenta
 • Pulsanti: Accendi / Spegni / Aggiorna
 • A voce: "accendi ia", "spegni ia", "stato ia"
-Si accende da sola con l'apertura del turno e si spegne con la chiusura.
+Non serve più per le vendite (tutto si capisce con le regole, in meno di un secondo):
+all'apertura NON si accende più da sola, così non consuma batteria e memoria.
+Si spegne comunque con la chiusura del turno.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 8. PULSANTI SULLA SCHERMATA HOME (widget)
@@ -234,6 +240,11 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
+• "⚠️ Controlla": la vendita è salvata ma c'è qualcosa di strano (2 vibrazioni):
+  - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
+  - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
+  - "prezzo detto … invece di …": prezzo diverso dal listino.
+  Se è sbagliata: "cancella ultima".
 • Frase non capita (parola sentita male): compare il riquadro
   "✏️ Non capito: scrivi la frase giusta", con la frase sentita scritta in grigio.
   Scrivi la frase corretta (es. "20 pos bianco") e premi OK: viene registrata.

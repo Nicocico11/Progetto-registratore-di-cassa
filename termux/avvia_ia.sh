@@ -70,7 +70,7 @@ case "$FRASE" in
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
       python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO"
-      bash $CARTELLA/avvia_server.sh
+      # L'IA non si accende più da sola: le vendite si capiscono con le regole ("accendi ia" se serve)
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)

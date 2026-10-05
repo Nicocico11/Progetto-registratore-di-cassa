@@ -225,6 +225,7 @@ CATEGORIE_CIBO = {'SNACK DOLCI', 'CARAMELLE', 'SNACK SALATI', 'BEVANDE', 'GELATI
                   'PRODOTTI TIPICI', 'VINI'}
 OLI_MOTORE = sorted(n for n, p in listino.items()
                     if p.get('categoria') == 'LUBRIFICANTI' and re.search(r'\d+W-?\d+', n))   # 5W-40, 0W-20...
+AVVISI = []     # cose da controllare: la vendita si salva con 2 vibrazioni
 SIMILI = {}     # parole sentite male e il nome del listino più simile ("icnusa": "ichnusa")
 SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
@@ -365,15 +366,26 @@ def voce_listino(nome, testo):
     p = listino[nome]
     prezzo = float(p['prezzo'])
     euro = numero_in_euro(testo)
-    if euro is not None:
-        importo, quantita = euro, euro / prezzo
+    prezzo_detto = prezzo
+    if euro is not None and p.get('unita', 'pz') == 'pz':
+        # "2 red bull 7 euro": 2 pezzi, 7 euro in tutto; "red bull 3 e 50": 1 pezzo a 3,50
+        altri = [float(n.replace(',', '.')) for n in re.findall(NUMERO, testo)]
+        altri = [n for n in altri if n != euro and n == int(n) and 0 < n < 100]
+        intero = round(euro / prezzo)
+        quantita = altri[0] if altri else (intero if intero >= 1 and abs(euro - intero * prezzo) < 0.01 else 1)
+        importo = euro
+        prezzo_detto = round(euro / quantita, 2)
+        if abs(prezzo_detto - prezzo) >= 0.01:
+            AVVISI.append(f"prezzo detto {prezzo_detto:.2f} € invece di {prezzo:.2f} € del listino")
+    elif euro is not None:
+        importo, quantita = euro, euro / prezzo      # AdBlue sfuso: "adblue 13 euro" = 10 litri
     else:
         quantita = primo_numero(testo) or 1.0  # "red bull" da solo = 1
         importo = quantita * prezzo
     return {
         "categoria": nome, "prodotto": nome,
         "reparto": p.get('reparto', 'Market'), "unita": p.get('unita', 'pz'),
-        "quantita": round(quantita, 2), "prezzo_unitario": prezzo, "importo": round(importo, 2),
+        "quantita": round(quantita, 2), "prezzo_unitario": prezzo_detto, "importo": round(importo, 2),
     }
 
 
@@ -640,7 +652,13 @@ def correggi(quale):
         nuovo_metodo = metodo_pagamento(testo_basso)
     nuovo_carburante = carburante_detto(testo_basso)
     nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
-    if not (nuovo_metodo or nuovo_carburante or nuovo_importo):
+    nuova_quantita = None
+    if (nuovo_importo and numero_in_euro(testo_basso) is None and nuovo_importo == int(nuovo_importo)
+            and len(voci) == 1 and voci[0].get('reparto') == 'Market' and voci[0].get('unita', 'pz') == 'pz'
+            and nuovo_importo < 100):
+        # "correggi ultima 3" dopo "2 red bull" = 3 red bull (per l'importo: "correggi ultima 3 euro")
+        nuova_quantita, nuovo_importo = nuovo_importo, None
+    if not (nuovo_metodo or nuovo_carburante or nuovo_importo or nuova_quantita):
         print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "
               "\"correggi ultima gasolio\". Niente cambiato.")
         sys.exit(1)
@@ -666,7 +684,14 @@ def correggi(quale):
                 print("❌ Non è un rifornimento: non posso cambiarlo in carburante. Niente cambiato.")
                 sys.exit(1)
             v['categoria'] = nuovo_carburante
-        if nuovo_importo:
+        if nuova_quantita:
+            v['quantita'] = nuova_quantita
+            v['importo'] = f"{nuova_quantita * float(v['prezzo_unitario']):.2f}"
+        if nuovo_importo and v.get('reparto') == 'Market' and v.get('unita', 'pz') == 'pz':
+            # "correggi ultima 10 euro" dopo "3 red bull": restano 3 pezzi, cambia il prezzo
+            v['importo'] = f"{nuovo_importo:.2f}"
+            v['prezzo_unitario'] = round(nuovo_importo / float(v.get('quantita') or 1), 2)
+        elif nuovo_importo:
             v['importo'] = f"{nuovo_importo:.2f}"
             if v.get('prezzo_unitario'):
                 v['quantita'] = round(nuovo_importo / float(v['prezzo_unitario']), 2)
@@ -843,6 +868,17 @@ if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     sys.exit(1)
 
 
+# Vendita precedente (per accorgersi di una frase registrata due volte)
+PRECEDENTE = None
+try:
+    with open(csv_file, encoding='utf-8') as f:
+        ultima_riga = list(csv.reader(f))[-1]
+    PRECEDENTE = (datetime.datetime.strptime(ultima_riga[0], '%Y-%m-%d %H:%M:%S'),
+                  json.loads(ultima_riga[1]).get('note', ''))
+except Exception:
+    pass
+adesso_ora = datetime.datetime.now()
+
 # Pagamento: chiesto solo ora, a vendita capita (popup se è detto solo "carta")
 metodo = metodo_pagamento(testo_basso, carburante=any(v['reparto'] == 'Carburante' for v in voci))
 if metodo == 'POS cassa' and any(v['reparto'] == 'Carburante' for v in voci):
@@ -859,6 +895,15 @@ else:
 
 avviso_ricevuta(voci, metodo)
 
+# Solo un importo piccolo, senza prodotto: forse AutoVoice ha perso il nome ("2 mars" -> "2")
+if any(v.get('categoria') == 'Carburante' and float(v['importo']) < 5 for v in voci):
+    AVVISI.append("solo un importo piccolo, senza prodotto: era carburante?")
+# Stessa frase della vendita prima, pochi secondi fa: forse registrata due volte
+if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[0]).total_seconds() < 30:
+    AVVISI.append("frase uguale alla vendita di pochi secondi fa: registrata due volte?")
+if AVVISI:
+    print("⚠️ Controlla: " + "; ".join(dict.fromkeys(AVVISI)).rstrip('.') + " — se è sbagliata: \"cancella ultima\"")
+
 # Nome capito per somiglianza: salvato, ma con 2 vibrazioni per controllare
 if SIMILI:
     print("🔎 " + ", ".join(f'"{a}" = {b}' for a, b in SIMILI.items()) + ": controlla che sia giusto")
@@ -871,4 +916,4 @@ if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CA
     sys.exit(2)
 
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
-sys.exit(2 if origine == 'emergenza' else 0)
+sys.exit(2 if origine == 'emergenza' or AVVISI else 0)
