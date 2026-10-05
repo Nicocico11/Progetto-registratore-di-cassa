@@ -172,6 +172,8 @@ esac
 # notifiche in sottofondo per non far aspettare Tasker (a turno chiuso si tolgono da sole)
 bash $CARTELLA/vibra.sh $VIBRAZIONE > /dev/null 2>&1
 nohup bash $CARTELLA/notifica.sh > /dev/null 2>&1 &
+# Mail rimaste in coda (chiusura fatta senza internet): si riprova in sottofondo
+[ -s ~/.cassa_email_coda ] && nohup python3 $CARTELLA/invia_mail.py coda > /dev/null 2>&1 &
 nohup bash $CARTELLA/stato_ia.sh aggiorna > /dev/null 2>&1 &
 
 # Sempre 0: l'esito lo comunicano messaggio e vibrazione, così Tasker non interrompe il Task

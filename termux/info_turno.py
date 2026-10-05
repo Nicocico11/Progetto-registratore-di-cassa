@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import shutil
 import glob
 import re
+import subprocess
 
 # I moduli della cassa vocale (excel_turno.py) stanno nella cartella di Tasker
 sys.path.insert(0, os.path.expanduser("~/.termux/tasker"))
@@ -655,6 +656,13 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
         messaggi_excel = ["⚠️ Excel non creato: manca openpyxl (riesegui l'installazione con internet)"]
     except Exception as e:
         messaggi_excel = [f"⚠️ Excel non creato ({e})"]
+
+    # Mail con Excel e riepilogo, in sottofondo (se configurata; senza internet resta in coda)
+    if os.path.exists(os.path.expanduser("~/.cassa_email.json")):
+        subprocess.Popen([sys.executable, os.path.expanduser("~/.termux/tasker/invia_mail.py"), "invia",
+                          cartella_turno(t)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+        messaggi_excel.append("📧 Invio della mail in corso (arriva una notifica)")
 
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
     shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))

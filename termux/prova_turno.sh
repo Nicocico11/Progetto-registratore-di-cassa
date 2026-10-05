@@ -7,7 +7,7 @@ set -u
 QUI=$(cd "$(dirname "$0")" && pwd)
 export HOME=$(mktemp -d)
 mkdir -p $HOME/.termux/tasker $HOME/bin $HOME/storage/downloads $HOME/llama.cpp/build/bin
-cp $QUI/*.sh $QUI/processa_ia.py $QUI/numeri.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
+cp $QUI/*.sh $QUI/processa_ia.py $QUI/numeri.py $QUI/invia_mail.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
 cp $QUI/info_turno.py $HOME/
 for c in termux-vibrate termux-wake-lock termux-wake-unlock; do
   printf '#!/bin/bash\n' > $HOME/bin/$c; chmod +x $HOME/bin/$c
@@ -152,6 +152,8 @@ controlla "carta di credito = vendita" "10 gasolio carta di credito"            
 grep -q "Gasolio\|gasolio" $D/*/Documenti/*_dati.csv && echo "  ok   copia dati aggiornata in Download" || { echo "  ERRORE copia dati"; ERRORI=$((ERRORI+1)); }
 rm $HOME/transazioni_turno.csv
 controlla "ripristino da Download"    "ripristina turno"                             "Ripristinate"
+echo '{"mittente":"prova@gmail.com","password":"x","destinatario":"capo@example.com"}' > $HOME/.cassa_email.json
+export INVIA_MAIL_FINTO=$HOME/mail_finte; mkdir -p $INVIA_MAIL_FINTO
 controlla "chiusura turno"            "chiusura turno"                               "Terminale pompe: 14:05:32"
 [ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "90.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
@@ -198,6 +200,17 @@ assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 [ "$(ls $D | wc -l)" = 1 ] && [ "$(ls $D/*/Documenti | wc -l)" = 2 ] && [ "$(ls $D/*/Excel | wc -l)" = 2 ] && echo "  ok   cartella del turno: Documenti (2) ed Excel (2)" || { echo "  ERRORE cartelle"; find $D; ERRORI=$((ERRORI+1)); }
+sleep 2; python3 - $HOME/mail_finte <<'PYEOF' && echo "  ok   mail della chiusura (2 Excel + riepilogo)" || { echo "  ERRORE mail"; ERRORI=$((ERRORI+1)); }
+import email, glob, sys
+f = glob.glob(sys.argv[1] + '/*.eml')
+assert len(f) == 1, f
+from email import policy
+m = email.message_from_bytes(open(f[0], 'rb').read(), policy=policy.default)
+allegati = sorted(p.get_filename() for p in m.iter_attachments())
+assert m['To'] == 'capo@example.com' and m['Subject'].startswith('Chiusura turno'), (m['To'], m['Subject'])
+assert len([a for a in allegati if a.endswith('.xlsx')]) == 2 and any(a.endswith('.txt') for a in allegati), allegati
+assert 'QUADRATURA' in m.get_body().get_content()
+PYEOF
 grep -q "CHIUSURA TURNO" $D/*/Documenti/*.txt && echo "  ok   documento finale in Download" || { echo "  ERRORE documento finale"; ERRORI=$((ERRORI+1)); }
 [ ! -s $HOME/turno_corrente.json ] && echo "  ok   turno azzerato" || { echo "  ERRORE turno non azzerato"; ERRORI=$((ERRORI+1)); }
 

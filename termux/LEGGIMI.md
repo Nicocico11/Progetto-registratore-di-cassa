@@ -118,3 +118,10 @@ POS bianco (D14), avanzo precedente (D7) e contanti attesi negli spiccioli casse
 Prepara anche il file del turno successivo (data, turno, D7, O20, K30). Lo stato tra un turno e
 l'altro è in `~/stato_cassa.json`. Comandi: "contatore adblue N", "contatore taniche N",
 "versamento N", "abbuono N centesimi".
+
+## Mail della chiusura
+
+`invia_mail.py` (Gmail, SMTP SSL 465): alla chiusura, in sottofondo, manda i 2 Excel e il riepilogo
+della cartella del turno. Dati di accesso solo sul telefono in `~/.cassa_email.json` (chmod 600, mai su
+GitHub); configurazione con `invia_mail.py configura`, prova con `invia_mail.py prova`. Senza internet la
+cartella va in `~/.cassa_email_coda` e `avvia_ia.sh` riprova a ogni comando.
