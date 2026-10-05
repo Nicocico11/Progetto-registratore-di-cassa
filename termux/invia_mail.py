@@ -87,7 +87,7 @@ def file_del_turno(cartella):
     return excel, riepilogo
 
 
-def invia_turno(cartella):
+def invia_turno(cartella, prova=False):
     """Spedisce la chiusura; se non riesce la mette in coda. Restituisce il messaggio da mostrare."""
     c = leggi_config()
     if not c:
@@ -97,7 +97,7 @@ def invia_turno(cartella):
         registra(f"niente da mandare in {cartella}")
         return "📧 Mail: nessun file da mandare"
     nome = os.path.basename(cartella.rstrip('/'))            # es. 2026-10-05_Notte
-    if nome.endswith('_TEST'):
+    if prova or '_TEST' in nome:
         c = dict(c, destinatario=c['mittente'])   # turno di prova: la mail arriva solo a me, non al lavoro
     corpo = "Chiusura turno " + nome.replace('_', ' ') + "\n\n"
     if riepilogo:

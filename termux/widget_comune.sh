@@ -30,12 +30,17 @@ except Exception:
 # Finestra con un testo lungo (riepiloghi), da chiudere con OK
 finestra() { termux-dialog confirm -t "$1" -i "$2" > /dev/null 2>&1; }
 
-# Esito breve in basso, come i messaggi di Tasker: le righe con ✅ ⚠️ ❌ ❓ 🧾 (o la prima riga)
+# Messaggio breve: lanciato da Tasker lo scrive e basta (lo mostra Tasker, con il suo stile);
+# dal widget di Termux compare in basso
+messaggio() {
+  if [ -n "$SENZA_TERMINALE" ]; then echo "$1"; else termux-toast -g bottom "$1" 2>/dev/null; fi
+}
+
+# Esito di un comando: solo le righe importanti (✅ ⚠️ ❌ ❓ 🧾 ...), o la prima riga
 esito() {
   local corto
   corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪' <<< "$1")
-  termux-toast -g bottom "${corto:-$(head -1 <<< "$1")}" 2>/dev/null
-  echo "$1"
+  messaggio "${corto:-$(head -1 <<< "$1")}"
 }
 
 casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serve: Termux non si apre)
@@ -45,7 +50,7 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
   exit 0
 }
 
-annullato() { termux-toast "Niente salvato" 2>/dev/null; casa; }
+annullato() { messaggio "Niente salvato"; casa; }
 
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
 pagamento() {   # pagamento "titolo" [senza_cassa]

@@ -9,7 +9,7 @@ QUALE="${1:-menu}"
 if [ "$QUALE" = menu ]; then
   ELENCO=$(cd ~/.shortcuts && ls -1 [0-9][0-9]\ * | paste -sd, -)
   SCELTA=$(scegli "🧾 Cassa" "$ELENCO")
-  [ -z "$SCELTA" ] && exit 0
+  [ -z "$SCELTA" ] && { echo "Annullato"; exit 0; }
   QUALE="${SCELTA%% *}"
 fi
 if [[ "$QUALE" =~ ^[0-9][0-9]$ ]]; then
@@ -17,5 +17,5 @@ if [[ "$QUALE" =~ ^[0-9][0-9]$ ]]; then
 else
   FILE=$(ls ~/.shortcuts/[0-9][0-9]\ "$QUALE" 2>/dev/null | head -1)   # per nome: pulsante.sh "Totali"
 fi
-[ -z "$FILE" ] && { termux-toast "Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
+[ -z "$FILE" ] && { echo "❌ Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
 exec bash "$FILE"

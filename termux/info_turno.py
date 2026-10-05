@@ -672,7 +672,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
         try:
             import invia_mail
             invia_mail.svuota_coda()
-            esito = invia_mail.invia_turno(cartella_turno(t))
+            esito = invia_mail.invia_turno(cartella_turno(t), prova=bool(t.get("prova")))
         except Exception as e:
             esito = f"📧 Mail non inviata ({e})"
         if esito:

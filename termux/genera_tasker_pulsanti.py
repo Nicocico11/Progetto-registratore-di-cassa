@@ -1,5 +1,6 @@
 # Crea Cassa_Pulsanti.prj.xml: progetto Tasker con il task "Cassa Menu" e un task per ogni pulsante
-# del widget. Ogni task lancia pulsante.sh con il plugin Termux:Tasker, in sottofondo (Termux non si apre).
+# del widget. Ogni task lancia pulsante.sh con il plugin Termux:Tasker (Termux non si apre)
+# e poi mostra l'esito con il messaggio di Tasker, come per i comandi vocali.
 # Uso (su computer): python3 termux/genera_tasker_pulsanti.py
 import glob, os
 from xml.sax.saxutils import escape
@@ -27,7 +28,7 @@ def azione(argomento, blurb):
 					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
 					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
 					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
-					<com.termux.tasker.extra.WAIT_FOR_RESULT>false</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>true</com.termux.tasker.extra.WAIT_FOR_RESULT>
 					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
 					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
 					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
@@ -41,8 +42,30 @@ def azione(argomento, blurb):
 			</Bundle>
 			<Str sr="arg1" ve="3">com.termux.tasker</Str>
 			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
-			<Int sr="arg3" val="10"/>
+			<Int sr="arg3" val="600"/>
 			<Int sr="arg4" val="1"/>
+		</Action>"""
+
+
+# Messaggio di Tasker con l'esito (stesso stile dei comandi vocali)
+FLASH = """		<Action sr="act1" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">%stdout</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
 		</Action>"""
 
 
@@ -54,6 +77,7 @@ def task(tid, nome, argomento):
 		<nme>{escape(nome)}</nme>
 		<pri>6</pri>
 {azione(argomento, f'pulsante.sh {argomento}')}
+{FLASH}
 	</Task>"""
 
 

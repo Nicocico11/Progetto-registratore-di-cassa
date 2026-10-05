@@ -122,11 +122,11 @@ controlla "cancella"                  "cancella ultima"                         
 bash "$QUI/widget/01 Vendita carburante" > /dev/null; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   widget 01 Vendita carburante" || { echo "  ERRORE widget 01"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 mkdir -p $HOME/.shortcuts && cp "$QUI"/widget/[0-9]* $HOME/.shortcuts/ && : > $HOME/toast.log
-bash $HOME/.termux/tasker/pulsante.sh menu > /dev/null 2>&1; grep -q "Carburante 45.50 € - POS nero" $HOME/toast.log && echo "  ok   menu Cassa da Tasker (senza Termux)" || { echo "  ERRORE menu Tasker"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+bash $HOME/.termux/tasker/pulsante.sh menu 2>/dev/null | grep -q "Carburante 45.50 € - POS nero" && echo "  ok   menu Cassa da Tasker (senza Termux)" || { echo "  ERRORE menu Tasker"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 03 AdBlue litri" || { echo "  ERRORE widget 03"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" > /dev/null 2>&1; grep -c "Carburante 45.50" $HOME/toast.log | grep -q 2 && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
+[ "$(bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" 2>/dev/null)" = "✅ Vendita salvata: Carburante 45.50 € - POS nero" ] && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
@@ -251,6 +251,10 @@ prova = [x for x in m if 'TEST' in x['Subject']]
 assert prova and prova[0]['To'] == 'prova@gmail.com', [(x['Subject'], x['To']) for x in m]
 " $HOME/mail_finte && echo "  ok   mail del turno di prova solo al mittente" || { echo "  ERRORE mail di prova"; ERRORI=$((ERRORI+1)); }
 cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di prova: stato vero non toccato" || { echo "  ERRORE stato toccato dalla prova"; ERRORI=$((ERRORI+1)); }
+# Secondo turno di prova con lo stesso nome (cartella …_TEST_HHMM): la mail NON deve andare al lavoro
+controlla "secondo turno di prova"    "apertura turno prova notte"                   "TURNO DI PROVA"
+controlla "vendita"                   "20 gasolio"                                   "Gasolio 20.00"
+controlla "chiusura secondo prova"    "chiusura turno"                               "Mail inviata a prova@gmail.com"
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 
 [ -n "${TIENI:-}" ] && cp $D/*/Documenti/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"

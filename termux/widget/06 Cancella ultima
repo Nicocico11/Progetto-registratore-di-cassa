@@ -5,6 +5,6 @@ ULTIME=$(python3 ~/info_turno.py ultimi | tail -4)
 if conferma "🗑️ Cancellare l'ultima vendita?" "$ULTIME"; then
   esito "$(bash $CASSA "cancella ultima")"
 else
-  termux-toast "Niente cancellato" 2>/dev/null
+  messaggio "Niente cancellato"
 fi
 casa
