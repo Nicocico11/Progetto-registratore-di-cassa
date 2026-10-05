@@ -1799,15 +1799,14 @@ def euro(x):
 # ---------- turno ----------
 
 def tipo_turno(momento, forzato=""):
-    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio.
-    forzato: "mattina"/"pomeriggio"/"notte" detto nella frase ("apertura turno notte")."""
+    """Il turno in corso all'orario dato (Mattina 6-14, Pomeriggio 14-22, Notte 22-6),
+    oppure quello dopo se si apre fino a un'ora prima (es. alle 13:15 = Pomeriggio),
+    e la sua data d'inizio. forzato: "mattina"/"pomeriggio"/"notte" detto nella frase."""
     minuti = momento.hour * 60 + momento.minute
-
-    def distanza(nome):
-        d = abs(minuti - TURNI[nome][0] * 60)
-        return min(d, 1440 - d)
-
-    nome = min(TURNI, key=distanza)
+    nome = 'Mattina' if 6 <= momento.hour < 14 else 'Pomeriggio' if 14 <= momento.hour < 22 else 'Notte'
+    for turno, (inizio, _) in TURNI.items():
+        if 0 < (inizio * 60 - minuti) % 1440 <= 60:   # apertura in anticipo, entro un'ora
+            nome = turno
     if (forzato or "").capitalize() in TURNI:
         nome = forzato.capitalize()
     data_inizio = momento.date()
@@ -8019,7 +8018,8 @@ Di': "APERTURA TURNO". Compaiono quattro riquadri:
 4) TANICHE ADBLUE presenti in magazzino (es. 59)
 Sono i valori lasciati dal collega del turno prima: vanno scritti ogni volta.
 Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
-• Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
+• Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6
+  (aprendo fino a un'ora prima vale già il turno dopo: alle 13:15 = Pomeriggio).
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compare la notifica "Stato Turno".
@@ -8261,4 +8261,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 05:17"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 05:31"
