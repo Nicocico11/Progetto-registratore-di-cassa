@@ -25,12 +25,15 @@ testo_basso = testo_originale.lower()
 
 
 # "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
-from numeri import in_cifre
-testo_basso = in_cifre(testo_basso)
+from numeri import in_cifre, senza_accenti
+testo_basso = senza_accenti(in_cifre(testo_basso))                                    # "estathé" -> estathe
 # Errori tipici del riconoscimento vocale
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
-testo_basso = re.sub(r'\b(\d+)\s+(\d{2})(?=\s+(?:euro\s+)?d[ie]\b)', r'\1.\2', testo_basso)  # "20 10 di gasolio"
+# "20 10 di gasolio", "70 07 nero", "83 39": due numeri attaccati, il secondo di 2 cifre = centesimi
+testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
+                     r'\1.\2', testo_basso)
 testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
+testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
 testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
@@ -49,9 +52,9 @@ PAGAMENTI = {
                     'fuel card', 'carta q8'],
     'POS cassa': ['pos cassa', 'pos della cassa', 'pos di cassa', 'pos registratore',
                   'in cassa', 'alla cassa', 'sulla cassa'],
-    'POS nero': ['pos nero', 'sul nero', 'col nero', 'con il nero', 'nel nero', 'pagato nero', 'pagato al nero'],
+    'POS nero': ['pos nero', 'sul nero', 'col nero', 'con il nero', 'nel nero', 'pagato nero', 'pagato al nero', 'nero'],
     'POS bianco': ['pos bianco', 'sul bianco', 'col bianco', 'con il bianco', 'nel bianco', 'pagato bianco',
-                   'pagato al bianco'],
+                   'pagato al bianco', 'bianco'],
     'Contanti': ['contanti', 'contante', 'cash'],
 }
 # Carta senza dire quale POS: si chiede con un popup
@@ -89,6 +92,17 @@ def radici(testo):
     return " " + " ".join(radice(w) for w in re.findall(r"[\w&'-]+", testo.lower())) + " "
 
 
+# Prima parola dei nomi dei prodotti market (lunga almeno 5 lettere e non una parola comune)
+PAROLE_COMUNI = {'carta', 'carico', 'lettere', 'numeri', 'primo', 'super', 'multi', 'micro', 'power',
+                 'porta', 'linea', 'tanica', 'double', 'travel', 'universal', 'dynamic', 'atomic', 'amica',
+                 'gasolio', 'benzina', 'diesel', 'verde', 'adblue', 'litri', 'contanti', 'bianco', 'cassa'}
+PRIMA_PAROLA = []
+for _nome, _p in listino.items():
+    if _p.get('reparto', 'Market') == 'Market':
+        _parole = senza_accenti(((_p.get('alias') or [_nome])[0]).lower()).split()
+        if _parole and len(_parole[0]) >= 5 and _parole[0] not in PAROLE_COMUNI:
+            PRIMA_PAROLA.append((_nome, _parole[0]))
+
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
@@ -100,7 +114,7 @@ def trova_prodotto_listino(testo):
     trovati, lunghezza = [], 0
     for nome, p in listino.items():
         for alias in [nome] + p.get('alias', []):
-            alias = alias.lower()
+            alias = senza_accenti(alias.lower())
             # Plurali e parole attaccate solo per i nomi lunghi: "ore" non deve diventare "oreo"
             if (contiene(alias, testo)
                     or (len(alias) >= 5 and (radici(alias) in testo_radici
@@ -109,6 +123,11 @@ def trova_prodotto_listino(testo):
                     trovati, lunghezza = [nome], len(alias)
                 elif len(alias) == lunghezza and nome not in trovati:
                     trovati.append(nome)
+    if not trovati and not carburante_detto(testo):
+        # Ultima possibilità: la prima parola del nome ("ichnusa" -> ICHNUSA METODO LENTO,
+        # "birra" -> chiede quale tra le birre)
+        parole_dette = set(re.findall(r"[\w'&-]+", testo))
+        trovati = [n for n, w in PRIMA_PAROLA if w in parole_dette]   # parola esatta: "pasti" non è "pasta"
     if len(trovati) > 1 and len({listino[n]['prezzo'] for n in trovati}) > 1:
         AMBIGUI[:] = trovati      # stesso nome, prezzi diversi: meglio chiedere
         return None
@@ -200,9 +219,14 @@ def voce_listino(nome, testo):
 
 
 def voce_carburante(testo):
+    # "85 euro nero", "77 bianco": senza prodotto è un rifornimento (il tipo non serve per l'Excel)
     categoria = carburante_detto(testo)
+    if not categoria:
+        if parole_libere(testo):
+            return None      # c'è una parola che non conosco: meglio chiedere di ripetere
+        categoria = 'Carburante'
     importo = numero_in_euro(testo) or primo_numero(testo)
-    if not categoria or not importo:
+    if not importo:
         return None
     return {"categoria": categoria, "reparto": "Carburante", "importo": importo}
 
@@ -235,6 +259,16 @@ def voce_resto(testo):
             "importo": -v['importo'], "metodo_pagamento": "Contanti"}
 
 
+def parole_libere(testo):
+    """Le parole che restano togliendo numeri, pagamenti e parole di servizio ("di", "euro"...)."""
+    resto = re.sub(NUMERO, ' ', senza_prodotti(testo))
+    for parole in list(PAGAMENTI.values()) + [PAGAMENTO_GENERICO]:
+        for p in sorted(parole, key=len, reverse=True):
+            resto = re.sub(r'\b' + re.escape(p) + r'\b', ' ', resto)
+    resto = re.sub(PAROLE_CREDITO, ' ', resto)
+    return [w for w in re.findall(r"[\w'&-]+", resto) if not re.fullmatch(r'[\d.,]+', w)]
+
+
 def voce_danea(testo):
     """"danea 15 euro", "danea caricabatterie 15 euro", "danea red bull 3 e 50":
     prodotto market con l'importo detto (non nel listino, o prezzo cambiato)."""
@@ -248,13 +282,7 @@ def voce_danea(testo):
     altri = [n for n in numeri if n != importo]
     quantita = altri[0] if altri and altri[0] == int(altri[0]) and altri[0] < 50 else 1
     if not prodotto:
-        resto = re.sub(NUMERO, ' ', senza_prodotti(t))
-        for parole in list(PAGAMENTI.values()) + [PAGAMENTO_GENERICO]:
-            for p in sorted(parole, key=len, reverse=True):
-                resto = re.sub(r'\b' + re.escape(p) + r'\b', ' ', resto)
-        resto = re.sub(PAROLE_CREDITO, ' ', resto)
-        parole_nome = [w for w in re.findall(r"[\w'&.-]+", resto) if not w.isdigit()]
-        prodotto = " ".join(parole_nome).upper() or "DANEA (a mano)"
+        prodotto = " ".join(parole_libere(t)).upper() or "DANEA (a mano)"
     return {"categoria": prodotto, "prodotto": prodotto, "reparto": "Market", "unita": "pz",
             "quantita": quantita, "prezzo_unitario": round(importo / quantita, 2),
             "importo": round(importo, 2), "danea_a_mano": True}
@@ -284,7 +312,7 @@ def dividi_in_pezzi(testo):
     testo = re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo)
     # "19.90 di gasolio ha lasciato 10 centesimi" -> "19.90 di gasolio, ha lasciato 10 centesimi"
     testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz))', ', ', testo)
-    grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+più\s+|\s+poi\s+', testo) if p.strip()]
+    grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo) if p.strip()]
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
     #    ma non "gasolio 50 e 20 litri di adblue" (lì sono due voci diverse)
@@ -301,7 +329,9 @@ def dividi_in_pezzi(testo):
     # 2) Un pezzo senza prodotto ("con carta", un numero da solo) resta attaccato al vicino
     pezzi, sospesi = [], []
     for p in uniti:
-        if ha_voce(p):
+        # Un importo da solo ("50 e 2 red bull") è un rifornimento, non la quantità del prodotto dopo
+        solo_importo = re.search(r'\d', p) and not parole_libere(p)
+        if ha_voce(p) or solo_importo:
             pezzi.append(" e ".join(sospesi + [p]))
             sospesi = []
         elif pezzi and not re.search(r'\d', p):
@@ -601,31 +631,15 @@ if len(pezzi) > 1 and None in voci:
     sys.exit(1)
 
 if voci == [None]:
-    # Senza un numero nella frase l'importo non si può sapere: non salviamo nulla
-    # (evita che l'IA inventi importi, es. "apertura turno")
-    numeri_detti = [float(n.replace(',', '.')) for n in re.findall(NUMERO, testo_basso)]
-    if not numeri_detti:
+    # Niente salvato se non si capisce: meglio ripetere che registrare un importo o un prodotto sbagliato
+    # (l'IA tirava a indovinare un carburante: con un prodotto sconosciuto sbagliava)
+    if not re.findall(NUMERO, testo_basso):
         print(f"❓ Non ho capito \"{testo_originale}\": nessun importo. Niente salvato.")
-        sys.exit(1)
-
-    data = analisi_ia()
-    origine = 'IA'
-    # L'importo dato dall'IA deve essere uno dei numeri detti, altrimenti se l'è inventato
-    try:
-        importo_ia = float(str(data.get('importo')).replace(',', '.')) if data else None
-    except ValueError:
-        importo_ia = None
-    if data and importo_ia not in numeri_detti:
-        print(f"❓ Non sono sicuro di \"{testo_originale}\": ripeti più chiaramente. Niente salvato.")
-        sys.exit(1)
-
-    if data and data.get('categoria') in CARBURANTI:
-        voci = [{"categoria": data['categoria'], "reparto": "Carburante", "importo": importo_ia}]
     else:
-        # Ultimo tentativo d'emergenza: numero nella frase + parole chiave
-        voci = [{"categoria": "Gasolio" if "gasolio" in testo_basso else "Benzina",
-                 "reparto": "Carburante", "importo": numero_in_euro(testo_basso) or numeri_detti[0]}]
-        origine = 'emergenza'
+        sconosciute = " ".join(parole_libere(testo_basso)) or testo_originale
+        print(f"❓ Non conosco \"{sconosciute}\". Niente salvato: ripeti, oppure di' "
+              f"\"danea … euro\" per un prodotto che non ho.")
+    sys.exit(1)
 
 if any(float(v['importo']) <= 0 for v in voci if v['reparto'] != 'Sconto'):
     print("❌ Transazione scartata: Nessun importo valido rilevato.")

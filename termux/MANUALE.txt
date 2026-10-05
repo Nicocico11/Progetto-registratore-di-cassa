@@ -44,6 +44,8 @@ Contatore e taniche si possono correggere anche dopo, a voce:
 CARBURANTE
 • "20 euro di gasolio"  •  "trentacinque di verde sul bianco"  •  "50 diesel cartissima"
   (verde / senza piombo = Benzina, diesel = Gasolio)
+• Basta anche solo l'importo: "85 euro nero", "77 bianco", "70 07 nero" (= 70,07)
+  → registrato come "Carburante" (il tipo non serve per l'Excel).
 
 ⚠️ Un rifornimento sopra i 1200 € si salva con 2 vibrazioni e "Importo molto alto":
 controlla che non sia un "19 e 90" capito come 1990.
@@ -74,8 +76,8 @@ FAX / FOTOCOPIE (0,30 € a foglio)
 
 PAGAMENTI (si dicono in fondo alla frase)
 • contanti ............................ se non dici niente, è contanti
-• "sul bianco" / "pos bianco" ........ POS bianco  → TOTALE PAX BANCARIE (somma)
-• "sul nero" / "pos nero" ............ POS nero    → TOTALE POS BANCA (somma)
+• "bianco" / "sul bianco" ............ POS bianco  → TOTALE PAX BANCARIE (somma)
+• "nero" / "sul nero" / "pos nero" ... POS nero    → TOTALE POS BANCA (somma)
 • "petrolifere" / "cartissima" ....... Petrolifere → CHIUSURA PETROLIFERE PAX (somma)
 • "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
                                        (una casella per ogni vendita)
@@ -127,7 +129,7 @@ e gli dai lo stesso importo in contanti)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 4. CORREGGERE E CANCELLARE
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• "cancella ultima" / "cancella penultima": toglie la vendita intera.
+• "cancella ultima" (o "cancella ultimo") / "cancella penultima": toglie la vendita intera.
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo.
 • "correggi ultima gasolio": cambia il carburante.
@@ -216,6 +218,10 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
+• "❓ Non conosco …": quella parola non è nel listino. Ripeti, oppure di'
+  "danea" e l'importo (es. "danea caricabatterie 15 euro").
+• "❓ Quale prodotto?": il nome vale per più prodotti (es. "birra"): di' quello
+  completo ("birra moretti").
 • "❌ Turno non aperto": di' prima "apertura turno".
 • "❌ IA spenta, la sto avviando": aspetta 30 secondi e ripeti la frase.
 • Il testo capito è tagliato o sbagliato: ripeti, parlando subito dopo il doppio tap.

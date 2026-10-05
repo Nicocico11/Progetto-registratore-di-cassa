@@ -107,7 +107,7 @@ case "$FRASE" in
     python3 ~/info_turno.py adblue ;;
   *"correggi"*|*"correggere"*|*"modifica"*)
     # "correggi ultima carta", "correggi penultima 25 euro", "correggi ultima gasolio"
-    if [[ "$FRASE" =~ penultima ]]; then QUALE=penultima; else QUALE=ultima; fi
+    if [[ "$FRASE" =~ penultim ]]; then QUALE=penultima; else QUALE=ultima; fi
     python3 $CARTELLA/processa_ia.py --correggi $QUALE "$TESTO"
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
@@ -127,9 +127,9 @@ case "$FRASE" in
       ESITO=$?
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;
-  *"penultima"*)
+  *"penultima"*|*"penultimo"*)
     python3 ~/info_turno.py "cancella penultima" ;;
-  *"cancella ultima"*|*"elimina ultima"*|*"annulla ultima"*)
+  *"cancella ultim"*|*"elimina ultim"*|*"annulla ultim"*|*"cancellala"*)
     python3 ~/info_turno.py "cancella ultima" ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);

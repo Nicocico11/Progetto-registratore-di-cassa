@@ -1,5 +1,6 @@
 # Numeri detti a parole -> cifre ("trentacinque" -> 35). Usato da processa_ia.py e info_turno.py.
 import re
+import unicodedata
 
 
 def numeri_in_lettere():
@@ -33,9 +34,15 @@ def numeri_in_lettere():
 
 
 _NUMERI = numeri_in_lettere()
+_NUMERI.update({'un': 1, 'una': 1})   # "un centesimo", "una ichnusa"
 _REGEX = re.compile(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b')
 
 
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
     return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo.lower())
+
+
+def senza_accenti(testo):
+    """"estathé" -> "estathe" (i nomi del listino sono senza accenti)."""
+    return "".join(c for c in unicodedata.normalize('NFD', testo) if unicodedata.category(c) != 'Mn')
