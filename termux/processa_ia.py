@@ -621,5 +621,11 @@ else:
 
 avviso_ricevuta(voci, metodo)
 
+# Rifornimento oltre il massimo normale (camion ~1000 €): forse "19 90" capito come 1990
+IMPORTO_MASSIMO_CARBURANTE = 1200
+if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CARBURANTE for v in voci):
+    print(f"⚠️ Importo molto alto: controlla! Se è sbagliato: \"cancella ultima\" e ridilla.")
+    sys.exit(2)
+
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)

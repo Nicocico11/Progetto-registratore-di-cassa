@@ -927,6 +927,12 @@ else:
 
 avviso_ricevuta(voci, metodo)
 
+# Rifornimento oltre il massimo normale (camion ~1000 €): forse "19 90" capito come 1990
+IMPORTO_MASSIMO_CARBURANTE = 1200
+if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CARBURANTE for v in voci):
+    print(f"⚠️ Importo molto alto: controlla! Se è sbagliato: \"cancella ultima\" e ridilla.")
+    sys.exit(2)
+
 # Codice d'uscita letto da avvia_ia.sh per scegliere la vibrazione: 2 = salvata ma da controllare
 sys.exit(2 if origine == 'emergenza' else 0)
 FINE_FILE
@@ -7657,6 +7663,9 @@ CARBURANTE
 • "20 euro di gasolio"  •  "trentacinque di verde sul bianco"  •  "50 diesel cartissima"
   (verde / senza piombo = Benzina, diesel = Gasolio)
 
+⚠️ Un rifornimento sopra i 1200 € si salva con 2 vibrazioni e "Importo molto alto":
+controlla che non sia un "19 e 90" capito come 1990.
+
 CENTESIMI
 • "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €
 
@@ -7838,4 +7847,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:14"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 02:21"
