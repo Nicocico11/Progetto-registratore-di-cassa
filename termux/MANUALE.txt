@@ -30,7 +30,7 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
-• Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
+• Nella tendina compare la notifica "Stato Turno".
 
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
@@ -207,14 +207,11 @@ Dopo la chiusura l'IA si spegne e le notifiche spariscono.
 I contanti attesi vengono proposti come avanzo all'apertura del turno dopo.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-7. LA NOTIFICA "IA"
+7. L'IA
 ━━━━━━━━━━━━━━━━━━━━━━━━
-L'IA serve solo per le frasi "strane": tutto il resto funziona anche senza.
-• 🟢 accesa  •  🟡 in avvio  •  ⚫ spenta
-• Pulsanti: Accendi / Spegni / Aggiorna
-• A voce: "accendi ia", "spegni ia", "stato ia"
-Non serve più per le vendite (tutto si capisce con le regole, in meno di un secondo):
-all'apertura NON si accende più da sola, così non consuma batteria e memoria.
+Non serve più per le vendite: tutto si capisce con le regole, in meno di un secondo.
+Resta spenta e NON compare nella tendina (lì c'è solo "Stato Turno").
+Se mai servisse: "accendi ia" (compare la notifica IA finché è accesa), "spegni ia".
 Si spegne comunque con la chiusura del turno.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━

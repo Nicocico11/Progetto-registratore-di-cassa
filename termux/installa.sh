@@ -217,8 +217,9 @@ nohup bash $CARTELLA/stato_ia.sh attendi > /dev/null 2>&1 &
 FINE_FILE
 cat > ~/.termux/tasker/stato_ia.sh <<'FINE_FILE'
 #!/bin/bash
-# Notifica fissa "IA" con lo stato del server e i pulsanti Accendi / Spegni / Aggiorna.
-# Solo con il turno aperto: a turno chiuso niente notifica e IA sempre spenta.
+# Notifica "IA" con lo stato del server e i pulsanti Spegni / Aggiorna.
+# Compare SOLO se l'IA è accesa (a mano, "accendi ia"): da spenta niente notifica,
+# così nella tendina resta solo il turno. A turno chiuso IA sempre spenta.
 # Uso: stato_ia.sh [aggiorna | accendi | spegni | attendi]
 #   attendi = ricontrolla ogni 3 secondi finché l'IA è pronta (massimo 2 minuti)
 
@@ -228,7 +229,7 @@ BASH_BIN=$(command -v bash)
 QUESTO="$BASH_BIN $CARTELLA/stato_ia.sh"
 
 # Traccia nel log ogni comando (serve a capire se i pulsanti della notifica arrivano)
-[ "${1:-aggiorna}" != "attendi" ] && echo "$(date '+%H:%M:%S') stato_ia ${1:-aggiorna}" >> ~/debug_tasker.log
+[ "${1:-aggiorna}" != "attendi" ] && [ "${1:-aggiorna}" != "aggiorna" ] && echo "$(date '+%H:%M:%S') stato_ia ${1:-aggiorna}" >> ~/debug_tasker.log
 
 ia_in_esecuzione() {
   pgrep -x llama-server > /dev/null || pgrep -f "llama-server -m" > /dev/null
@@ -265,7 +266,7 @@ mostra() {
     accesa) TITOLO="🟢 IA accesa e pronta"; TESTO="Le frasi difficili vengono capite dall'IA" ;;
     avvio)  TITOLO="🟡 IA in avvio…"; TESTO="Pronta tra pochi secondi" ;;
     avvio_spegnimento) TITOLO="⏳ Spegnimento IA…"; TESTO="Qualche secondo" ;;
-    *)      TITOLO="⚫ IA spenta"; TESTO="Le vendite normali funzionano lo stesso. Tocca Accendi per l'IA" ;;
+    *)      termux-notification-remove stato_ia 2>/dev/null; return ;;   # spenta: niente notifica
   esac
   termux-notification --id stato_ia --ongoing --alert-once --priority low \
     --title "$TITOLO" --content "$TESTO" \
@@ -7988,7 +7989,7 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
-• Nella tendina compaiono due notifiche: "Stato Turno" e "IA".
+• Nella tendina compare la notifica "Stato Turno".
 
 ⚠️ Senza "apertura turno" le vendite NON vengono salvate.
 Se hai sbagliato l'avanzo: "avanzo 160".
@@ -8165,14 +8166,11 @@ Dopo la chiusura l'IA si spegne e le notifiche spariscono.
 I contanti attesi vengono proposti come avanzo all'apertura del turno dopo.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-7. LA NOTIFICA "IA"
+7. L'IA
 ━━━━━━━━━━━━━━━━━━━━━━━━
-L'IA serve solo per le frasi "strane": tutto il resto funziona anche senza.
-• 🟢 accesa  •  🟡 in avvio  •  ⚫ spenta
-• Pulsanti: Accendi / Spegni / Aggiorna
-• A voce: "accendi ia", "spegni ia", "stato ia"
-Non serve più per le vendite (tutto si capisce con le regole, in meno di un secondo):
-all'apertura NON si accende più da sola, così non consuma batteria e memoria.
+Non serve più per le vendite: tutto si capisce con le regole, in meno di un secondo.
+Resta spenta e NON compare nella tendina (lì c'è solo "Stato Turno").
+Se mai servisse: "accendi ia" (compare la notifica IA finché è accesa), "spegni ia".
 Si spegne comunque con la chiusura del turno.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -8227,4 +8225,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 04:02"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 04:52"

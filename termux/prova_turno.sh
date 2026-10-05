@@ -58,6 +58,7 @@ controlla "apertura turno con avanzo" "apertura turno notte"                    
 [ -f $D/*/Documenti/*.txt ] && echo "  ok   documento creato in Download all'apertura" || { echo "  ERRORE documento non creato"; ERRORI=$((ERRORI+1)); }
 controlla "contatore adblue"          "contatore adblue 1000 virgola 5"              "1000.5"
 controlla "contatore taniche"         "contatore taniche 10"                         "10"
+sleep 1; grep -q "mostra --id stato_ia" $HOME/notifiche.log && { echo "  ERRORE notifica IA nella tendina"; ERRORI=$((ERRORI+1)); } || echo "  ok   niente notifica IA nella tendina"
 controlla "carta generica -> popup"  "20 euro di gasolio carta"                     "Gasolio 20.00 € - POS nero"
 controlla "correggi carburante in cassa" "correggi ultima in cassa"                 "Niente cambiato"
 controlla "abbuono"                   "20 e 10 di gasolio, abbuono 10 centesimi"     "-0.10"
