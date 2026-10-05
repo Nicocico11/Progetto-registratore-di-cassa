@@ -30,6 +30,7 @@ testo_basso = in_cifre(testo_basso)
 # Errori tipici del riconoscimento vocale
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})(?=\s+(?:euro\s+)?d[ie]\b)', r'\1.\2', testo_basso)  # "20 10 di gasolio"
+testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
 testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
@@ -100,8 +101,10 @@ def trova_prodotto_listino(testo):
     for nome, p in listino.items():
         for alias in [nome] + p.get('alias', []):
             alias = alias.lower()
-            if (contiene(alias, testo) or radici(alias) in testo_radici
-                    or (len(alias) >= 5 and alias.replace(' ', '') in testo_unito)):
+            # Plurali e parole attaccate solo per i nomi lunghi: "ore" non deve diventare "oreo"
+            if (contiene(alias, testo)
+                    or (len(alias) >= 5 and (radici(alias) in testo_radici
+                                             or alias.replace(' ', '') in testo_unito))):
                 if len(alias) > lunghezza:
                     trovati, lunghezza = [nome], len(alias)
                 elif len(alias) == lunghezza and nome not in trovati:
