@@ -27,8 +27,7 @@ Di': "APERTURA TURNO". Compaiono quattro riquadri:
 4) TANICHE ADBLUE presenti in magazzino (es. 59)
 Sono i valori lasciati dal collega del turno prima: vanno scritti ogni volta.
 Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
-• Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6
-  (aprendo fino a un'ora prima vale già il turno dopo: alle 13:15 = Pomeriggio).
+• Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compare la notifica "Stato Turno".

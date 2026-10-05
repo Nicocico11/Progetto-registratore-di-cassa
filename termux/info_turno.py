@@ -107,14 +107,15 @@ def euro(x):
 # ---------- turno ----------
 
 def tipo_turno(momento, forzato=""):
-    """Il turno in corso all'orario dato (Mattina 6-14, Pomeriggio 14-22, Notte 22-6),
-    oppure quello dopo se si apre fino a un'ora prima (es. alle 13:15 = Pomeriggio),
-    e la sua data d'inizio. forzato: "mattina"/"pomeriggio"/"notte" detto nella frase."""
+    """Il turno il cui inizio (6, 14, 22) è più vicino all'orario dato, e la sua data d'inizio.
+    forzato: "mattina"/"pomeriggio"/"notte" detto nella frase ("apertura turno notte")."""
     minuti = momento.hour * 60 + momento.minute
-    nome = 'Mattina' if 6 <= momento.hour < 14 else 'Pomeriggio' if 14 <= momento.hour < 22 else 'Notte'
-    for turno, (inizio, _) in TURNI.items():
-        if 0 < (inizio * 60 - minuti) % 1440 <= 60:   # apertura in anticipo, entro un'ora
-            nome = turno
+
+    def distanza(nome):
+        d = abs(minuti - TURNI[nome][0] * 60)
+        return min(d, 1440 - d)
+
+    nome = min(TURNI, key=distanza)
     if (forzato or "").capitalize() in TURNI:
         nome = forzato.capitalize()
     data_inizio = momento.date()
