@@ -56,6 +56,9 @@ spegni_ia() {
 FRASE="${TESTO,,}"   # tutto minuscolo
 ESITO=0
 
+# Tutto quello che il comando scrive passa anche da un file, per accorgersi degli avvisi ⚠️
+USCITA=$(mktemp)
+{
 case "$FRASE" in
   *turno*)
     # Qualsiasi frase con "turno" è un comando, mai una vendita
@@ -168,6 +171,15 @@ case "$FRASE" in
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;
 esac
+} > "$USCITA" 2>&1
+cat "$USCITA"
+
+# Un avviso ⚠️ qualsiasi: anche notifica nella tendina, con suono
+if grep -q "⚠️" "$USCITA"; then
+  termux-notification --id avviso_cassa --priority high --sound --vibrate 400,200,400 \
+    --title "⚠️ Controlla" --content "$(grep -m1 "⚠️" "$USCITA" | cut -c1-200)" > /dev/null 2>&1
+fi
+rm -f "$USCITA"
 
 case $ESITO in
   0) VIBRAZIONE=ok ;;
@@ -8504,7 +8516,7 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
 • "⚠️ CONTROLLA" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa
-  di strano (2 vibrazioni):
+  di strano (2 vibrazioni + notifica "⚠️ Controlla" con suono nella tendina):
   - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
   - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
   - "prezzo detto … invece di …": prezzo diverso dal listino.
@@ -8533,4 +8545,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:04"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 07:38"

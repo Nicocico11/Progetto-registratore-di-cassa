@@ -258,7 +258,7 @@ Si apre una finestra con il risultato: premi Invio per chiuderla.
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
 • "⚠️ CONTROLLA" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa
-  di strano (2 vibrazioni):
+  di strano (2 vibrazioni + notifica "⚠️ Controlla" con suono nella tendina):
   - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
   - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
   - "prezzo detto … invece di …": prezzo diverso dal listino.

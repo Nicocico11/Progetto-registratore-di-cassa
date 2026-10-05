@@ -114,6 +114,7 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo molto alto"        "1990 di gasolio"                              "IMPORTO MOLTO ALTO"
+grep -q "mostra --id avviso_cassa.*--sound.*IMPORTO MOLTO ALTO" $HOME/notifiche.log && echo "  ok   notifica con suono per l'avviso" || { echo "  ERRORE notifica avviso"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "camion 950: normale"       "950 di gasolio sul nero"                      "Gasolio 950.00 € - POS nero"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

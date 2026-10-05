@@ -51,6 +51,9 @@ spegni_ia() {
 FRASE="${TESTO,,}"   # tutto minuscolo
 ESITO=0
 
+# Tutto quello che il comando scrive passa anche da un file, per accorgersi degli avvisi ⚠️
+USCITA=$(mktemp)
+{
 case "$FRASE" in
   *turno*)
     # Qualsiasi frase con "turno" è un comando, mai una vendita
@@ -163,6 +166,15 @@ case "$FRASE" in
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;
 esac
+} > "$USCITA" 2>&1
+cat "$USCITA"
+
+# Un avviso ⚠️ qualsiasi: anche notifica nella tendina, con suono
+if grep -q "⚠️" "$USCITA"; then
+  termux-notification --id avviso_cassa --priority high --sound --vibrate 400,200,400 \
+    --title "⚠️ Controlla" --content "$(grep -m1 "⚠️" "$USCITA" | cut -c1-200)" > /dev/null 2>&1
+fi
+rm -f "$USCITA"
 
 case $ESITO in
   0) VIBRAZIONE=ok ;;
