@@ -104,14 +104,22 @@ for _nome, _p in listino.items():
     if _p.get('reparto', 'Market') == 'Market':
         for _alias in _p.get('alias') or [_nome.lower()]:
             for _w in senza_accenti(_alias.lower()).split():
-                if len(_w) >= 4 and _w.isalpha() and _w not in PAROLE_COMUNI:
+                codice = re.search(r'\d', _w) and re.search(r'[a-z]', _w)
+                if codice:
+                    PAROLE_PRODOTTI.setdefault(re.sub(r'[-/]', '', _w), set()).add(_nome)   # 5w-40 = 5w40
+                elif len(_w) >= 4 and _w.isalpha() and _w not in PAROLE_COMUNI:
                     PAROLE_PRODOTTI.setdefault(_w, set()).add(_nome)
 
 
 def prodotti_da_parole(testo):
     """Prodotti che hanno nel nome le parole dette (tutte quelle riconosciute)."""
-    gruppi = []
-    for w in re.findall(r"[a-z]+", testo):
+    gruppi, gruppi_codici = [], []
+    for w in re.findall(r"[a-z0-9][a-z0-9/-]*", testo):
+        if re.search(r'\d', w):
+            w = re.sub(r'[-/]', '', w)
+            if re.search(r'[a-z]', w) and w in PAROLE_PRODOTTI:   # codice (5w-40, h7): pesa di più
+                gruppi_codici.append(PAROLE_PRODOTTI[w])
+            continue
         if len(w) < 4 or w in PAROLE_COMUNI:
             continue
         trovati = PAROLE_PRODOTTI.get(w)
@@ -119,12 +127,82 @@ def prodotti_da_parole(testo):
             trovati = set().union(*[n for k, n in PAROLE_PRODOTTI.items() if len(k) >= 6 and radice(k) == radice(w)])
         if trovati:
             gruppi.append(trovati)
+    if not gruppi and not gruppi_codici:
+        # Nessuna parola esatta: la più simile ("icnusa" -> ichnusa, "heiniken" -> heineken)
+        import difflib
+        nomi_alfabetici = [k for k in PAROLE_PRODOTTI if k.isalpha()]
+        for w in parole_libere(testo):
+            if len(w) >= 5 and w.isalpha():
+                simile = difflib.get_close_matches(w, nomi_alfabetici, n=1, cutoff=0.85)
+                if simile:
+                    SIMILI[w] = simile[0]
+                    gruppi.append(PAROLE_PRODOTTI[simile[0]])
+        if not gruppi:
+            # Tutto il nome insieme ("red bul" -> red bull)
+            detto = " ".join(parole_libere(testo))
+            alias_market = {senza_accenti(al.lower()): n for n, pr in listino.items()
+                            if pr.get('reparto', 'Market') == 'Market' for al in pr.get('alias', [])}
+            simile = difflib.get_close_matches(detto, list(alias_market), n=1, cutoff=0.85) if len(detto) >= 5 else []
+            if simile:
+                SIMILI[detto] = simile[0]
+                gruppi.append({alias_market[simile[0]]})
+    if gruppi_codici:
+        base = set.intersection(*gruppi_codici)
+        con_parole = base.intersection(*gruppi) if gruppi else base
+        return sorted(con_parole or base)
     if not gruppi:
         return []
     comuni = set.intersection(*gruppi)
     return sorted(comuni or min(gruppi, key=len))
 
 
+# ---------- codici dei prodotti detti male da AutoVoice ----------
+# "h 7", "acca 7", "acca sette", "hsette", "p 21 doppia vu" -> h7 / p21w, solo se il codice esiste nel listino
+CODICI = {}
+for _p in listino.values():
+    for _alias in _p.get('alias', []):
+        for _w in _alias.lower().split():
+            if re.search(r'\d', _w) and re.search(r'[a-z]', _w) and not re.search(r'[.,]', _w):
+                CODICI[re.sub(r'[-/]', '', _w)] = _w
+LETTERE = {'acca': 'h', 'erre': 'r', 'esse': 's', 'kappa': 'k', 'ics': 'x', 'zeta': 'z', 'emme': 'm',
+           'enne': 'n', 'elle': 'l', 'effe': 'f', 'vu': 'v', 'vi': 'v', 'pi': 'p', 'ti': 't', 'ci': 'c',
+           'bi': 'b', 'gi': 'g', 'cu': 'q', 'qu': 'q', 'doppiavu': 'w'}
+_NUMERI_PAROLE = sorted((w for w in __import__('numeri')._NUMERI if len(w) > 2), key=len, reverse=True)
+
+
+def pezzo_di_codice(token):
+    """"acca" -> "h", "hsette" -> "h7", "7" -> "7"."""
+    if token in LETTERE:
+        return LETTERE[token]
+    m = re.fullmatch(r'([a-z]{1,2})(' + '|'.join(_NUMERI_PAROLE) + r')', token)
+    if m:
+        return m.group(1) + str(__import__('numeri')._NUMERI[m.group(2)])
+    return token
+
+
+def normalizza_codici(testo):
+    testo = re.sub(r'\bdoppi[ao]\s+vu?\b', 'doppiavu', testo)
+    parole = testo.split()
+    out, i = [], 0
+    while i < len(parole):
+        for lunghezza in (4, 3, 2, 1):
+            finestra = parole[i:i + lunghezza]
+            if len(finestra) < lunghezza:
+                continue
+            unito = re.sub(r'[-/]', '', "".join(pezzo_di_codice(w) for w in finestra))
+            if unito in CODICI and (lunghezza > 1 or unito != finestra[0]):
+                out.append(CODICI[unito])
+                i += lunghezza
+                break
+        else:
+            out.append(parole[i])
+            i += 1
+    return " ".join(out).replace('doppiavu', 'doppia vu')
+
+
+testo_basso = normalizza_codici(testo_basso)
+
+SIMILI = {}     # parole sentite male e il nome del listino più simile ("icnusa": "ichnusa")
 SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
@@ -726,6 +804,11 @@ else:
           + " + ".join(descrivi(v) for v in voci) + f" = {totale:.2f} €")
 
 avviso_ricevuta(voci, metodo)
+
+# Nome capito per somiglianza: salvato, ma con 2 vibrazioni per controllare
+if SIMILI:
+    print("🔎 " + ", ".join(f'"{a}" = {b}' for a, b in SIMILI.items()) + ": controlla che sia giusto")
+    sys.exit(2)
 
 # Rifornimento oltre il massimo normale (camion ~1000 €): forse "19 90" capito come 1990
 IMPORTO_MASSIMO_CARBURANTE = 1200

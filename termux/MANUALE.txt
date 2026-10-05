@@ -60,6 +60,11 @@ ADBLUE
 MARKET (tutti i prodotti di Danea, con i prezzi del listino)
 • "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
 • Basta UNA parola del nome: "ichnusa", "heineken", "moretti", "luxury".
+• I codici si capiscono comunque li scriva il telefono:
+  "h7" = "h 7" = "acca 7" = "acca sette" · "p21w" = "p 21 doppia vu" · "5w40" = "5 w 40"
+• Nome sentito un po' storto ("icnusa", "heiniken", "red bul"): il telefono prende
+  il prodotto più simile, lo salva con 2 vibrazioni e scrive 🔎 "icnusa" = ichnusa.
+  Se è sbagliato: "cancella ultima".
 • Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
   "formula excel plus", "lampadina h7".
 • Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista

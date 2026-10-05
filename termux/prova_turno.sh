@@ -33,7 +33,7 @@ EOF
 printf '#!/bin/bash\nsleep 1\n' > $HOME/llama.cpp/build/bin/llama-server
 chmod +x $HOME/bin/termux-dialog $HOME/llama.cpp/build/bin/llama-server
 export PATH=$HOME/bin:$PATH
-echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00,"birra_moretti":4.00,"birra_heineken":3.50}' > $HOME/prezzi.json
+echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00,"birra_moretti":4.00,"birra_heineken":3.50,"lampadina_h7":10.00,"lampadina_h4":9.00}' > $HOME/prezzi.json
 python3 $HOME/.termux/tasker/migra_prezzi.py > /dev/null
 
 S=$HOME/.termux/tasker/avvia_ia.sh
@@ -82,6 +82,12 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "lascia un centesimo"       "83 39 lascia un centesimo"                    "Carburante 83.39 € + Resto lasciato dal cliente 0.01"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo e prodotto"        "50 e 2 red bull sul nero"                     "Carburante 50.00 € + 2"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "codice detto male"         "lampadina acca sette"                         "Lampadina H7 10.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "codice staccato"           "lampadina h 4"                                "Lampadina H4 9.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "nome quasi giusto"         "2 red bul"                                    "controlla che sia giusto"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
