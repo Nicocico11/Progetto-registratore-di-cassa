@@ -615,7 +615,7 @@ testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o
                      testo_basso)                                                      # "o p t", "otp" -> opt
 testo_basso = re.sub(r'\b(?:g\s*\.?\s*p\s*\.?\s*l|gi\s*pi\s*elle|g\s*p\s*elle|gipielle|gpl\w*|gielle)\b', 'gpl',
                      testo_basso)                                                      # "g p l", "gi pi elle" -> gpl
-testo_basso = re.sub(r'\bcortissim\w\b', 'cartissima', testo_basso)                       # "cortissima"
+testo_basso = re.sub(r'\bc[ao]rtissim\w*', 'cartissima', testo_basso)                   # "cortissima", "cartissimi"
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -632,10 +632,10 @@ CARBURANTI = {
 #   Petrolifere -> CHIUSURA PETROLIFERE PAX (D9)  POS cassa -> SCONTRINI POS REG. CASSA (S27:V32)
 PAGAMENTI = {
     'Petrolifere': ['petrolifera', 'petrolifere', 'carta petrolifera', 'carta carburante', 'carte carburante',
-                    'cartissima', 'cartissimo', 'carta cartissima', 'carissima', 'carissimo',
+                    'cartissima', 'cartissimo', 'carta cartissima', 'carissima', 'carissimo', 'carissimi',
                     'fuel card', 'carta q8'],
     'POS cassa': ['pos cassa', 'pos della cassa', 'pos di cassa', 'pos registratore',
-                  'in cassa', 'alla cassa', 'sulla cassa'],
+                  'in cassa', 'alla cassa', 'sulla cassa', 'su cassa', 'cassa'],   # "twix cassa"
     'POS nero': ['pos nero', 'sul nero', 'col nero', 'con il nero', 'nel nero', 'pagato nero', 'pagato al nero', 'nero'],
     'POS bianco': ['pos bianco', 'sul bianco', 'col bianco', 'con il bianco', 'nel bianco', 'pagato bianco',
                    'pagato al bianco', 'bianco'],
@@ -1372,7 +1372,7 @@ def salva_voci(voci, pezzi, metodo):
 # Non sono vendite: vanno nelle caselle CREDITI CLIENTI / CREDITI RISCOSSI e nelle PETROLIFERE.
 
 PAROLE_CREDITO = r'\b(crediti|credito|clienti|cliente|riscoss\w*|riscossione|anticip\w*|contanti|contante|' \
-                 r'cartissim\w|petrolifer\w|euro|di|da|del|dal|della|a|al|alla|per|il|la|lo|e|ed|con|col|' \
+                 r'cartissim\w*|petrolifer\w*|euro|di|da|del|dal|della|a|al|alla|per|il|la|lo|e|ed|con|col|' \
                  r'pagato|pagata|pagati|ha|ho|dato|dati|q8|carta|carburante|sul|sulla|in|cassa|nero|bianco|pos)\b'
 
 
@@ -1546,6 +1546,14 @@ if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[
 IMPORTO_MASSIMO_CARBURANTE = 1200   # camion ~1000 €: oltre, forse "19 90" capito come 1990
 if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CARBURANTE for v in voci):
     AVVISI.insert(0, "IMPORTO MOLTO ALTO")
+# Pagamento non capito ("cartissimi", "bianchi"...): la vendita va in contanti, ma va controllata
+if metodo == 'Contanti' and pagamento_detto(testo_basso) is None:
+    simili = [w for w in re.findall(r'\b(?:cart|cort|cass|petrol|bianc|ner|pos|bos)\w*', senza_prodotti(testo_basso))
+              if w not in PAROLE_PRODOTTI and w != 'cassaforte']
+    if simili:
+        AVVISI.insert(0, f"pagamento non capito (\"{simili[0]}\"): messa in CONTANTI")
+    elif any(v['reparto'] == 'Carburante' for v in voci):
+        AVVISI.insert(0, "pagamento non detto: carburante messo in CONTANTI")   # "112 e 02"
 if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco'):
     AVVISI.append("solo prodotti del negozio: di solito si pagano IN CASSA (\"correggi ultima in cassa\")")
 for detto, nome in SIMILI.items():
@@ -9953,7 +9961,7 @@ PAGAMENTI (si dicono in fondo alla frase)
 • "nero" / "sul nero" / "pos nero" ... POS nero    → TOTALE POS BANCA (somma)
 • "petrolifere" / "cartissima" ....... Petrolifere (va bene anche "cortissima")
                                         → CHIUSURA PETROLIFERE PAX (somma)
-• "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
+• "in cassa" / "cassa" / "pos cassa" . POS cassa   → SCONTRINI POS REG. CASSA
                                        (una casella per ogni vendita)
 Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
 va da sola IN CASSA; se dici "nero" o "bianco" si salva con 2 vibrazioni e
@@ -10151,6 +10159,7 @@ Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
   - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
   - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
   - "prezzo detto … invece di …": prezzo diverso dal listino.
+  - "pagamento non capito" / "pagamento non detto": salvata in CONTANTI, controlla.
   Se è sbagliata: "cancella ultima".
 • Frase non capita (parola sentita male): compare il riquadro
   "✏️ Non capito, riscrivi", con la frase sentita scritta in grigio.
@@ -10176,4 +10185,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 21:27"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 21:33"

@@ -120,7 +120,7 @@ PAGAMENTI (si dicono in fondo alla frase)
 • "nero" / "sul nero" / "pos nero" ... POS nero    → TOTALE POS BANCA (somma)
 • "petrolifere" / "cartissima" ....... Petrolifere (va bene anche "cortissima")
                                         → CHIUSURA PETROLIFERE PAX (somma)
-• "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
+• "in cassa" / "cassa" / "pos cassa" . POS cassa   → SCONTRINI POS REG. CASSA
                                        (una casella per ogni vendita)
 Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
 va da sola IN CASSA; se dici "nero" o "bianco" si salva con 2 vibrazioni e
@@ -318,6 +318,7 @@ Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
   - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
   - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
   - "prezzo detto … invece di …": prezzo diverso dal listino.
+  - "pagamento non capito" / "pagamento non detto": salvata in CONTANTI, controlla.
   Se è sbagliata: "cancella ultima".
 • Frase non capita (parola sentita male): compare il riquadro
   "✏️ Non capito, riscrivi", con la frase sentita scritta in grigio.
