@@ -316,5 +316,18 @@ controlla "vendita"                   "20 gasolio"                              
 controlla "chiusura secondo prova"    "chiusura turno"                               "Mail inviata a prova@gmail.com"
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 
+# Turno senza vendite (solo avanzo): la chiusura fa lo stesso l'Excel; punto delle migliaia
+rm -rf $D/*_TEST
+controlla "turno senza vendite"       "apertura turno prova mattina"                 "TURNO DI PROVA"
+controlla "punto delle migliaia"      "1.250 di gasolio petrolifere"                 "Gasolio 1250.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "chiusura senza vendite"    "chiusura turno"                               "Mail inviata"
+ls $D/*_Mattina_TEST/Excel 2>/dev/null | grep -q "xlsx" && echo "  ok   turno senza vendite: Excel creato" || { echo "  ERRORE turno senza vendite"; ls -R $D; ERRORI=$((ERRORI+1)); }
+python3 -c "
+import sys; sys.argv=['x','niente']; sys.path.insert(0, sys.argv[0] and '$HOME')
+import info_turno as i
+assert i.importo_da_testo('1.250') == 1250 and i.importo_da_testo('1.250,50') == 1250.5 and i.importo_da_testo('20.50') == 20.5
+" && echo "  ok   1.250 = milleduecentocinquanta" || { echo "  ERRORE punto migliaia"; ERRORI=$((ERRORI+1)); }
+
 [ -n "${TIENI:-}" ] && cp $D/*/Documenti/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
 if [ $ERRORI -eq 0 ]; then echo "✅ Tutto ok"; else echo "❌ $ERRORI errori"; exit 1; fi

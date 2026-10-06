@@ -592,6 +592,7 @@ testo_basso = testo_originale.lower()
 from numeri import in_cifre, senza_accenti
 testo_basso = senza_accenti(in_cifre(testo_basso))                                    # "estathé" -> estathe
 # Errori tipici del riconoscimento vocale
+testo_basso = re.sub(r'(?<=\d)\.(?=\d{3}(?!\d))', '', testo_basso)                     # "1.250" = 1250 (migliaia)
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
 # "20 10 di gasolio", "70 07 nero", "83 39": due numeri attaccati, il secondo di 2 cifre = centesimi
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
@@ -2335,6 +2336,12 @@ def sigla(metodo):
     return SIGLE.get(metodo, metodo[:3].upper())
 
 
+def senza_punto_migliaia(testo):
+    """"1.250" / "1.250,50" / "68.624,4" -> "1250" / "1250,50" / "68624,4": il punto delle migliaia
+    non è la virgola (gli euro non hanno mai 3 decimali)."""
+    return re.sub(r'(?<=\d)\.(?=\d{3}(?!\d))', '', testo)
+
+
 def importo_da_testo(testo):
     """'150', '150,50', '150.50 €', 'cinquanta' -> 150.5; None se vuoto o non valido."""
     try:
@@ -2342,6 +2349,7 @@ def importo_da_testo(testo):
         testo = in_cifre(testo or "")
     except ImportError:
         pass
+    testo = senza_punto_migliaia(testo or "")
     testo = re.sub(r'(\d+):(\d{2})\b', r'\1.\2', testo or "")   # "20:30" scritto come un orario = 20,30
     m = re.search(r'\d+(?:[.,]\d{1,2})?', (testo or "").replace(" ", ""))
     return float(m.group(0).replace(",", ".")) if m else None
@@ -2424,7 +2432,7 @@ def apri_turno(avanzo_testo="", ora_prec_testo="", contatore_testo="", taniche_t
         stato["orario_chiusura"] = ora if re.fullmatch(r'\d\d:\d\d:\d\d', ora) else None
         if ora and not stato["orario_chiusura"]:
             print(f"⚠️ Ora chiusura precedente {ora}: scrivila a mano nell'Excel")
-        contatore = re.search(r'\d+(?:[.,]\d+)?', contatore_testo or "")
+        contatore = re.search(r'\d+(?:[.,]\d+)?', senza_punto_migliaia(contatore_testo or ""))
         stato["contatore"] = float(contatore.group(0).replace(",", ".")) if contatore else None
         taniche = importo_da_testo(taniche_testo)
         stato["taniche"] = int(taniche) if taniche is not None else None
@@ -2497,7 +2505,7 @@ def imposta_contatore(testo):
         testo = in_cifre(testo)
     except ImportError:
         pass
-    testo = re.sub(r'\s+virgola\s+', ',', testo.lower())
+    testo = re.sub(r'\s+virgola\s+', ',', senza_punto_migliaia(testo.lower()))
     testo = re.sub(r'(\d+):(\d+)\b', r'\1.\2', testo)
     valore = re.search(r'\d+(?:[.,]\d+)?', testo)
     if not valore:
@@ -3029,10 +3037,8 @@ def normalizza_orario(grezzo):
 def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
-    if not righe:
-        # Niente da archiviare: evita di creare file d'archivio vuoti
-        if os.path.exists(PATH_TURNO):
-            os.remove(PATH_TURNO)
+    if not righe and not os.path.exists(PATH_TURNO):
+        # Nessun turno aperto e niente da archiviare
         print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nNessuna vendita: niente da archiviare.")
         return
 
@@ -3071,7 +3077,8 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
             messaggi_excel.append(esito)
 
     timestamp_backup = adesso.strftime("%Y-%m-%d_%H-%M-%S")
-    shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
+    if righe:   # turno senza vendite (solo avanzo/versamento): Excel sì, archivio vuoto no
+        shutil.copy(PATH_CSV, os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv"))
     scrivi_csv([])
     if os.path.exists(PATH_TURNO):
         os.remove(PATH_TURNO)
@@ -10049,4 +10056,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:34"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:40"

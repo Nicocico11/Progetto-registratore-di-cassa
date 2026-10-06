@@ -28,6 +28,7 @@ testo_basso = testo_originale.lower()
 from numeri import in_cifre, senza_accenti
 testo_basso = senza_accenti(in_cifre(testo_basso))                                    # "estathé" -> estathe
 # Errori tipici del riconoscimento vocale
+testo_basso = re.sub(r'(?<=\d)\.(?=\d{3}(?!\d))', '', testo_basso)                     # "1.250" = 1250 (migliaia)
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
 # "20 10 di gasolio", "70 07 nero", "83 39": due numeri attaccati, il secondo di 2 cifre = centesimi
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
