@@ -180,7 +180,11 @@ e gli dai lo stesso importo in contanti)
 • Anticipo Cartissima: non si corregge, si cancella e si ridice.
 
 VERSAMENTI
-• Se togli contanti dal cassetto per il versamento: "versamento 500"
+• Se togli contanti dal cassetto per il versamento: "versamento 350"
+  Compare il riquadro delle BANCONOTE: scrivi "200 50 50 50" oppure "1x200 3x50".
+  Vanno nel riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100, 50, 20, 10, 5).
+  Se lo lasci vuoto le calcolo io (le più grandi possibili) e compare ⚠️ da controllare.
+  Più versamenti nello stesso turno si sommano.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 5. CONTROLLARE DURANTE IL TURNO

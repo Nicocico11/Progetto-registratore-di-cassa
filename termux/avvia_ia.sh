@@ -122,7 +122,13 @@ case "$FRASE" in
     ESITO=$? ;;
   *"versamento"*|*"versato"*)
     if turno_aperto; then
-      python3 ~/info_turno.py versamento "$FRASE"
+      # Le banconote servono per il riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100...)
+      IMPORTO_V=$(python3 ~/info_turno.py importo "$FRASE")
+      BANCONOTE=""
+      if [ -n "$IMPORTO_V" ]; then
+        BANCONOTE=$(chiedi "🏦 Banconote del versamento di $IMPORTO_V €" "es. 200 50 50 50  oppure  1x200 3x50 (vuoto = le calcolo io)")
+      fi
+      python3 ~/info_turno.py versamento "$FRASE" "$BANCONOTE"
       ESITO=$?
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;

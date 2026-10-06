@@ -127,7 +127,13 @@ case "$FRASE" in
     ESITO=$? ;;
   *"versamento"*|*"versato"*)
     if turno_aperto; then
-      python3 ~/info_turno.py versamento "$FRASE"
+      # Le banconote servono per il riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100...)
+      IMPORTO_V=$(python3 ~/info_turno.py importo "$FRASE")
+      BANCONOTE=""
+      if [ -n "$IMPORTO_V" ]; then
+        BANCONOTE=$(chiedi "🏦 Banconote del versamento di $IMPORTO_V €" "es. 200 50 50 50  oppure  1x200 3x50 (vuoto = le calcolo io)")
+      fi
+      python3 ~/info_turno.py versamento "$FRASE" "$BANCONOTE"
       ESITO=$?
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;
@@ -1978,6 +1984,12 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     if note:
         ws['A39'] = " | ".join(note) + " - compaiono nella differenza"
 
+    # Versamento: numero di banconote per taglio (N24 = da 500 ... N30 = da 5); il foglio fa i totali
+    for taglio, n in (turno.get('banconote_versamento') or {}).items():
+        riga = {500: 24, 200: 25, 100: 26, 50: 27, 20: 28, 10: 29, 5: 30}.get(int(taglio))
+        if riga and n:
+            ws[f'N{riga}'] = n
+
     # OPT (accettatore esterno): un importo per casella
     riempi(ws, OPT, [imp(v) for v in voci if v.get('reparto') == 'OPT'], avvisi, "OPT")
 
@@ -2333,16 +2345,64 @@ def imposta_contatore(testo):
     excel_turno.salva_stato(stato)
 
 
-def aggiungi_versamento(testo):
-    """"versamento 500": contanti tolti dal cassetto (non vanno più contati negli attesi)."""
+TAGLI = (500, 200, 100, 50, 20, 10, 5)
+
+
+def leggi_banconote(testo):
+    """"200 50 50 50" / "1x200 3x50" / "una da 200 e tre da 50" -> {200: 1, 50: 3}."""
+    try:
+        from numeri import in_cifre
+        testo = in_cifre(testo or "")
+    except ImportError:
+        testo = (testo or "").lower()
+    conta = {}
+    for n, taglio in re.findall(r'(\d+)\s*(?:x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', testo):
+        if int(taglio) in TAGLI:
+            conta[int(taglio)] = conta.get(int(taglio), 0) + int(n)
+    testo = re.sub(r'(\d+)\s*(?:x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', ' ', testo)
+    for taglio in re.findall(r'\d+', testo):
+        if int(taglio) in TAGLI:
+            conta[int(taglio)] = conta.get(int(taglio), 0) + 1
+    return conta
+
+
+def banconote_calcolate(valore):
+    """Le banconote più grandi possibili (se non sono state dette)."""
+    conta, resto = {}, round(valore)
+    for taglio in TAGLI:
+        if resto >= taglio:
+            conta[taglio], resto = divmod(resto, taglio)
+    return conta, resto
+
+
+def aggiungi_versamento(testo, banconote_testo=""):
+    """"versamento 500": contanti tolti dal cassetto (non vanno più contati negli attesi).
+    Le banconote vanno nel riquadro VERSAMENTO dell'Excel (numero di pezzi per taglio)."""
     valore = importo_da_testo(re.sub(r'\s+virgola\s+', ',', testo))
     if valore is None:
         print("❓ Di' l'importo, es. \"versamento 500\".")
         sys.exit(1)
+    banconote = leggi_banconote(banconote_testo)
+    avviso = ""
+    if not banconote:
+        banconote, resto = banconote_calcolate(valore)
+        avviso = "⚠️ Banconote non dette: le ho calcolate io, controlla nell'Excel"
+        if resto:
+            avviso += f" (restano {resto} € che non fanno una banconota)"
+    elif sum(t * n for t, n in banconote.items()) != round(valore, 2):
+        avviso = (f"⚠️ Le banconote fanno {sum(t * n for t, n in banconote.items())} € ma il versamento è "
+                  f"{euro(valore)}: controlla nell'Excel")
     t = turno_attuale(leggi_csv())
     t["versamento"] = round((t.get("versamento") or 0) + valore, 2)
+    totali = {int(k): v for k, v in (t.get("banconote_versamento") or {}).items()}
+    for taglio, n in banconote.items():
+        totali[taglio] = totali.get(taglio, 0) + n
+    t["banconote_versamento"] = {str(k): v for k, v in totali.items()}
     salva_turno(t)
+    if avviso:
+        print(avviso)
     print(f"🏦 Versamento registrato: {euro(valore)} (totale versato nel turno: {euro(t['versamento'])})")
+    print("   Banconote: " + ", ".join(f"{n}×{taglio}" for taglio, n in sorted(banconote.items(), reverse=True)))
 
 
 def turno_attuale(righe):
@@ -2790,7 +2850,10 @@ def main():
     elif comando.startswith("contatore"):
         imposta_contatore(" ".join(sys.argv[2:]) or comando)
     elif comando.startswith("versamento"):
-        aggiungi_versamento(" ".join(sys.argv[2:]))
+        aggiungi_versamento(sys.argv[2] if len(sys.argv) > 2 else "", sys.argv[3] if len(sys.argv) > 3 else "")
+    elif comando.startswith("importo"):
+        valore = importo_da_testo(re.sub(r'\s+virgola\s+', ',', " ".join(sys.argv[2:])))
+        print(f"{valore:g}" if valore is not None else "")
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
@@ -9559,7 +9622,11 @@ e gli dai lo stesso importo in contanti)
 • Anticipo Cartissima: non si corregge, si cancella e si ridice.
 
 VERSAMENTI
-• Se togli contanti dal cassetto per il versamento: "versamento 500"
+• Se togli contanti dal cassetto per il versamento: "versamento 350"
+  Compare il riquadro delle BANCONOTE: scrivi "200 50 50 50" oppure "1x200 3x50".
+  Vanno nel riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100, 50, 20, 10, 5).
+  Se lo lasci vuoto le calcolo io (le più grandi possibili) e compare ⚠️ da controllare.
+  Più versamenti nello stesso turno si sommano.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 5. CONTROLLARE DURANTE IL TURNO
@@ -9694,4 +9761,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 13:41"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 14:29"

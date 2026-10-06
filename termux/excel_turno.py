@@ -152,6 +152,12 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     if note:
         ws['A39'] = " | ".join(note) + " - compaiono nella differenza"
 
+    # Versamento: numero di banconote per taglio (N24 = da 500 ... N30 = da 5); il foglio fa i totali
+    for taglio, n in (turno.get('banconote_versamento') or {}).items():
+        riga = {500: 24, 200: 25, 100: 26, 50: 27, 20: 28, 10: 29, 5: 30}.get(int(taglio))
+        if riga and n:
+            ws[f'N{riga}'] = n
+
     # OPT (accettatore esterno): un importo per casella
     riempi(ws, OPT, [imp(v) for v in voci if v.get('reparto') == 'OPT'], avvisi, "OPT")
 

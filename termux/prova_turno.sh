@@ -29,6 +29,7 @@ case "$*" in
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
   *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
   *"AdBlue sfuso: litri"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
+  *"Banconote del versamento"*) echo '{"code": -1, "text": "1 da 50"}' ;;
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
   *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
@@ -137,7 +138,7 @@ controlla "camion 950: normale"       "950 di gasolio sul nero"                 
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "OPT"                       "50 opt"                                       "OPT 50.00 € - OPT"
 controlla "OPT detto male"            "o p t 35 e 50"                                "OPT 35.50"
-controlla "versamento a parole"       "versamento cinquanta"                         "50.00"
+controlla "versamento a parole"       "versamento cinquanta"                         "Banconote: 1×50"
 controlla "numeri in lettere"         "trentacinque di verde sul bianco"             "Benzina 35.00 € - POS bianco"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
 controlla "vendita mista"             "50 gasolio, 20 litri di adblue e 2 red bull con carta" "3 voci"
@@ -195,6 +196,7 @@ assert ws['O20'].value == 1000.5 and ws['O19'].value == 1020.5, (ws['O20'].value
 assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 tanica venduta
 assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
 assert (ws['I2'].value, ws['J2'].value, ws['K2'].value) == (50, 35.5, None), (ws['I2'].value, ws['J2'].value)  # OPT
+assert ws['N27'].value == 1 and ws['N24'].value is None, ws['N27'].value    # versamento: 1 banconota da 50
 assert ws['I5'].value is None                                             # abbuono: niente SCONTI
 assert ws['A39'].value.startswith('ABBUONI: - 0,10 € (1 volta) | RESTI LASCIATI DAI CLIENTI: + 0,10'), ws['A39'].value   # nota resti lasciati
 scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]
