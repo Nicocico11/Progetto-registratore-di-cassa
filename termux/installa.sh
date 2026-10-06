@@ -344,8 +344,17 @@ fi
 [ -z "$FILE" ] && { echo "❌ Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
 OUT=$(bash "$FILE"); CODICE=$?
 # Un pulsante che non scrive niente (es. chiusa la finestra dei Totali): niente "%stdout" nel messaggio
-# di Tasker, ma il riassunto del turno
-[ -z "$OUT" ] && OUT=$(python3 ~/info_turno.py riassunto 2>/dev/null)
+# di Tasker, ma un riassunto di quella finestra
+if [ -z "$OUT" ]; then
+  case "$FILE" in
+    *Totali) QUALE=totali ;;
+    *"Ultime vendite") QUALE=elenco ;;
+    *"Prodotti venduti") QUALE=market ;;
+    *"Erogazioni AdBlue") QUALE=adblue ;;
+    *) QUALE="" ;;
+  esac
+  OUT=$(python3 ~/info_turno.py riassunto $QUALE 2>/dev/null)
+fi
 echo "${OUT:-OK}"
 exit $CODICE
 FINE_FILE
@@ -2848,6 +2857,31 @@ def totali_brevi(righe):
     return "\n".join(out)
 
 
+def riassunto(righe, quale=""):
+    """Una riga per il messaggio di Tasker dopo una finestra chiusa, diversa per ogni finestra."""
+    vv = vendite(righe)
+    if quale == "totali":
+        t = leggi_turno() or {}
+        contanti = totali_per(vv, "metodo").get("Contanti", 0.0)
+        attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
+        return f"💶 Attesi in cassa: {euro(attesi)} · Tot: {euro(sum(v['importo'] for v in vv))}"
+    if quale == "elenco":
+        gruppi = transazioni(righe)
+        ultima = riga_vendita(gruppi[-1]) if gruppi else None
+        return f"🔍 Ultima: {ultima[2:]}" if ultima else "🔍 Nessuna vendita"
+    if quale == "market":
+        gruppi = righe_market(vv)
+        pezzi = sum(q for _, q, _ in gruppi)
+        return f"🛒 Market: {numero(pezzi)} {'pezzo' if pezzi == 1 else 'pezzi'} · {euro(sum(i for _, _, i in gruppi))}"
+    if quale == "adblue":
+        ad = [v for v in vv if v["reparto"] == "AdBlue"]
+        litri = sum(v["quantita"] for v in ad if v["unita"] == "l")
+        taniche = sum(v["quantita"] for v in ad if v["unita"] != "l")
+        return f"🧪 AdBlue: {litri:g} l sfuso · {numero(taniche)} {'tanica' if taniche == 1 else 'taniche'}"
+    n = numero_vendite(righe)
+    return f"📊 Tot: {euro(sum(v['importo'] for v in vv))} · {n} {'vendita' if n == 1 else 'vendite'}"
+
+
 def titolo_notifica():
     """Titolo della notifica: turno e ora di chiusura del collega (es. "☀️ Pomeriggio · 13:59:12")."""
     t = leggi_turno()
@@ -3157,9 +3191,8 @@ def main():
             print(totali_brevi(righe))
         elif comando == "totali":
             print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
-        elif comando == "riassunto":
-            n = numero_vendite(righe)
-            print(f"📊 Tot: {euro(sum(v['importo'] for v in vendite(righe)))} · {n} {'vendita' if n == 1 else 'vendite'}")
+        elif comando.startswith("riassunto"):
+            print(riassunto(righe, comando[len("riassunto"):].strip()))
         elif comando == "elenco":
             print(elenco_vendite(righe))
         elif comando == "market":
@@ -10140,4 +10173,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 19:04"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 19:09"

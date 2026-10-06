@@ -20,7 +20,16 @@ fi
 [ -z "$FILE" ] && { echo "❌ Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
 OUT=$(bash "$FILE"); CODICE=$?
 # Un pulsante che non scrive niente (es. chiusa la finestra dei Totali): niente "%stdout" nel messaggio
-# di Tasker, ma il riassunto del turno
-[ -z "$OUT" ] && OUT=$(python3 ~/info_turno.py riassunto 2>/dev/null)
+# di Tasker, ma un riassunto di quella finestra
+if [ -z "$OUT" ]; then
+  case "$FILE" in
+    *Totali) QUALE=totali ;;
+    *"Ultime vendite") QUALE=elenco ;;
+    *"Prodotti venduti") QUALE=market ;;
+    *"Erogazioni AdBlue") QUALE=adblue ;;
+    *) QUALE="" ;;
+  esac
+  OUT=$(python3 ~/info_turno.py riassunto $QUALE 2>/dev/null)
+fi
 echo "${OUT:-OK}"
 exit $CODICE

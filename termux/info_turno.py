@@ -591,6 +591,31 @@ def totali_brevi(righe):
     return "\n".join(out)
 
 
+def riassunto(righe, quale=""):
+    """Una riga per il messaggio di Tasker dopo una finestra chiusa, diversa per ogni finestra."""
+    vv = vendite(righe)
+    if quale == "totali":
+        t = leggi_turno() or {}
+        contanti = totali_per(vv, "metodo").get("Contanti", 0.0)
+        attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
+        return f"💶 Attesi in cassa: {euro(attesi)} · Tot: {euro(sum(v['importo'] for v in vv))}"
+    if quale == "elenco":
+        gruppi = transazioni(righe)
+        ultima = riga_vendita(gruppi[-1]) if gruppi else None
+        return f"🔍 Ultima: {ultima[2:]}" if ultima else "🔍 Nessuna vendita"
+    if quale == "market":
+        gruppi = righe_market(vv)
+        pezzi = sum(q for _, q, _ in gruppi)
+        return f"🛒 Market: {numero(pezzi)} {'pezzo' if pezzi == 1 else 'pezzi'} · {euro(sum(i for _, _, i in gruppi))}"
+    if quale == "adblue":
+        ad = [v for v in vv if v["reparto"] == "AdBlue"]
+        litri = sum(v["quantita"] for v in ad if v["unita"] == "l")
+        taniche = sum(v["quantita"] for v in ad if v["unita"] != "l")
+        return f"🧪 AdBlue: {litri:g} l sfuso · {numero(taniche)} {'tanica' if taniche == 1 else 'taniche'}"
+    n = numero_vendite(righe)
+    return f"📊 Tot: {euro(sum(v['importo'] for v in vv))} · {n} {'vendita' if n == 1 else 'vendite'}"
+
+
 def titolo_notifica():
     """Titolo della notifica: turno e ora di chiusura del collega (es. "☀️ Pomeriggio · 13:59:12")."""
     t = leggi_turno()
@@ -900,9 +925,8 @@ def main():
             print(totali_brevi(righe))
         elif comando == "totali":
             print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
-        elif comando == "riassunto":
-            n = numero_vendite(righe)
-            print(f"📊 Tot: {euro(sum(v['importo'] for v in vendite(righe)))} · {n} {'vendita' if n == 1 else 'vendite'}")
+        elif comando.startswith("riassunto"):
+            print(riassunto(righe, comando[len("riassunto"):].strip()))
         elif comando == "elenco":
             print(elenco_vendite(righe))
         elif comando == "market":

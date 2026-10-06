@@ -153,7 +153,9 @@ controlla "cancella"                  "cancella ultima"                         
 bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 03 AdBlue litri" || { echo "  ERRORE widget 03"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 [ "$(bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" 2>/dev/null)" = "✅ Vendita salvata: Carburante 45.50 € - POS nero" ] && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
-bash $HOME/.termux/tasker/pulsante.sh "Totali" 2>/dev/null | grep -q "^📊 Tot: .* vendit" && echo "  ok   finestra chiusa: riassunto invece di %stdout" || { echo "  ERRORE riassunto dopo finestra"; ERRORI=$((ERRORI+1)); }
+for P in "Totali|💶 Attesi in cassa: .* · Tot:" "Ultime vendite|🔍 Ultima: [0-9:]+ \| 45.50€ \(NER\) CARBURANTE" "Prodotti venduti|🛒 Market: [0-9]+ pezz.* · " "Erogazioni AdBlue|🧪 AdBlue: .* l sfuso · .* tanic" "Stato IA|📊 Tot: .* vendit"; do
+  bash $HOME/.termux/tasker/pulsante.sh "${P%%|*}" 2>/dev/null | grep -qE "^${P#*|}" && echo "  ok   finestra ${P%%|*} chiusa: suo riassunto" || { echo "  ERRORE riassunto ${P%%|*}: $(bash $HOME/.termux/tasker/pulsante.sh "${P%%|*}" 2>/dev/null)"; ERRORI=$((ERRORI+1)); }
+done
 # Pulsanti della tendina: "+ Danea" / "+ Fax" quando c'è gente, poi "Segna"
 SEG=$HOME/.termux/tasker/da_segnare.sh
 bash $SEG danea; bash $SEG fax
