@@ -584,16 +584,29 @@ def totali_brevi(righe):
     return "\n".join(out)
 
 
-def notifica_breve(righe):
+def titolo_notifica():
+    """Titolo della notifica: turno e ora di chiusura del collega (es. "🕐 Pomeriggio · collega chiuso alle 13:59:12")."""
     t = leggi_turno()
-    intest = f"🕐 {t['tipo']} dalle {t['apertura'][-5:]}" if t else "🕐 Turno non aperto"
+    if not t:
+        return "🕐 Turno non aperto"
+    try:
+        import excel_turno
+        ora = excel_turno.leggi_stato().get("orario_chiusura")
+    except Exception:
+        ora = None
+    prova = " 🧪 PROVA" if t.get("prova") else ""
+    return f"🕐 {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
+
+
+def notifica_breve(righe):
     vv = vendite(righe)
     if not vv:
-        print(f"📊 Totale: 0.00 € | Vendite: 0  {intest}\n────────────────\nNessuna transazione registrata.")
+        print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nNessuna transazione registrata.")
         return
 
     totale = sum(v["importo"] for v in vv)
-    out = [f"📊 Tot: {euro(totale)} ({numero_vendite(righe)} vendite)  {intest}"]
+    n = numero_vendite(righe)
+    out = [f"📊 Tot: {euro(totale)} ({n} {'vendita' if n == 1 else 'vendite'})"]
 
     # Carburanti tutti insieme (gasolio, benzina e "carburante" detto senza tipo); gli altri come totale
     parti = []
@@ -799,6 +812,8 @@ def main():
             pass
     elif comando.startswith("contatore"):
         imposta_contatore(" ".join(sys.argv[2:]) or comando)
+    elif comando == "titolo":
+        print(titolo_notifica())
     elif comando == "cancella versamento":
         cancella_versamento()
     elif comando.startswith("versamento"):

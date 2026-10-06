@@ -5,9 +5,10 @@ if ! python3 ~/info_turno.py aperto; then
   exit 0
 fi
 TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
+TITOLO=$(python3 ~/info_turno.py titolo)   # turno e ora di chiusura del collega
 termux-notification \
   --id "distributore_turno" \
-  --title "📊 Stato Turno Q8" \
+  --title "$TITOLO" \
   --content "$TESTO_NOTIFICA" \
   --ongoing \
   --alert-once \

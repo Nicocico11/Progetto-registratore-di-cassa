@@ -440,9 +440,10 @@ if ! python3 ~/info_turno.py aperto; then
   exit 0
 fi
 TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
+TITOLO=$(python3 ~/info_turno.py titolo)   # turno e ora di chiusura del collega
 termux-notification \
   --id "distributore_turno" \
-  --title "📊 Stato Turno Q8" \
+  --title "$TITOLO" \
   --content "$TESTO_NOTIFICA" \
   --ongoing \
   --alert-once \
@@ -2678,16 +2679,29 @@ def totali_brevi(righe):
     return "\n".join(out)
 
 
-def notifica_breve(righe):
+def titolo_notifica():
+    """Titolo della notifica: turno e ora di chiusura del collega (es. "🕐 Pomeriggio · collega chiuso alle 13:59:12")."""
     t = leggi_turno()
-    intest = f"🕐 {t['tipo']} dalle {t['apertura'][-5:]}" if t else "🕐 Turno non aperto"
+    if not t:
+        return "🕐 Turno non aperto"
+    try:
+        import excel_turno
+        ora = excel_turno.leggi_stato().get("orario_chiusura")
+    except Exception:
+        ora = None
+    prova = " 🧪 PROVA" if t.get("prova") else ""
+    return f"🕐 {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
+
+
+def notifica_breve(righe):
     vv = vendite(righe)
     if not vv:
-        print(f"📊 Totale: 0.00 € | Vendite: 0  {intest}\n────────────────\nNessuna transazione registrata.")
+        print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nNessuna transazione registrata.")
         return
 
     totale = sum(v["importo"] for v in vv)
-    out = [f"📊 Tot: {euro(totale)} ({numero_vendite(righe)} vendite)  {intest}"]
+    n = numero_vendite(righe)
+    out = [f"📊 Tot: {euro(totale)} ({n} {'vendita' if n == 1 else 'vendite'})"]
 
     # Carburanti tutti insieme (gasolio, benzina e "carburante" detto senza tipo); gli altri come totale
     parti = []
@@ -2893,6 +2907,8 @@ def main():
             pass
     elif comando.startswith("contatore"):
         imposta_contatore(" ".join(sys.argv[2:]) or comando)
+    elif comando == "titolo":
+        print(titolo_notifica())
     elif comando == "cancella versamento":
         cancella_versamento()
     elif comando.startswith("versamento"):
@@ -9518,7 +9534,8 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
-• Nella tendina compare la notifica "Stato Turno".
+• Nella tendina compare la notifica del turno: nel titolo il turno e l'ora in cui
+  ha chiuso il collega (es. "🕐 Pomeriggio · collega chiuso alle 13:59:12").
 
 🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
 "apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
@@ -9811,4 +9828,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:16"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:29"
