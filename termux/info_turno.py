@@ -657,6 +657,12 @@ def numero_vendite(righe):
     return n
 
 
+def descrivi_gruppo(gruppo):
+    """"Gasolio 20.10 € + Abbuono -0.10 €": cosa c'era nella vendita cancellata."""
+    vv = [v for v in (vendita(r) for r in gruppo) if v]
+    return " + ".join(f"{v['categoria']} {v['importo']:.2f} €" for v in vv) + (f" ({vv[0]['metodo']})" if vv else "")
+
+
 def cancella_ultima():
     gruppi = transazioni(leggi_csv())
     if not gruppi:
@@ -665,8 +671,7 @@ def cancella_ultima():
     righe_aggiornate = [r for g in gruppi[:-1] for r in g]
     scrivi_csv(righe_aggiornate)
     salva_copia()
-    print(f"🗑️ Cancellata l'ultima vendita ({len(gruppi[-1])} voci)" if len(gruppi[-1]) > 1
-          else "🗑️ Cancellata l'ultima vendita")
+    print(f"🗑️ Cancellata l'ultima vendita: {descrivi_gruppo(gruppi[-1])}")
     notifica_breve(righe_aggiornate)
 
 
@@ -678,7 +683,7 @@ def cancella_penultima():
     righe_aggiornate = [r for g in gruppi[:-2] + gruppi[-1:] for r in g]
     scrivi_csv(righe_aggiornate)
     salva_copia()
-    print("🗑️ Cancellata la penultima vendita")
+    print(f"🗑️ Cancellata la penultima vendita: {descrivi_gruppo(gruppi[-2])}")
     notifica_breve(righe_aggiornate)
 
 
