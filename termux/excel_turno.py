@@ -13,6 +13,7 @@ DANEA = [(f'E{r}', f'H{r}') for r in range(2, 30)]                              
 TELEFAX = [f'{c}{r}' for r in range(21, 26) for c in 'ABCD']
 ADBLUE_LITRI = [f'{c}17' for c in 'IJKLMNO'] + [f'{c}18' for c in 'IJKLMN']
 SCONTRINI_POS = [f'{c}{r}' for r in range(27, 33) for c in 'STUV']
+OPT = [f'{c}{r}' for r in (2, 3) for c in 'IJKLMNO']                                # accettatore esterno
 CREDITI_CLIENTI = [(f'I{r}', f'L{r}') for r in range(8, 16)]   # nome, importo
 CREDITI_RISCOSSI = [(f'M{r}', f'O{r}') for r in range(8, 16)]
 # La notte porta la data del giorno in cui finisce: pomeriggio del 4 -> notte del 5 -> mattina del 5
@@ -150,6 +151,9 @@ def crea_excel(righe, turno, orario_terminale, cartella):
             note.append(f"{titolo}: {'+' if totale > 0 else '-'} {abs(totale):.2f} € ({len(lista)} {'volta' if len(lista) == 1 else 'volte'})".replace('.', ','))
     if note:
         ws['A39'] = " | ".join(note) + " - compaiono nella differenza"
+
+    # OPT (accettatore esterno): un importo per casella
+    riempi(ws, OPT, [imp(v) for v in voci if v.get('reparto') == 'OPT'], avvisi, "OPT")
 
     # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
     metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))

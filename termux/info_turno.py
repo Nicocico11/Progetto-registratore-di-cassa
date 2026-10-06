@@ -506,7 +506,7 @@ def totali_brevi(righe):
     contanti = per_metodo.get("Contanti", 0.0)
     attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
     nomi = (("POS nero", "POS nero"), ("POS bianco", "POS bianco"), ("POS cassa", "POS cassa"),
-            ("Petrolifere", "Petrolifere"), ("Credito", "Crediti clienti"))
+            ("Petrolifere", "Petrolifere"), ("OPT", "OPT"), ("Credito", "Crediti clienti"))
     out = [f"Vendite: {numero_vendite(righe)}",
            f"💶 Attesi in cassa: {euro(attesi)}",
            f"   (avanzo {euro(t.get('avanzo') or 0.0)} + contanti {euro(contanti)}"

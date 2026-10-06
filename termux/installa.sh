@@ -256,13 +256,14 @@ annullato() { messaggio "Niente salvato"; casa; }
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
 pagamento() {   # pagamento "titolo" [senza_cassa]
   local scelte="Contanti,POS cassa (negozio),POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima)"
+  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima),OPT (accettatore)"
   case "$(scegli "$1" "$scelte")" in
     Contanti) echo "contanti" ;;
     "POS cassa"*) echo "in cassa" ;;
     "POS nero") echo "sul nero" ;;
     "POS bianco") echo "sul bianco" ;;
     Petrolifere*) echo "petrolifere" ;;
+    OPT*) echo "opt" ;;
   esac
 }
 FINE_FILE
@@ -463,6 +464,8 @@ testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|
 testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
 testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?resto)\b', 'lasciato', testo_basso)  # "resto lasciato"
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
+testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o\s+p\s+ti|accettatore)\b', 'opt',
+                     testo_basso)                                                      # "o p t", "otp" -> opt
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -903,8 +906,18 @@ def voce_danea(testo):
             "importo": round(importo, 2), "danea_a_mano": True}
 
 
+def voce_opt(testo):
+    """"50 opt": incasso dell'accettatore esterno (OPT). Nessun pagamento, non tocca i contanti."""
+    importo = numero_in_euro(testo) or primo_numero(testo)
+    if not importo:
+        return None
+    return {"categoria": "OPT", "reparto": "OPT", "importo": round(importo, 2), "metodo_pagamento": "OPT"}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(r'\bopt\b', testo):
+        return voce_opt(testo)
     if re.search(r'\bdanea\b', testo):
         return voce_danea(testo)
     if re.search(PAROLE_RESTO, testo):
@@ -926,7 +939,7 @@ def prodotto_o_ambiguo(testo):
 
 
 def ha_voce(testo):
-    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo)
+    return bool(re.search(r'\b(danea|opt)\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo)
                 or prodotto_o_ambiguo(testo) or carburante_detto(testo))
 
 
@@ -1328,7 +1341,9 @@ adesso_ora = datetime.datetime.now()
 SOLO_NEGOZIO = all(v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')
                    for v in voci if v['reparto'] not in ('Sconto', 'Resto lasciato')) and \
     any(v['reparto'] not in ('Sconto', 'Resto lasciato') for v in voci)
-if SOLO_NEGOZIO and pagamento_detto(testo_basso) == 'chiedi':
+if all(v['reparto'] == 'OPT' for v in voci):
+    metodo = 'OPT'            # l'OPT non ha metodo di pagamento
+elif SOLO_NEGOZIO and pagamento_detto(testo_basso) == 'chiedi':
     metodo = 'POS cassa'      # "2 red bull carta" = POS della cassa, senza chiedere
 else:
     metodo = metodo_pagamento(testo_basso, carburante=any(v['reparto'] == 'Carburante' for v in voci))
@@ -1824,6 +1839,7 @@ DANEA = [(f'E{r}', f'H{r}') for r in range(2, 30)]                              
 TELEFAX = [f'{c}{r}' for r in range(21, 26) for c in 'ABCD']
 ADBLUE_LITRI = [f'{c}17' for c in 'IJKLMNO'] + [f'{c}18' for c in 'IJKLMN']
 SCONTRINI_POS = [f'{c}{r}' for r in range(27, 33) for c in 'STUV']
+OPT = [f'{c}{r}' for r in (2, 3) for c in 'IJKLMNO']                                # accettatore esterno
 CREDITI_CLIENTI = [(f'I{r}', f'L{r}') for r in range(8, 16)]   # nome, importo
 CREDITI_RISCOSSI = [(f'M{r}', f'O{r}') for r in range(8, 16)]
 # La notte porta la data del giorno in cui finisce: pomeriggio del 4 -> notte del 5 -> mattina del 5
@@ -1961,6 +1977,9 @@ def crea_excel(righe, turno, orario_terminale, cartella):
             note.append(f"{titolo}: {'+' if totale > 0 else '-'} {abs(totale):.2f} € ({len(lista)} {'volta' if len(lista) == 1 else 'volte'})".replace('.', ','))
     if note:
         ws['A39'] = " | ".join(note) + " - compaiono nella differenza"
+
+    # OPT (accettatore esterno): un importo per casella
+    riempi(ws, OPT, [imp(v) for v in voci if v.get('reparto') == 'OPT'], avvisi, "OPT")
 
     # Pagamenti con carta: i tre POS "esterni" come totali, il POS della cassa uno scontrino per vendita
     metodo = lambda v: {'Carta carburante': 'Petrolifere'}.get(v.get('metodo_pagamento'), v.get('metodo_pagamento'))
@@ -2550,7 +2569,7 @@ def totali_brevi(righe):
     contanti = per_metodo.get("Contanti", 0.0)
     attesi = (t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0)
     nomi = (("POS nero", "POS nero"), ("POS bianco", "POS bianco"), ("POS cassa", "POS cassa"),
-            ("Petrolifere", "Petrolifere"), ("Credito", "Crediti clienti"))
+            ("Petrolifere", "Petrolifere"), ("OPT", "OPT"), ("Credito", "Crediti clienti"))
     out = [f"Vendite: {numero_vendite(righe)}",
            f"💶 Attesi in cassa: {euro(attesi)}",
            f"   (avanzo {euro(t.get('avanzo') or 0.0)} + contanti {euro(contanti)}"
@@ -9422,6 +9441,11 @@ CARBURANTE
 ⚠️ Un rifornimento sopra i 1200 € si salva con 2 vibrazioni e "Importo molto alto":
 controlla che non sia un "19 e 90" capito come 1990.
 
+OPT (accettatore esterno, senza metodo di pagamento)
+• "50 opt" · "opt 35 e 50" · "ottanta di opt"
+  → una casella della sezione OPT dell'Excel (I2:O3) per ogni importo.
+  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT".
+
 CENTESIMI
 • "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €
 
@@ -9670,4 +9694,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 05/10 09:42"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 13:41"

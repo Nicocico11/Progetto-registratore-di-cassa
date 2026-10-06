@@ -35,6 +35,8 @@ testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|
 testo_basso = re.sub(r'\b(\d+(?:[.,]\d+)?)\s+ore\b', r'\1 euro', testo_basso)          # "20 ore" -> 20 euro
 testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?resto)\b', 'lasciato', testo_basso)  # "resto lasciato"
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
+testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o\s+p\s+ti|accettatore)\b', 'opt',
+                     testo_basso)                                                      # "o p t", "otp" -> opt
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -475,8 +477,18 @@ def voce_danea(testo):
             "importo": round(importo, 2), "danea_a_mano": True}
 
 
+def voce_opt(testo):
+    """"50 opt": incasso dell'accettatore esterno (OPT). Nessun pagamento, non tocca i contanti."""
+    importo = numero_in_euro(testo) or primo_numero(testo)
+    if not importo:
+        return None
+    return {"categoria": "OPT", "reparto": "OPT", "importo": round(importo, 2), "metodo_pagamento": "OPT"}
+
+
 def voce(testo):
     """Una voce della vendita, o None se il pezzo di frase non si capisce."""
+    if re.search(r'\bopt\b', testo):
+        return voce_opt(testo)
     if re.search(r'\bdanea\b', testo):
         return voce_danea(testo)
     if re.search(PAROLE_RESTO, testo):
@@ -498,7 +510,7 @@ def prodotto_o_ambiguo(testo):
 
 
 def ha_voce(testo):
-    return bool(re.search(r'\bdanea\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo)
+    return bool(re.search(r'\b(danea|opt)\b', testo) or re.search(PAROLE_SCONTO, testo) or re.search(PAROLE_RESTO, testo)
                 or prodotto_o_ambiguo(testo) or carburante_detto(testo))
 
 
@@ -900,7 +912,9 @@ adesso_ora = datetime.datetime.now()
 SOLO_NEGOZIO = all(v['reparto'] in ('Market', 'Fax') or (v['reparto'] == 'AdBlue' and v.get('unita') != 'l')
                    for v in voci if v['reparto'] not in ('Sconto', 'Resto lasciato')) and \
     any(v['reparto'] not in ('Sconto', 'Resto lasciato') for v in voci)
-if SOLO_NEGOZIO and pagamento_detto(testo_basso) == 'chiedi':
+if all(v['reparto'] == 'OPT' for v in voci):
+    metodo = 'OPT'            # l'OPT non ha metodo di pagamento
+elif SOLO_NEGOZIO and pagamento_detto(testo_basso) == 'chiedi':
     metodo = 'POS cassa'      # "2 red bull carta" = POS della cassa, senza chiedere
 else:
     metodo = metodo_pagamento(testo_basso, carburante=any(v['reparto'] == 'Carburante' for v in voci))

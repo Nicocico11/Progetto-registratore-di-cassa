@@ -135,6 +135,8 @@ grep -q "mostra --id avviso_cassa.*--sound.*IMPORTO MOLTO ALTO" $HOME/notifiche.
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "camion 950: normale"       "950 di gasolio sul nero"                      "Gasolio 950.00 € - POS nero"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "OPT"                       "50 opt"                                       "OPT 50.00 € - OPT"
+controlla "OPT detto male"            "o p t 35 e 50"                                "OPT 35.50"
 controlla "versamento a parole"       "versamento cinquanta"                         "50.00"
 controlla "numeri in lettere"         "trentacinque di verde sul bianco"             "Benzina 35.00 € - POS bianco"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
@@ -192,6 +194,7 @@ ws = openpyxl.load_workbook(oggi[0]).active
 assert ws['O20'].value == 1000.5 and ws['O19'].value == 1020.5, (ws['O20'].value, ws['O19'].value)   # +20 litri
 assert ws['K30'].value == 10 and ws['K31'].value == 9                     # 1 tanica venduta
 assert ws['I17'].value == 20 and ws['A21'].value == 1.5                   # litri sfuso, fax
+assert (ws['I2'].value, ws['J2'].value, ws['K2'].value) == (50, 35.5, None), (ws['I2'].value, ws['J2'].value)  # OPT
 assert ws['I5'].value is None                                             # abbuono: niente SCONTI
 assert ws['A39'].value.startswith('ABBUONI: - 0,10 € (1 volta) | RESTI LASCIATI DAI CLIENTI: + 0,10'), ws['A39'].value   # nota resti lasciati
 scontrini = [ws[c].value for c in ('S27', 'T27', 'U27', 'V27')]

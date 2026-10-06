@@ -55,12 +55,13 @@ annullato() { messaggio "Niente salvato"; casa; }
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
 pagamento() {   # pagamento "titolo" [senza_cassa]
   local scelte="Contanti,POS cassa (negozio),POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima)"
+  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima),OPT (accettatore)"
   case "$(scegli "$1" "$scelte")" in
     Contanti) echo "contanti" ;;
     "POS cassa"*) echo "in cassa" ;;
     "POS nero") echo "sul nero" ;;
     "POS bianco") echo "sul bianco" ;;
     Petrolifere*) echo "petrolifere" ;;
+    OPT*) echo "opt" ;;
   esac
 }
