@@ -34,6 +34,9 @@ case "$*" in
   *"Banconote del versamento"*) echo '{"code": -1, "text": "1 da 50"}' ;;
   *"Cosa cancello"*) echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
+  *"Danea delle"*) [ -f ~/annulla ] && echo '{"code": -2, "text": ""}' || echo '{"code": -1, "text": "2 red bull"}' ;;  # tendina
+  *"Fax delle"*) echo '{"code": -1, "text": "1,50"}' ;;
+  *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
   *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
   *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
   *"Quanti centesimi"*) echo '{"code": -1, "text": "7"}' ;;
@@ -136,6 +139,19 @@ bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 [ "$(bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" 2>/dev/null)" = "✅ Vendita salvata: Carburante 45.50 € - POS nero" ] && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
 bash $HOME/.termux/tasker/pulsante.sh "Totali" 2>/dev/null | grep -q "^📊 Tot: .* vendit" && echo "  ok   finestra chiusa: riassunto invece di %stdout" || { echo "  ERRORE riassunto dopo finestra"; ERRORI=$((ERRORI+1)); }
+# Pulsanti della tendina: "+ Danea" / "+ Fax" quando c'è gente, poi "Segna"
+SEG=$HOME/.termux/tasker/da_segnare.sh
+bash $SEG danea; bash $SEG fax
+tail -12 $HOME/notifiche.log | grep -q "DA SEGNARE: 1 Danea · 1 fax" && tail -1 $HOME/notifiche.log | grep -q "Segna (2)" && echo "  ok   tendina: da segnare 1 Danea e 1 fax" || { echo "  ERRORE tendina da segnare"; tail -1 $HOME/notifiche.log; ERRORI=$((ERRORI+1)); }
+controlla "chiusura con vendite da segnare" "chiusura turno"                    "NON CHIUSO: ci sono vendite da segnare"
+RIGHE_PRIMA=$(wc -l < $HOME/transazioni_turno.csv)
+bash $SEG segna > /dev/null 2>&1
+[ ! -f $HOME/.cassa_da_segnare ] && [ $(wc -l < $HOME/transazioni_turno.csv) -eq $((RIGHE_PRIMA+2)) ] && tail -2 $HOME/transazioni_turno.csv | grep -q "Red Bull" && tail -1 $HOME/transazioni_turno.csv | grep -q 'importo"": ""1.50' \
+  && echo "  ok   tendina: segnate le 2 vendite" || { echo "  ERRORE tendina segna"; tail -3 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
+bash $SEG danea; touch $HOME/annulla; bash $SEG segna > /dev/null 2>&1; rm -f $HOME/annulla
+[ ! -f $HOME/.cassa_da_segnare ] && [ $(wc -l < $HOME/transazioni_turno.csv) -eq $((RIGHE_PRIMA+2)) ] && echo "  ok   tendina: tocco sbagliato scartato" || { echo "  ERRORE tendina scarto"; ERRORI=$((ERRORI+1)); }
+controlla "cancella fax tendina"       "cancella ultima"                              "Cancellata"
+controlla "cancella danea tendina"     "cancella ultima"                              "Cancellata"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "mista per cancellare"      "50 gasolio e 2 red bull sul nero"             "2 voci"
 controlla "fax da tenere"             "3 fax"                                        "fogli"

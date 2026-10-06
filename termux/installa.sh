@@ -75,12 +75,16 @@ case "$FRASE" in
         TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
       fi
       echo "🟢 TURNO APERTO"
+      rm -f ~/.cassa_da_segnare   # vendite "da segnare" rimaste da un turno vecchio
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
       # "apertura turno prova" / "test": file con TEST nel nome, contatori veri non toccati
       PROVA=$(grep -oE 'prova|test' <<< "$FRASE" | head -1)
       python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO" "$PROVA"
       # L'IA non si accende più da sola: le vendite si capiscono con le regole ("accendi ia" se serve)
+    elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_da_segnare ]; then
+      # Vendite segnate con i pulsanti della tendina e mai registrate: prima vanno segnate
+      echo "⚠️ NON CHIUSO: ci sono vendite da segnare ($(bash $CARTELLA/da_segnare.sh conta)). Tocca \"📝 Segna\" nella tendina, poi richiudi"
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
@@ -344,6 +348,71 @@ OUT=$(bash "$FILE"); CODICE=$?
 echo "${OUT:-OK}"
 exit $CODICE
 FINE_FILE
+cat > ~/.termux/tasker/da_segnare.sh <<'FINE_FILE'
+#!/bin/bash
+# Vendite "da segnare dopo" dai pulsanti della tendina (quando c'è tanta gente):
+#   da_segnare.sh danea | fax  -> aggiunge una vendita da segnare (solo il tipo e l'ora, niente importo)
+#   da_segnare.sh segna        -> appena c'è tempo: chiede importo e pagamento di ognuna, in ordine
+#   da_segnare.sh conta        -> "2 Danea · 1 fax" (per la notifica), niente se non ce ne sono
+. ~/.termux/tasker/widget_comune.sh
+FILE=~/.cassa_da_segnare
+NOTIFICA=~/.termux/tasker/notifica.sh
+
+conta() {
+  [ -s "$FILE" ] || return 0
+  local d f
+  d=$(grep -c '^danea' "$FILE"); f=$(grep -c '^fax' "$FILE")
+  local testo=""
+  [ "$d" -gt 0 ] && testo="$d Danea"
+  [ "$f" -gt 0 ] && testo="${testo:+$testo · }$f fax"
+  echo "$testo"
+}
+
+case "$1" in
+  danea|fax)
+    echo "$1 $(date +%H:%M)" >> "$FILE"
+    termux-vibrate -d 60 > /dev/null 2>&1    # vibrazione corta: tocco preso
+    bash "$NOTIFICA"
+    ;;
+  conta)
+    conta
+    ;;
+  segna)
+    [ -s "$FILE" ] || { finestra "📝 Da segnare" "Nessuna vendita da segnare."; exit 0; }
+    FATTE=""
+    while [ -s "$FILE" ]; do
+      read -r TIPO ORA < "$FILE"
+      TOT=$(grep -c . "$FILE")
+      if [ "$TIPO" = fax ]; then
+        COSA=$(numero "📠 Fax delle $ORA (ne restano $TOT): quanti euro?" "es. 1,50")
+        [ -n "$COSA" ] && COSA="fax $COSA euro"
+      else
+        COSA=$(testo "🛒 Danea delle $ORA (ne restano $TOT): cosa?" "es. ichnusa · 2 red bull · danea caricabatterie 15")
+      fi
+      PAGATO=""
+      [ -n "$COSA" ] && PAGATO=$(pagamento "💳 Pagamento di: $COSA")
+      if [ -z "$COSA" ] || [ -z "$PAGATO" ]; then
+        # Annullato: tocco sbagliato (si scarta) oppure si segna più tardi
+        if conferma "🗑️ Scarto questa vendita?" "Sì = era un tocco sbagliato, la tolgo. No = la tengo e la segno dopo."; then
+          sed -i '1d' "$FILE"
+          FATTE+="🗑️ $TIPO delle $ORA scartato"$'\n'
+          continue
+        fi
+        break
+      fi
+      RISPOSTA=$(bash "$CASSA" "$COSA $PAGATO")
+      FATTE+="$(grep -m3 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -1 <<< "$RISPOSTA")"$'\n'
+      # Se non è stata capita resta da segnare (si riprova); altrimenti è fatta
+      if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then sed -i '1d' "$FILE"; else break; fi
+    done
+    [ -s "$FILE" ] || rm -f "$FILE"
+    RESTANO=$(conta)
+    [ -n "$RESTANO" ] && FATTE+=$'\n'"📝 Restano da segnare: $RESTANO"
+    bash "$NOTIFICA"
+    [ -n "$FATTE" ] && finestra "📝 Vendite segnate" "$FATTE"
+    ;;
+esac
+FINE_FILE
 cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
 # Avvia llama-server una sola volta, a inizio turno.
@@ -467,19 +536,30 @@ FINE_FILE
 cat > ~/.termux/tasker/notifica.sh <<'FINE_FILE'
 #!/bin/bash
 # Notifica fissa "Stato Turno" nella tendina: solo con il turno aperto.
+# Pulsanti: "+ Danea" e "+ Fax" segnano una vendita da registrare dopo (quando c'è tanta gente),
+# "Segna" chiede importo e pagamento di quelle rimaste (da_segnare.sh)
 if ! python3 ~/info_turno.py aperto; then
   termux-notification-remove distributore_turno 2>/dev/null
   exit 0
 fi
 TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
 TITOLO=$(python3 ~/info_turno.py titolo)   # turno e ora di chiusura del collega
+SEGNARE=~/.termux/tasker/da_segnare.sh
+PULSANTI=(--button1 "🛒 + Danea" --button1-action "bash $SEGNARE danea"
+          --button2 "📠 + Fax" --button2-action "bash $SEGNARE fax")
+DA_SEGNARE=$(bash $SEGNARE conta 2>/dev/null)
+if [ -n "$DA_SEGNARE" ]; then
+  TESTO_NOTIFICA="📝 DA SEGNARE: $DA_SEGNARE"$'\n'"$TESTO_NOTIFICA"
+  PULSANTI+=(--button3 "📝 Segna ($(grep -c . ~/.cassa_da_segnare))" --button3-action "bash $SEGNARE segna")
+fi
 termux-notification \
   --id "distributore_turno" \
   --title "$TITOLO" \
   --content "$TESTO_NOTIFICA" \
   --ongoing \
   --alert-once \
-  --priority high
+  --priority high \
+  "${PULSANTI[@]}"
 FINE_FILE
 cat > ~/.termux/tasker/processa_ia.py <<'FINE_FILE'
 import json, re, csv, datetime, os, sys, subprocess, urllib.request
@@ -9875,6 +9955,15 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 14 Chiusura turno: chiede conferma, poi orario e cassaforte
 15 Stato IA
 
+PULSANTI NELLA TENDINA (quando c'è tanta gente)
+Nella notifica del turno ci sono "🛒 + Danea" e "📠 + Fax": ogni tocco segna UNA vendita
+da registrare dopo (solo il tipo e l'ora, niente importo). Il telefono vibra un attimo.
+In cima alla notifica compare "📝 DA SEGNARE: 2 Danea · 1 fax" e il pulsante "📝 Segna (3)".
+Appena c'è tempo tocca "📝 Segna": chiede una vendita alla volta, in ordine
+(Danea: cosa hai venduto; fax: quanti euro) e il pagamento.
+Se premi Annulla chiede "Scarto questa vendita?": Sì = era un tocco sbagliato, No = la segni dopo.
+Il turno non si chiude finché ci sono vendite da segnare.
+
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
@@ -9926,4 +10015,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:57"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:06"

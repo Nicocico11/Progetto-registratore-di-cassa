@@ -280,6 +280,15 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 14 Chiusura turno: chiede conferma, poi orario e cassaforte
 15 Stato IA
 
+PULSANTI NELLA TENDINA (quando c'è tanta gente)
+Nella notifica del turno ci sono "🛒 + Danea" e "📠 + Fax": ogni tocco segna UNA vendita
+da registrare dopo (solo il tipo e l'ora, niente importo). Il telefono vibra un attimo.
+In cima alla notifica compare "📝 DA SEGNARE: 2 Danea · 1 fax" e il pulsante "📝 Segna (3)".
+Appena c'è tempo tocca "📝 Segna": chiede una vendita alla volta, in ordine
+(Danea: cosa hai venduto; fax: quanti euro) e il pagamento.
+Se premi Annulla chiede "Scarto questa vendita?": Sì = era un tocco sbagliato, No = la segni dopo.
+Il turno non si chiude finché ci sono vendite da segnare.
+
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
