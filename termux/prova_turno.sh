@@ -30,6 +30,7 @@ case "$*" in
   *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
   *"AdBlue sfuso: litri"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
   *"di 70 €"*) echo '{"code": -1, "text": "50"}' ;;            # non tornano: 3 tentativi, niente salvato
+  *"Versamento (€)"*) echo '{"code": -1, "text": "100"}' ;;            # widget 09 Versamento
   *"versamento di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
   *"Banconote del versamento"*) echo '{"code": -1, "text": "1 da 50"}' ;;
   *"Cosa cancello"*) echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
@@ -194,6 +195,8 @@ python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -qE "OPT +
 controlla "versamento sbagliato"      "versamento 70"                                "Niente salvato"
 controlla "versamento da cancellare"  "versamento 100"                               "Banconote: 1×100"
 controlla "cancella versamento"       "cancella versamento"                          "Versamento di 100.00 € cancellato"
+: > $HOME/toast.log; bash "$QUI/widget/09 Versamento" > /dev/null 2>&1; grep -q "Versamento registrato: 100.00" $HOME/toast.log && echo "  ok   widget 09 Versamento" || { echo "  ERRORE widget 09 Versamento"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+controlla "cancella versamento widget" "cancella versamento"                         "Versamento di 100.00 € cancellato"
 controlla "gpl"                       "25 di gpl sul nero"                           "GPL 25.00 € - POS nero"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "gpl detto male"            "30 di gi pi elle"                             "GPL 30.00"

@@ -8373,7 +8373,15 @@ case "$TIPO" in
 esac
 casa
 FINE_FILE
-cat > ~/.shortcuts/"09 Credito cliente" <<'FINE_FILE'
+cat > ~/.shortcuts/"09 Versamento" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante: versamento (contanti tolti dal cassetto); poi chiede le banconote come a voce
+. ~/.termux/tasker/widget_comune.sh
+IMPORTO=$(numero "🏦 Versamento (€)" "es. 350"); [ -z "$IMPORTO" ] && annullato
+esito "$(bash $CASSA "versamento $IMPORTO")"
+casa
+FINE_FILE
+cat > ~/.shortcuts/"10 Credito cliente" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito cliente (il cliente prende ora e paga più avanti)
 . ~/.termux/tasker/widget_comune.sh
@@ -8382,7 +8390,7 @@ IMPORTO=$(numero "📒 Credito di $NOME (€)" "es. 50,50"); [ -z "$IMPORTO" ] &
 esito "$(bash $CASSA "credito cliente $NOME $IMPORTO euro")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"10 Credito riscosso" <<'FINE_FILE'
+cat > ~/.shortcuts/"11 Credito riscosso" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito riscosso (il cliente paga un vecchio credito)
 . ~/.termux/tasker/widget_comune.sh
@@ -8392,7 +8400,7 @@ PAGATO=$(pagamento "💳 Come paga $NOME?"); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "credito riscosso $NOME $IMPORTO euro $PAGATO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"11 Anticipo Cartissima" <<'FINE_FILE'
+cat > ~/.shortcuts/"12 Anticipo Cartissima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: paga con Cartissima (come gasolio, senza rifornimento) e riceve i contanti
 . ~/.termux/tasker/widget_comune.sh
@@ -8400,14 +8408,14 @@ IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "pagato con Cartissima e dato 
 esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"12 Erogazioni AdBlue" <<'FINE_FILE'
+cat > ~/.shortcuts/"13 Erogazioni AdBlue" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: AdBlue erogato nel turno
 . ~/.termux/tasker/widget_comune.sh
 finestra "🧪 Erogazioni AdBlue" "$(python3 ~/info_turno.py adblue)"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"13 Apertura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"14 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: apertura turno (vero o di prova); poi i 4 riquadri dei valori del collega
 . ~/.termux/tasker/widget_comune.sh
@@ -8420,7 +8428,7 @@ esac
 esito "$(bash $CASSA "$FRASE")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"14 Chiusura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"15 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
 . ~/.termux/tasker/widget_comune.sh
@@ -8431,7 +8439,7 @@ RISULTATO=$(bash $CASSA "chiusura turno")
 messaggio "$(grep -m3 -E '🔴|📧|⚠️' <<< "$RISULTATO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"15 Stato IA" <<'FINE_FILE'
+cat > ~/.shortcuts/"16 Stato IA" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: stato dell'IA, accensione e spegnimento a mano
 . ~/.termux/tasker/widget_comune.sh
@@ -8744,7 +8752,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<name>Cassa Pulsanti</name>
 		<pid>31</pid>
-		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316</tids>
+		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317</tids>
 	</Project>
 	<Task sr="task301">
 		<cdate>1791000000000</cdate>
@@ -9299,6 +9307,67 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>310</id>
+		<nme>Versamento</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>"Versamento"</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>true</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Versamento</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="600"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+		<Action sr="act1" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">%stdout</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task311">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>311</id>
 		<nme>Credito</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9356,10 +9425,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task311">
+	<Task sr="task312">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>311</id>
+		<id>312</id>
 		<nme>Riscosso</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9417,10 +9486,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task312">
+	<Task sr="task313">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>312</id>
+		<id>313</id>
 		<nme>Anticipo</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9478,10 +9547,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task313">
+	<Task sr="task314">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>313</id>
+		<id>314</id>
 		<nme>Erogazioni</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9539,10 +9608,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task314">
+	<Task sr="task315">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>314</id>
+		<id>315</id>
 		<nme>Apertura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9600,10 +9669,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task315">
+	<Task sr="task316">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>315</id>
+		<id>316</id>
 		<nme>Chiusura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9661,10 +9730,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task316">
+	<Task sr="task317">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>316</id>
+		<id>317</id>
 		<nme>IA</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -10004,11 +10073,12 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 06 Prodotti venduti (finestra): i prodotti market venduti
 07 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
 08 Abbuono o resto: scegli quale e quanti centesimi
-09 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
-12 Erogazioni AdBlue (finestra)
-13 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-14 Chiusura turno: chiede conferma, poi orario e cassaforte
-15 Stato IA
+09 Versamento: importo, poi le banconote (come a voce)
+10 Credito cliente · 11 Credito riscosso · 12 Anticipo Cartissima
+13 Erogazioni AdBlue (finestra)
+14 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+15 Chiusura turno: chiede conferma, poi orario e cassaforte
+16 Stato IA
 
 PULSANTI NELLA TENDINA (quando c'è tanta gente)
 Nella notifica del turno ci sono "🛒 + Danea" e "📠 + Fax": ogni tocco segna UNA vendita
@@ -10070,4 +10140,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 18:51"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 18:59"

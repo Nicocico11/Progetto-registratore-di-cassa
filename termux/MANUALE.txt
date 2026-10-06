@@ -276,11 +276,12 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 06 Prodotti venduti (finestra): i prodotti market venduti
 07 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
 08 Abbuono o resto: scegli quale e quanti centesimi
-09 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
-12 Erogazioni AdBlue (finestra)
-13 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-14 Chiusura turno: chiede conferma, poi orario e cassaforte
-15 Stato IA
+09 Versamento: importo, poi le banconote (come a voce)
+10 Credito cliente · 11 Credito riscosso · 12 Anticipo Cartissima
+13 Erogazioni AdBlue (finestra)
+14 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+15 Chiusura turno: chiede conferma, poi orario e cassaforte
+16 Stato IA
 
 PULSANTI NELLA TENDINA (quando c'è tanta gente)
 Nella notifica del turno ci sono "🛒 + Danea" e "📠 + Fax": ogni tocco segna UNA vendita

@@ -1,0 +1,6 @@
+#!/bin/bash
+# Pulsante: versamento (contanti tolti dal cassetto); poi chiede le banconote come a voce
+. ~/.termux/tasker/widget_comune.sh
+IMPORTO=$(numero "🏦 Versamento (€)" "es. 350"); [ -z "$IMPORTO" ] && annullato
+esito "$(bash $CASSA "versamento $IMPORTO")"
+casa
