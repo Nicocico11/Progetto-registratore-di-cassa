@@ -2686,10 +2686,11 @@ def notifica_breve(righe):
     totale = sum(v["importo"] for v in vv)
     out = [f"📊 Tot: {euro(totale)} ({numero_vendite(righe)} vendite)  {intest}"]
 
-    # Carburanti per tipo; AdBlue e Market solo come totale
+    # Carburanti tutti insieme (gasolio, benzina e "carburante" detto senza tipo); gli altri come totale
     parti = []
-    for nome, val in totali_per([v for v in vv if v["reparto"] == "Carburante"], "categoria").items():
-        parti.append(f"{nome.upper()}: {val:.2f}€")
+    carburanti = sum(v["importo"] for v in vv if v["reparto"] == "Carburante")
+    if carburanti:
+        parti.append(f"CARBURANTI: {carburanti:.2f}€")
     for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
                            ("Credito cliente", "📒 CREDITI"), ("Credito riscosso", "💰 RISCOSSI")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
@@ -9806,4 +9807,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 14:46"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:13"
