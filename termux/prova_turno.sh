@@ -48,7 +48,7 @@ EOF
 printf '#!/bin/bash\nsleep 1\n' > $HOME/llama.cpp/build/bin/llama-server
 chmod +x $HOME/bin/termux-dialog $HOME/llama.cpp/build/bin/llama-server
 export PATH=$HOME/bin:$PATH
-echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00,"birra_moretti":4.00,"birra_heineken":3.50,"lampadina_h7":10.00,"lampadina_h4":9.00,"lavavetro_5_litri":16.00}' > $HOME/prezzi.json
+echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00,"birra_moretti":4.00,"birra_heineken":3.50,"lampadina_h7":10.00,"lampadina_h4":9.00,"lavavetro_5_litri":16.00,"chiave_21":8.00,"sugo_pomodoro_e_basilico":3.50}' > $HOME/prezzi.json
 python3 $HOME/.termux/tasker/migra_prezzi.py > /dev/null
 
 S=$HOME/.termux/tasker/avvia_ia.sh
@@ -108,6 +108,14 @@ controlla "cancella"                  "cancella ultima"                         
 bash "$QUI/widget/02 Vendita Danea" > /dev/null 2>&1; grep -q "Red Bull 6.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 02 Vendita Danea" || { echo "  ERRORE widget 12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "formato non è quantità"    "lavavetro 5 litri"                            "1 × Lavavetro 5 Litri 16.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "numero nel nome"           "chiave 21"                                    "1 × Chiave 21 8.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "numero nel nome e quantità" "3 chiave 21"                                  "3 × Chiave 21 24.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "e dentro il nome"          "sugo pomodoro e basilico"                     "salvata: 1 × Sugo Pomodoro E Basilico 3.50"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "migliaia a parole"         "milleduecento di gasolio petrolifere"         "Gasolio 1200.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"

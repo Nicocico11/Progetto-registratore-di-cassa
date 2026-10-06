@@ -946,13 +946,25 @@ def metodo_pagamento(testo, carburante=False):
     return metodo
 
 
+def senza_numeri_del_nome(nome, testo):
+    """Toglie i numeri che fanno parte del nome, così non diventano la quantità:
+    "power bank 5000", "chiave 21", "duracell 2032", "miele gr.400", "lavavetri 5 litri".
+    Se lo stesso numero è detto due volte ("10 chiave 10") ne toglie uno solo: l'altro è la quantità."""
+    testo = re.sub(NUMERO + r'\s*(?:litri|litro|lt|l|ml|cl|kg|chili|grammi|gr|g)\b', ' ', testo)  # formato
+    for n in re.findall(NUMERO, senza_accenti(nome.lower())):
+        valore = float(n.replace(',', '.'))
+        uguali = [m for m in re.finditer(NUMERO, testo) if float(m.group(1).replace(',', '.')) == valore]
+        if uguali:
+            testo = testo[:uguali[-1].start()] + ' ' + testo[uguali[-1].end():]
+    return testo
+
+
 def voce_listino(nome, testo):
     # "2 red bull" = 2 x prezzo; "adblue 20 litri" = 20 x 1,30; "adblue 13 euro" = importo 13
     p = listino[nome]
     prezzo = float(p['prezzo'])
     if p.get('unita', 'pz') == 'pz':
-        # "lavavetri 5 litri", "olio da 1 litro": è il formato del prodotto, non la quantità
-        testo = re.sub(NUMERO + r'\s*(?:litri|litro|lt|l|ml|cl|kg|chili|grammi|gr|g)\b', ' ', testo)
+        testo = senza_numeri_del_nome(nome, testo)
     euro = numero_in_euro(testo)
     prezzo_detto = prezzo
     if euro is not None and p.get('unita', 'pz') == 'pz':
@@ -1084,13 +1096,22 @@ def ha_voce(testo):
                 or prodotto_o_ambiguo(testo) or carburante_detto(testo))
 
 
+NOMI_CON_E = sorted({senza_accenti(a.lower()) for n, p in listino.items() for a in [n] + p.get('alias', [])
+                     if ' e ' in a.lower()}, key=len, reverse=True)
+
+
 def dividi_in_pezzi(testo):
     # "50 gasolio, 20 litri adblue e 2 red bull" -> 3 pezzi.
     # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
     testo = re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo)
+    # Prodotti con "e" nel nome ("sugo pomodoro e basilico"): la "e" non divide la vendita
+    for nome_e in NOMI_CON_E:
+        if contiene(nome_e, testo):
+            testo = re.sub(r'\b' + re.escape(nome_e) + r'\b', nome_e.replace(' e ', ' &e& '), testo)
     # "19.90 di gasolio ha lasciato 10 centesimi" -> "19.90 di gasolio, ha lasciato 10 centesimi"
     testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz|resto\b))', ', ', testo)
-    grezzi = [p.strip() for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo) if p.strip()]
+    grezzi = [p.strip().replace('&e&', 'e') for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo)
+              if p.strip()]
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
     #    ma non "gasolio 50 e 20 litri di adblue" (lì sono due voci diverse)
@@ -1121,7 +1142,7 @@ def dividi_in_pezzi(testo):
             pezzi[-1] += " e " + " e ".join(sospesi)
         else:
             pezzi.append(" e ".join(sospesi))
-    return pezzi or [testo]
+    return pezzi or [testo.replace('&e&', 'e')]
 
 
 # ---------- IA: solo per una frase di carburante non capita ----------
@@ -1562,9 +1583,22 @@ _NUMERI.update({'un': 1, 'una': 1})   # "un centesimo", "una ichnusa"
 _REGEX = re.compile(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b')
 
 
+# Migliaia: "mille", "milleduecento", "duemilacinquecento" (rifornimenti dei camion, versamenti)
+_MIGLIAIA = re.compile(r'\b(mille|(?:due|tre|quattro|cinque|sei|sette|otto|nove|dieci)mila)([a-z]*)\b')
+
+
+def _migliaia(m):
+    resto = m.group(2)
+    if resto and resto not in _NUMERI:
+        return m.group(0)
+    migliaia = 1 if m.group(1) == 'mille' else _NUMERI[m.group(1)[:-4]]
+    return str(migliaia * 1000 + (_NUMERI[resto] if resto else 0))
+
+
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
-    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo.lower())
+    testo = _MIGLIAIA.sub(_migliaia, testo.lower())
+    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
 
 
 def senza_accenti(testo):
@@ -10015,4 +10049,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:06"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:34"

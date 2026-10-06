@@ -38,9 +38,22 @@ _NUMERI.update({'un': 1, 'una': 1})   # "un centesimo", "una ichnusa"
 _REGEX = re.compile(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b')
 
 
+# Migliaia: "mille", "milleduecento", "duemilacinquecento" (rifornimenti dei camion, versamenti)
+_MIGLIAIA = re.compile(r'\b(mille|(?:due|tre|quattro|cinque|sei|sette|otto|nove|dieci)mila)([a-z]*)\b')
+
+
+def _migliaia(m):
+    resto = m.group(2)
+    if resto and resto not in _NUMERI:
+        return m.group(0)
+    migliaia = 1 if m.group(1) == 'mille' else _NUMERI[m.group(1)[:-4]]
+    return str(migliaia * 1000 + (_NUMERI[resto] if resto else 0))
+
+
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
-    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo.lower())
+    testo = _MIGLIAIA.sub(_migliaia, testo.lower())
+    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
 
 
 def senza_accenti(testo):
