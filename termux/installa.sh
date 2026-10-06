@@ -488,6 +488,8 @@ testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?rest
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
 testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o\s+p\s+ti|accettatore)\b', 'opt',
                      testo_basso)                                                      # "o p t", "otp" -> opt
+testo_basso = re.sub(r'\b(?:g\s*\.?\s*p\s*\.?\s*l|gi\s*pi\s*elle|g\s*p\s*elle|gipielle|gpl\w*|gielle)\b', 'gpl',
+                     testo_basso)                                                      # "g p l", "gi pi elle" -> gpl
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -497,6 +499,7 @@ testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 
 CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
     'Benzina': ['benzina', 'verde', 'senza piombo'],
+    'GPL': ['gpl', 'gas', 'gas auto'],
 }
 # Metodi di pagamento e caselle del foglio Excel:
 #   POS bianco  -> TOTALE PAX BANCARIE (D14)      POS nero -> TOTALE POS BANCA (D12)
@@ -2114,7 +2117,7 @@ PATH_NOMI_TEST = os.path.expanduser("~/.cassa_nomi_test")
 CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
-CARBURANTI = ("BENZINA", "GASOLIO")
+CARBURANTI = ("BENZINA", "GASOLIO", "GPL")
 TURNI = {'Mattina': (6, "06-14"), 'Pomeriggio': (14, "14-22"), 'Notte': (22, "22-06")}
 
 
@@ -9540,7 +9543,8 @@ Contatore e taniche si possono correggere anche dopo, a voce:
 ━━━━━━━━━━━━━━━━━━━━━━━━
 CARBURANTE
 • "20 euro di gasolio"  •  "trentacinque di verde sul bianco"  •  "50 diesel cartissima"
-  (verde / senza piombo = Benzina, diesel = Gasolio)
+  (verde / senza piombo = Benzina, diesel = Gasolio, gpl / gas = GPL)
+• GPL: "25 di gpl", "30 di gas" (va bene anche se AutoVoice scrive "g p l" o "gi pi elle")
 • Basta anche solo l'importo: "85 euro nero", "77 bianco", "70 07 nero" (= 70,07)
   → registrato come "Carburante" (il tipo non serve per l'Excel).
 
@@ -9807,4 +9811,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:13"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:16"

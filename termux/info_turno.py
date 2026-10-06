@@ -23,7 +23,7 @@ PATH_NOMI_TEST = os.path.expanduser("~/.cassa_nomi_test")
 CARTELLA_CHIUSURE = os.path.expanduser("~/storage/downloads/Chiusure_Turno")
 # Stessa intestazione che scrive processa_ia.py
 INTESTAZIONE = ['data_ora', 'dettagli_json', 'importo']
-CARBURANTI = ("BENZINA", "GASOLIO")
+CARBURANTI = ("BENZINA", "GASOLIO", "GPL")
 TURNI = {'Mattina': (6, "06-14"), 'Pomeriggio': (14, "14-22"), 'Notte': (22, "22-06")}
 
 

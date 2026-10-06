@@ -55,7 +55,8 @@ Contatore e taniche si possono correggere anche dopo, a voce:
 ━━━━━━━━━━━━━━━━━━━━━━━━
 CARBURANTE
 • "20 euro di gasolio"  •  "trentacinque di verde sul bianco"  •  "50 diesel cartissima"
-  (verde / senza piombo = Benzina, diesel = Gasolio)
+  (verde / senza piombo = Benzina, diesel = Gasolio, gpl / gas = GPL)
+• GPL: "25 di gpl", "30 di gas" (va bene anche se AutoVoice scrive "g p l" o "gi pi elle")
 • Basta anche solo l'importo: "85 euro nero", "77 bianco", "70 07 nero" (= 70,07)
   → registrato come "Carburante" (il tipo non serve per l'Excel).
 

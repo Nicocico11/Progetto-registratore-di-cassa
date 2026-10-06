@@ -37,6 +37,8 @@ testo_basso = re.sub(r'\b(?:resto\s+lasciato|(?:ha\s+)?lasciato\s+(?:il\s+)?rest
 testo_basso = re.sub(r'\b(?:pasti|posti|post|pos|poss)\s+(bianco|nero)\b', r'pos \1', testo_basso)  # "pasti bianco"
 testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o\s+p\s+ti|accettatore)\b', 'opt',
                      testo_basso)                                                      # "o p t", "otp" -> opt
+testo_basso = re.sub(r'\b(?:g\s*\.?\s*p\s*\.?\s*l|gi\s*pi\s*elle|g\s*p\s*elle|gipielle|gpl\w*|gielle)\b', 'gpl',
+                     testo_basso)                                                      # "g p l", "gi pi elle" -> gpl
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -46,6 +48,7 @@ testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 
 CARBURANTI = {
     'Gasolio': ['gasolio', 'diesel'],
     'Benzina': ['benzina', 'verde', 'senza piombo'],
+    'GPL': ['gpl', 'gas', 'gas auto'],
 }
 # Metodi di pagamento e caselle del foglio Excel:
 #   POS bianco  -> TOTALE PAX BANCARIE (D14)      POS nero -> TOTALE POS BANCA (D12)
