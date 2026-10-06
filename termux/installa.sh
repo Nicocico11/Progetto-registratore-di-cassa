@@ -1248,6 +1248,7 @@ def avviso_ricevuta(voci, metodo):
 
 def correggi(quale):
     """"correggi ultima sul nero" / "correggi penultima 25 euro" / "correggi ultima gasolio"."""
+    global testo_basso
     with open(csv_file, encoding='utf-8') as f:
         tutte = list(csv.reader(f))
     intestazione, righe = tutte[:1], [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
@@ -1267,6 +1268,9 @@ def correggi(quale):
     voci = [json.loads(righe[k][1]) for k in indici]
     prima = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
 
+    # Centesimi come nelle vendite: "43 e 25", "43 euro e 25" -> 43.25 ("43 virgola 25" è già 43,25)
+    testo_basso = re.sub(r'(\d+)\s*(?:euro\s+)?e\s+(\d{2})\b(?!\s*(?:litri|litro|pezzi|fogli|x\b))', r'\1.\2',
+                         re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo_basso))
     nuovo_metodo = pagamento_detto(senza_parole_credito(testo_basso))
     if nuovo_metodo == 'chiedi':
         nuovo_metodo = metodo_pagamento(testo_basso)
@@ -10056,4 +10060,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:40"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:47"
