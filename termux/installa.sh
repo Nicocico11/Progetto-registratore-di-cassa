@@ -337,7 +337,12 @@ else
   FILE=$(ls ~/.shortcuts/[0-9][0-9]\ "$QUALE" 2>/dev/null | head -1)   # per nome: pulsante.sh "Totali"
 fi
 [ -z "$FILE" ] && { echo "❌ Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
-exec bash "$FILE"
+OUT=$(bash "$FILE"); CODICE=$?
+# Un pulsante che non scrive niente (es. chiusa la finestra dei Totali): niente "%stdout" nel messaggio
+# di Tasker, ma il riassunto del turno
+[ -z "$OUT" ] && OUT=$(python3 ~/info_turno.py riassunto 2>/dev/null)
+echo "${OUT:-OK}"
+exit $CODICE
 FINE_FILE
 cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
@@ -3019,6 +3024,9 @@ def main():
             print(totali_brevi(righe))
         elif comando == "totali":
             print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
+        elif comando == "riassunto":
+            n = numero_vendite(righe)
+            print(f"📊 Tot: {euro(sum(v['importo'] for v in vendite(righe)))} · {n} {'vendita' if n == 1 else 'vendite'}")
         elif comando == "elenco":
             print(elenco_vendite(righe))
         elif comando == "market":
@@ -9918,4 +9926,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:50"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:57"

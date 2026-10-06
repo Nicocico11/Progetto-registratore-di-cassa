@@ -894,6 +894,9 @@ def main():
             print(totali_brevi(righe))
         elif comando == "totali":
             print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
+        elif comando == "riassunto":
+            n = numero_vendite(righe)
+            print(f"📊 Tot: {euro(sum(v['importo'] for v in vendite(righe)))} · {n} {'vendita' if n == 1 else 'vendite'}")
         elif comando == "elenco":
             print(elenco_vendite(righe))
         elif comando == "market":

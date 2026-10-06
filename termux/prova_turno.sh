@@ -135,6 +135,7 @@ controlla "cancella"                  "cancella ultima"                         
 bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 03 AdBlue litri" || { echo "  ERRORE widget 03"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 [ "$(bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" 2>/dev/null)" = "✅ Vendita salvata: Carburante 45.50 € - POS nero" ] && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
+bash $HOME/.termux/tasker/pulsante.sh "Totali" 2>/dev/null | grep -q "^📊 Tot: .* vendit" && echo "  ok   finestra chiusa: riassunto invece di %stdout" || { echo "  ERRORE riassunto dopo finestra"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "mista per cancellare"      "50 gasolio e 2 red bull sul nero"             "2 voci"
 controlla "fax da tenere"             "3 fax"                                        "fogli"

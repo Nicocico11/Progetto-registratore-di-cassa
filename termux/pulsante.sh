@@ -18,4 +18,9 @@ else
   FILE=$(ls ~/.shortcuts/[0-9][0-9]\ "$QUALE" 2>/dev/null | head -1)   # per nome: pulsante.sh "Totali"
 fi
 [ -z "$FILE" ] && { echo "❌ Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
-exec bash "$FILE"
+OUT=$(bash "$FILE"); CODICE=$?
+# Un pulsante che non scrive niente (es. chiusa la finestra dei Totali): niente "%stdout" nel messaggio
+# di Tasker, ma il riassunto del turno
+[ -z "$OUT" ] && OUT=$(python3 ~/info_turno.py riassunto 2>/dev/null)
+echo "${OUT:-OK}"
+exit $CODICE
