@@ -65,10 +65,11 @@ CARBURANTE
 ⚠️ Un rifornimento sopra i 1200 € si salva con 2 vibrazioni e "Importo molto alto":
 controlla che non sia un "19 e 90" capito come 1990.
 
-OPT (accettatore esterno, senza metodo di pagamento)
-• "50 opt" · "opt 35 e 50" · "ottanta di opt"
+OPT (accettatore esterno, senza metodo di pagamento) — SOLO GASOLIO
+• "50 opt" · "50 gasolio opt" · "opt 35 e 50" · "ottanta di opt"
+  Benzina, GPL, AdBlue o prodotti con "opt" NON vengono salvati.
   → una casella della sezione OPT dell'Excel (I2:O3) per ogni importo.
-  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT".
+  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT (solo gasolio)".
 
 CENTESIMI
 • "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €

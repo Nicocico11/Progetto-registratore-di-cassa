@@ -182,6 +182,12 @@ controlla "camion 950: normale"       "950 di gasolio sul nero"                 
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "OPT"                       "50 opt"                                       "OPT 50.00 € - OPT"
 controlla "OPT detto male"            "o p t 35 e 50"                                "OPT 35.50"
+controlla "OPT con gasolio"           "20 gasolio opt"                               "OPT 20.00 € - OPT"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "OPT solo gasolio: benzina" "30 di benzina opt"                            "solo il gasolio"
+controlla "OPT solo gasolio: adblue"  "20 litri adblue opt"                          "solo il gasolio"
+grep -qF 'OPT (solo gasolio)' $HOME/.termux/tasker/widget_comune.sh && grep -q 'senza_cassa)' "$QUI/widget/03 AdBlue litri" \
+  && echo "  ok   OPT nel widget solo per il carburante" || { echo "  ERRORE OPT nei widget"; ERRORI=$((ERRORI+1)); }
 TOT_CARB=$(python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -m1 "= Carburanti" | grep -oE '[0-9]+\.[0-9]{2}')
 python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -qE "OPT +85.50" && python3 $HOME/info_turno.py | grep -q "CARBURANTI: ${TOT_CARB}€" \
   && echo "  ok   OPT dentro CARBURANTI (totali e tendina)" || { echo "  ERRORE OPT nei carburanti"; ERRORI=$((ERRORI+1)); }

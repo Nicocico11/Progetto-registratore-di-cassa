@@ -307,9 +307,10 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
 annullato() { messaggio "Niente salvato"; casa; }
 
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
-pagamento() {   # pagamento "titolo" [senza_cassa]
+pagamento() {   # pagamento "titolo" [senza_cassa | carburante]   (OPT solo per il carburante: solo gasolio)
   local scelte="Contanti,POS cassa (negozio),POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima),OPT (accettatore)"
+  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima)"
+  [ "$2" = carburante ] && scelte="$scelte,OPT (solo gasolio)"
   case "$(scegli "$1" "$scelte")" in
     Contanti) echo "contanti" ;;
     "POS cassa"*) echo "in cassa" ;;
@@ -1435,6 +1436,12 @@ if tipo_speciale(testo_basso):
 
 pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
+# OPT (accettatore esterno): si paga solo il gasolio
+if re.search(r'\bopt\b', testo_basso) and (
+        carburante_detto(testo_basso) not in (None, 'Gasolio') or re.search(r'\badblue\b', testo_basso)
+        or len(voci) > 1 or prodotto_o_ambiguo(re.sub(r'\bopt\b', ' ', testo_basso))):
+    print("❌ Con l'OPT si paga solo il gasolio: ridilla con un altro pagamento. Niente salvato.")
+    sys.exit(1)
 origine = 'regole'
 
 def scegli_prodotto(candidati):
@@ -8301,7 +8308,7 @@ cat > ~/.shortcuts/"01 Vendita carburante" <<'FINE_FILE'
 # Pulsante: vendita carburante con i riquadri (importo e pagamento)
 . ~/.termux/tasker/widget_comune.sh
 IMPORTO=$(numero "⛽ Importo carburante (€)" "es. 45,50"); [ -z "$IMPORTO" ] && annullato
-PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" senza_cassa); [ -z "$PAGATO" ] && annullato
+PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "$IMPORTO euro $PAGATO")"
 casa
 FINE_FILE
@@ -9786,10 +9793,11 @@ CARBURANTE
 ⚠️ Un rifornimento sopra i 1200 € si salva con 2 vibrazioni e "Importo molto alto":
 controlla che non sia un "19 e 90" capito come 1990.
 
-OPT (accettatore esterno, senza metodo di pagamento)
-• "50 opt" · "opt 35 e 50" · "ottanta di opt"
+OPT (accettatore esterno, senza metodo di pagamento) — SOLO GASOLIO
+• "50 opt" · "50 gasolio opt" · "opt 35 e 50" · "ottanta di opt"
+  Benzina, GPL, AdBlue o prodotti con "opt" NON vengono salvati.
   → una casella della sezione OPT dell'Excel (I2:O3) per ogni importo.
-  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT".
+  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT (solo gasolio)".
 
 CENTESIMI
 • "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €
@@ -10062,4 +10070,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 18:47"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 18:51"

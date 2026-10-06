@@ -871,6 +871,12 @@ if tipo_speciale(testo_basso):
 
 pezzi = dividi_in_pezzi(testo_basso)
 voci = [voce(p) for p in pezzi]
+# OPT (accettatore esterno): si paga solo il gasolio
+if re.search(r'\bopt\b', testo_basso) and (
+        carburante_detto(testo_basso) not in (None, 'Gasolio') or re.search(r'\badblue\b', testo_basso)
+        or len(voci) > 1 or prodotto_o_ambiguo(re.sub(r'\bopt\b', ' ', testo_basso))):
+    print("❌ Con l'OPT si paga solo il gasolio: ridilla con un altro pagamento. Niente salvato.")
+    sys.exit(1)
 origine = 'regole'
 
 def scegli_prodotto(candidati):
