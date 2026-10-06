@@ -182,6 +182,9 @@ controlla "camion 950: normale"       "950 di gasolio sul nero"                 
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "OPT"                       "50 opt"                                       "OPT 50.00 € - OPT"
 controlla "OPT detto male"            "o p t 35 e 50"                                "OPT 35.50"
+TOT_CARB=$(python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -m1 "= Carburanti" | grep -oE '[0-9]+\.[0-9]{2}')
+python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -qE "OPT +85.50" && python3 $HOME/info_turno.py | grep -q "CARBURANTI: ${TOT_CARB}€" \
+  && echo "  ok   OPT dentro CARBURANTI (totali e tendina)" || { echo "  ERRORE OPT nei carburanti"; ERRORI=$((ERRORI+1)); }
 controlla "versamento sbagliato"      "versamento 70"                                "Niente salvato"
 controlla "versamento da cancellare"  "versamento 100"                               "Banconote: 1×100"
 controlla "cancella versamento"       "cancella versamento"                          "Versamento di 100.00 € cancellato"

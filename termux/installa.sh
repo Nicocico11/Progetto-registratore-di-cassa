@@ -2793,9 +2793,9 @@ def prospetto_completo(righe, titolo, t=None):
     out.append("")
 
     out.append("⛽ CARBURANTI")
-    carb = {v["categoria"]: 0.0 for v in vv if v["reparto"] == "Carburante"}
+    carb = {v["categoria"]: 0.0 for v in vv if v["reparto"] in ("Carburante", "OPT")}   # OPT = carburante all'accettatore
     for v in vv:
-        if v["reparto"] == "Carburante":
+        if v["reparto"] in ("Carburante", "OPT"):
             carb[v["categoria"]] += v["importo"]
     for nome, val in sorted(carb.items()):
         out.append(f"  {nome:<16} {euro(val):>10}")
@@ -2879,7 +2879,7 @@ def notifica_breve(righe):
 
     # Carburanti tutti insieme (gasolio, benzina e "carburante" detto senza tipo); gli altri come totale
     parti = []
-    carburanti = sum(v["importo"] for v in vv if v["reparto"] == "Carburante")
+    carburanti = sum(v["importo"] for v in vv if v["reparto"] in ("Carburante", "OPT"))   # anche gli OPT
     if carburanti:
         parti.append(f"CARBURANTI: {carburanti:.2f}€")
     for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
@@ -10062,4 +10062,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:58"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 18:47"
