@@ -108,6 +108,7 @@ controlla "formato non è quantità"    "lavavetro 5 litri"                     
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"
+python3 $HOME/info_turno.py elenco | sed -n 3p | grep -q "3× RED BULL" && echo "  ok   elenco vendite (pulsante 05)" || { echo "  ERRORE elenco vendite"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py | grep -A1 "Ultime transazioni" | grep -q "3× RED BULL" && echo "  ok   Danea nella tendina" || { echo "  ERRORE Danea nella tendina"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo piccolo da solo"   "2"                                            "solo un importo piccolo"
@@ -118,7 +119,7 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto da solo"             "resto lasciato 5 centesimi"                   "Resto lasciato dal cliente 0.05"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-bash "$QUI/widget/07 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 07 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
+bash "$QUI/widget/08 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 08 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "negozio con carta = cassa"  "2 red bull carta"                             "POS cassa"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

@@ -269,11 +269,13 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
 03 AdBlue litri: litri e pagamento
-04 Totali (finestra) · 05 Ultime vendite (finestra)
-06 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
-07 Abbuono o resto: scegli quale e quanti centesimi
-08 Credito cliente · 09 Credito riscosso · 10 Anticipo Cartissima
-11 Prodotti venduti (finestra) · 12 Erogazioni AdBlue (finestra)
+04 Totali (finestra)
+05 Ultime vendite (finestra): TUTTE le vendite del turno, una riga ciascuna, la più recente in alto
+06 Prodotti venduti (finestra): i prodotti market venduti
+07 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
+08 Abbuono o resto: scegli quale e quanti centesimi
+09 Credito cliente · 10 Credito riscosso · 11 Anticipo Cartissima
+12 Erogazioni AdBlue (finestra)
 13 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
 14 Chiusura turno: chiede conferma, poi orario e cassaforte
 15 Stato IA

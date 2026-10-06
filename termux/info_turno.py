@@ -636,14 +636,27 @@ def notifica_breve(righe):
     out.append("────────────────")
     out.append("🔍 Ultime transazioni:")
     # Tutte le operazioni (anche Danea), una riga per vendita: le più recenti in alto
-    for gruppo in reversed(transazioni(righe)[-5:]):
-        g = [v for v in (vendita(r) for r in gruppo) if v]
-        if not g:
-            continue
-        metodi = "/".join(dict.fromkeys(sigla(v["metodo"]) for v in g))
-        cosa = " + ".join(voce_breve(v) for v in g)
-        out.append(f"• {g[0]['ora']} | {sum(v['importo'] for v in g):.2f}€ ({metodi}) {cosa}")
+    out += [r for r in map(riga_vendita, reversed(transazioni(righe)[-5:])) if r]
     print("\n".join(out))
+
+
+def riga_vendita(gruppo):
+    """"• 14:23 | 36.00€ (BIA) 2× RED BULL + BENZINA": una vendita (anche mista) su una riga."""
+    g = [v for v in (vendita(r) for r in gruppo) if v]
+    if not g:
+        return None
+    metodi = "/".join(dict.fromkeys(sigla(v["metodo"]) for v in g))
+    cosa = " + ".join(voce_breve(v) for v in g)
+    return f"• {g[0]['ora']} | {sum(v['importo'] for v in g):.2f}€ ({metodi}) {cosa}"
+
+
+def elenco_vendite(righe):
+    """Pulsante 05: tutte le operazioni del turno, dalla più recente."""
+    tutte = [r for r in map(riga_vendita, reversed(transazioni(righe))) if r]
+    if not tutte:
+        return "Nessuna transazione registrata."
+    n = numero_vendite(righe)
+    return "\n".join([f"{n} {'vendita' if n == 1 else 'vendite'}, la più recente in alto:", ""] + tutte)
 
 
 def mostra_archivio():
@@ -881,6 +894,8 @@ def main():
             print(totali_brevi(righe))
         elif comando == "totali":
             print("\n".join(prospetto_completo(righe, "🧾 RIEPILOGO TURNO", leggi_turno())))
+        elif comando == "elenco":
+            print(elenco_vendite(righe))
         elif comando == "market":
             print("\n".join(prospetto_market(vendite(righe))))
         elif comando == "adblue":
