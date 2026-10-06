@@ -595,7 +595,8 @@ def titolo_notifica():
     except Exception:
         ora = None
     prova = " 🧪 PROVA" if t.get("prova") else ""
-    return f"🕐 {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
+    icona = {"Mattina": "🌅", "Pomeriggio": "☀️", "Notte": "🌙"}.get(t['tipo'], "🕐")
+    return f"{icona} {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
 
 
 def notifica_breve(righe):

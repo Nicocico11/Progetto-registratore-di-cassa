@@ -2690,7 +2690,8 @@ def titolo_notifica():
     except Exception:
         ora = None
     prova = " 🧪 PROVA" if t.get("prova") else ""
-    return f"🕐 {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
+    icona = {"Mattina": "🌅", "Pomeriggio": "☀️", "Notte": "🌙"}.get(t['tipo'], "🕐")
+    return f"{icona} {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
 
 
 def notifica_breve(righe):
@@ -9535,7 +9536,8 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compare la notifica del turno: nel titolo il turno e l'ora in cui
-  ha chiuso il collega (es. "🕐 Pomeriggio · collega chiuso alle 13:59:12").
+  ha chiuso il collega (es. "☀️ Pomeriggio · collega chiuso alle 13:59:12";
+  🌅 Mattina, ☀️ Pomeriggio, 🌙 Notte).
 
 🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
 "apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
@@ -9828,4 +9830,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:29"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:32"
