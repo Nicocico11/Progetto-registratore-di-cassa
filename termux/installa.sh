@@ -9838,7 +9838,8 @@ PAGAMENTI (si dicono in fondo alla frase)
 • contanti ............................ se non dici niente, è contanti
 • "bianco" / "sul bianco" ............ POS bianco  → TOTALE PAX BANCARIE (somma)
 • "nero" / "sul nero" / "pos nero" ... POS nero    → TOTALE POS BANCA (somma)
-• "petrolifere" / "cartissima" ....... Petrolifere → CHIUSURA PETROLIFERE PAX (somma)
+• "petrolifere" / "cartissima" ....... Petrolifere (va bene anche "cortissima")
+                                        → CHIUSURA PETROLIFERE PAX (somma)
 • "in cassa" / "pos cassa" ........... POS cassa   → SCONTRINI POS REG. CASSA
                                        (una casella per ogni vendita)
 Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
@@ -9899,10 +9900,10 @@ e gli dai lo stesso importo in contanti)
   In una vendita mista toglie solo quella parte (es. i red bull, non il gasolio).
 • "cancella penultima": toglie la penultima operazione intera.
 • "correggi ultima sul bianco": cambia il pagamento.
-• "correggi ultima 25 euro": cambia l'importo.
+• "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
 • "correggi ultima gasolio": cambia il carburante.
-• Al posto di "ultima" puoi dire "penultima".
+• Al posto di "ultima" puoi dire "penultima". Al posto di "correggi" puoi dire "modifica".
 • Nelle vendite con più cose si può correggere solo il pagamento:
   per il resto cancellala e ridettala.
 • Anticipo Cartissima: non si corregge, si cancella e si ridice.
@@ -10061,4 +10062,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:52"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 17:58"
