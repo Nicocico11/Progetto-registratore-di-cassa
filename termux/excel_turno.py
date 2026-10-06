@@ -225,6 +225,8 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
         ws2['K30'] = taniche_attuali
+        ws2['K31'] = taniche_attuali   # attuali = precedenti finché non si chiude: senza, il foglio conta tutte
+                                       # le taniche come vendute e le mette nel DANEA (56 × 26 = 1456 €)
     path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova') or turno.get('nomi_test')))
     if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
         wb2.save(path_dopo)

@@ -2249,6 +2249,8 @@ def crea_excel(righe, turno, orario_terminale, cartella):
         ws2['O20'] = contatore_finale
     if taniche_attuali is not None:
         ws2['K30'] = taniche_attuali
+        ws2['K31'] = taniche_attuali   # attuali = precedenti finché non si chiude: senza, il foglio conta tutte
+                                       # le taniche come vendute e le mette nel DANEA (56 × 26 = 1456 €)
     path_dopo = os.path.join(cartella, nome_file(giorno_dopo, tipo_dopo, turno.get('prova') or turno.get('nomi_test')))
     if not os.path.exists(path_dopo):  # non sovrascrivere un turno già compilato
         wb2.save(path_dopo)
@@ -10174,4 +10176,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 19:24"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 21:27"

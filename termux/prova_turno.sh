@@ -291,7 +291,7 @@ assert str(w2['I24'].value) == '14:05:32' and w2['I28'].value == 20     # orario
 import json, os
 stato = json.load(open(os.path.expanduser('~/stato_cassa.json')))
 assert stato['orario_chiusura'] == '14:05:32' and stato['contatore'] == 1020.5 and stato['taniche'] == 9, stato
-assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['D7'].value == 90.5 and w2['I22'].value == dopo_atteso, \
+assert w2['O20'].value == 1020.5 and w2['K30'].value == 9 and w2['K31'].value == 9 and w2['D7'].value == 90.5 and w2['I22'].value == dopo_atteso, \
     (w2['O20'].value, w2['K30'].value, w2['D7'].value, w2['I22'].value)
 PYEOF
 [ "$(ls $D | wc -l)" = 1 ] && [ "$(ls $D/*/Documenti | wc -l)" = 2 ] && [ "$(ls $D/*/Excel | wc -l)" = 2 ] && echo "  ok   cartella del turno: Documenti (2) ed Excel (2)" || { echo "  ERRORE cartelle"; find $D; ERRORI=$((ERRORI+1)); }
