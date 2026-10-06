@@ -31,7 +31,7 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
   Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
   La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
 • Nella tendina compare la notifica del turno: nel titolo il turno e l'ora in cui
-  ha chiuso il collega (es. "☀️ Pomeriggio · collega chiuso alle 13:59:12";
+  ha chiuso il collega (es. "☀️ Pomeriggio · 13:59:12";
   🌅 Mattina, ☀️ Pomeriggio, 🌙 Notte).
 
 🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche

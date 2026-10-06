@@ -585,7 +585,7 @@ def totali_brevi(righe):
 
 
 def titolo_notifica():
-    """Titolo della notifica: turno e ora di chiusura del collega (es. "🕐 Pomeriggio · collega chiuso alle 13:59:12")."""
+    """Titolo della notifica: turno e ora di chiusura del collega (es. "☀️ Pomeriggio · 13:59:12")."""
     t = leggi_turno()
     if not t:
         return "🕐 Turno non aperto"
@@ -596,7 +596,7 @@ def titolo_notifica():
         ora = None
     prova = " 🧪 PROVA" if t.get("prova") else ""
     icona = {"Mattina": "🌅", "Pomeriggio": "☀️", "Notte": "🌙"}.get(t['tipo'], "🕐")
-    return f"{icona} {t['tipo']}{prova} · " + (f"collega chiuso alle {ora}" if ora else "ora chiusura collega non inserita")
+    return f"{icona} {t['tipo']}{prova} · " + (ora if ora else "ora collega non inserita")
 
 
 def notifica_breve(righe):
