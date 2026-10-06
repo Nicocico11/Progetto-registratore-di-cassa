@@ -40,6 +40,7 @@ testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o
                      testo_basso)                                                      # "o p t", "otp" -> opt
 testo_basso = re.sub(r'\b(?:g\s*\.?\s*p\s*\.?\s*l|gi\s*pi\s*elle|g\s*p\s*elle|gipielle|gpl\w*|gielle)\b', 'gpl',
                      testo_basso)                                                      # "g p l", "gi pi elle" -> gpl
+testo_basso = re.sub(r'\bcortissim\w\b', 'cartissima', testo_basso)                       # "cortissima"
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
