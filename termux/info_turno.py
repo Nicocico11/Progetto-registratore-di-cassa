@@ -678,15 +678,41 @@ def descrivi_gruppo(gruppo):
     return " + ".join(f"{v['categoria']} {v['importo']:.2f} €" for v in vv) + (f" ({vv[0]['metodo']})" if vv else "")
 
 
-def cancella_ultima():
-    gruppi = transazioni(leggi_csv())
+def tipo_voce(v):
+    """Tipo per "cancella ultima <tipo>": danea (market e taniche AdBlue), carburante, adblue (sfuso), fax."""
+    if not v:
+        return None
+    if v["reparto"] == "Market" or (v["reparto"] == "AdBlue" and v.get("unita") != "l"):
+        return "danea"
+    return {"Carburante": "carburante", "AdBlue": "adblue", "Fax": "fax"}.get(v["reparto"])
+
+
+NOMI_TIPO = {"danea": "Danea", "carburante": "carburante", "adblue": "AdBlue sfuso", "fax": "fax"}
+
+
+def cancella_ultima(tipo=""):
+    """Senza tipo: l'ultima operazione intera. Con un tipo: l'ultima voce di quel tipo
+    (in una vendita mista toglie solo quella parte, es. i red bull e non il gasolio)."""
+    righe = leggi_csv()
+    gruppi = transazioni(righe)
     if not gruppi:
         print("Totale: 0.00 € | Vendite: 0\nNessuna transazione da cancellare.")
         return
-    righe_aggiornate = [r for g in gruppi[:-1] for r in g]
+    if not tipo:
+        righe_aggiornate = [r for g in gruppi[:-1] for r in g]
+        cancellate = gruppi[-1]
+        testo = f"🗑️ Cancellata l'ultima vendita: {descrivi_gruppo(cancellate)}"
+    else:
+        gruppo = next((g for g in reversed(gruppi) if any(tipo_voce(vendita(r)) == tipo for r in g)), None)
+        if not gruppo:
+            print(f"❌ Nessuna vendita di {NOMI_TIPO.get(tipo, tipo)} da cancellare.")
+            sys.exit(1)
+        cancellate = [r for r in gruppo if tipo_voce(vendita(r)) == tipo]
+        righe_aggiornate = [r for r in righe if r not in cancellate]
+        testo = f"🗑️ Cancellato l'ultimo {NOMI_TIPO.get(tipo, tipo)}: {descrivi_gruppo(cancellate)}"
     scrivi_csv(righe_aggiornate)
     salva_copia()
-    print(f"🗑️ Cancellata l'ultima vendita: {descrivi_gruppo(gruppi[-1])}")
+    print(testo)
     notifica_breve(righe_aggiornate)
 
 
@@ -786,7 +812,7 @@ def main():
     comando = " ".join(sys.argv[1:]).lower() if len(sys.argv) > 1 else "notifica"
 
     if "cancella ultima" in comando or "elimina ultima" in comando:
-        cancella_ultima()
+        cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):

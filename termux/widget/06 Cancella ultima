@@ -1,10 +1,5 @@
 #!/bin/bash
-# Pulsante: cancella l'ultima vendita, dopo averla mostrata
+# Pulsante: cancella l'ultima operazione, o l'ultima di un tipo (Danea, carburante, AdBlue, fax)
 . ~/.termux/tasker/widget_comune.sh
-ULTIME=$(python3 ~/info_turno.py ultimi | tail -4)
-if conferma "🗑️ Cancellare l'ultima vendita?" "$ULTIME"; then
-  esito "$(bash $CASSA "cancella ultima")"
-else
-  messaggio "Niente cancellato"
-fi
+esito "$(bash $CASSA "cancella ultima")"   # compare il riquadro "Cosa cancello?"
 casa

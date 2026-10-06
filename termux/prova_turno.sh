@@ -32,6 +32,7 @@ case "$*" in
   *"di 70 €"*) echo '{"code": -1, "text": "50"}' ;;            # non tornano: 3 tentativi, niente salvato
   *"versamento di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
   *"Banconote del versamento"*) echo '{"code": -1, "text": "1 da 50"}' ;;
+  *"Cosa cancello"*) echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
   *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
@@ -131,6 +132,12 @@ bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 [ "$(bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" 2>/dev/null)" = "✅ Vendita salvata: Carburante 45.50 € - POS nero" ] && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "mista per cancellare"      "50 gasolio e 2 red bull sul nero"             "2 voci"
+controlla "fax da tenere"             "3 fax"                                        "fogli"
+controlla "cancella ultima danea"     "cancella ultima danea"                        "Cancellato l'ultimo Danea: Red Bull 6.00"
+controlla "cancella ultimo carburante" "cancella ultimo carburante"                  "Cancellato l'ultimo carburante: Gasolio 50.00"
+controlla "cancella (fax)"            "cancella ultima"                              "Fax / fotocopie 0.90"
+controlla "niente adblue sfuso"       "cancella ultima adblue"                       "Nessuna vendita di AdBlue sfuso"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo molto alto"        "1990 di gasolio"                              "IMPORTO MOLTO ALTO"

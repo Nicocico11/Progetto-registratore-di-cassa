@@ -172,7 +172,11 @@ e gli dai lo stesso importo in contanti)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 4. CORREGGERE E CANCELLARE
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• "cancella ultima" (o "cancella ultimo") / "cancella penultima": toglie la vendita intera.
+• "cancella ultima": compare il riquadro "Cosa cancello?": ultima operazione (qualsiasi),
+  ultimo Danea (anche taniche AdBlue), ultimo carburante, ultimo AdBlue sfuso, ultimo fax.
+• Oppure dillo subito: "cancella ultima danea" / "carburante" / "adblue" / "fax".
+  In una vendita mista toglie solo quella parte (es. i red bull, non il gasolio).
+• "cancella penultima": toglie la penultima operazione intera.
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo.
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
@@ -266,7 +270,7 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
 03 AdBlue litri: litri e pagamento
 04 Totali (finestra) · 05 Ultime vendite (finestra)
-06 Cancella ultima: mostra le ultime vendite e chiede conferma
+06 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
 07 Abbuono o resto: scegli quale e quanti centesimi
 08 Credito cliente · 09 Credito riscosso · 10 Anticipo Cartissima
 11 Prodotti venduti (finestra) · 12 Erogazioni AdBlue (finestra)

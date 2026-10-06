@@ -157,7 +157,34 @@ case "$FRASE" in
   *"penultima"*|*"penultimo"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultim"*|*"elimina ultim"*|*"annulla ultim"*|*"cancellala"*)
-    python3 ~/info_turno.py "cancella ultima" ;;
+    # "cancella ultima danea / carburante / adblue / fax": l'ultima di quel tipo;
+    # senza tipo compare il riquadro per scegliere (anche "Ultima operazione")
+    if [[ "$FRASE" =~ (danea|market|negozio|prodott|tanic) ]]; then TIPO_C=danea
+    elif [[ "$FRASE" =~ (carburant|gasolio|benzina|diesel|gpl|verde|rifornim) ]]; then TIPO_C=carburante
+    elif [[ "$FRASE" =~ (adblue|ad\ blu|adblu|blu|sfuso|litri) ]]; then TIPO_C=adblue
+    elif [[ "$FRASE" =~ (fax|fotocop|fogli) ]]; then TIPO_C=fax
+    elif [[ "$FRASE" =~ (operazione|qualsiasi|tutto|vendita) ]]; then TIPO_C=tutto
+    else
+      SCELTA_C=$(termux-dialog radio -t "🗑️ Cosa cancello?" \
+        -v "Ultima operazione (qualsiasi),Ultimo Danea (anche taniche AdBlue),Ultimo carburante,Ultimo AdBlue sfuso,Ultimo fax" 2>/dev/null \
+        | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+      case "$SCELTA_C" in
+        Ultima*) TIPO_C=tutto ;; *Danea*) TIPO_C=danea ;; *carburante*) TIPO_C=carburante ;;
+        *AdBlue*) TIPO_C=adblue ;; *fax*) TIPO_C=fax ;; *) TIPO_C="" ;;
+      esac
+    fi
+    if [ -z "$TIPO_C" ]; then
+      echo "Niente cancellato."
+    elif [ "$TIPO_C" = tutto ]; then
+      python3 ~/info_turno.py "cancella ultima"
+    else
+      python3 ~/info_turno.py "cancella ultima" "$TIPO_C"
+    fi
+    ESITO=$? ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
     # il riepilogo completo è nel pulsante 04 Totali

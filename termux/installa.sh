@@ -162,7 +162,34 @@ case "$FRASE" in
   *"penultima"*|*"penultimo"*)
     python3 ~/info_turno.py "cancella penultima" ;;
   *"cancella ultim"*|*"elimina ultim"*|*"annulla ultim"*|*"cancellala"*)
-    python3 ~/info_turno.py "cancella ultima" ;;
+    # "cancella ultima danea / carburante / adblue / fax": l'ultima di quel tipo;
+    # senza tipo compare il riquadro per scegliere (anche "Ultima operazione")
+    if [[ "$FRASE" =~ (danea|market|negozio|prodott|tanic) ]]; then TIPO_C=danea
+    elif [[ "$FRASE" =~ (carburant|gasolio|benzina|diesel|gpl|verde|rifornim) ]]; then TIPO_C=carburante
+    elif [[ "$FRASE" =~ (adblue|ad\ blu|adblu|blu|sfuso|litri) ]]; then TIPO_C=adblue
+    elif [[ "$FRASE" =~ (fax|fotocop|fogli) ]]; then TIPO_C=fax
+    elif [[ "$FRASE" =~ (operazione|qualsiasi|tutto|vendita) ]]; then TIPO_C=tutto
+    else
+      SCELTA_C=$(termux-dialog radio -t "🗑️ Cosa cancello?" \
+        -v "Ultima operazione (qualsiasi),Ultimo Danea (anche taniche AdBlue),Ultimo carburante,Ultimo AdBlue sfuso,Ultimo fax" 2>/dev/null \
+        | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+      case "$SCELTA_C" in
+        Ultima*) TIPO_C=tutto ;; *Danea*) TIPO_C=danea ;; *carburante*) TIPO_C=carburante ;;
+        *AdBlue*) TIPO_C=adblue ;; *fax*) TIPO_C=fax ;; *) TIPO_C="" ;;
+      esac
+    fi
+    if [ -z "$TIPO_C" ]; then
+      echo "Niente cancellato."
+    elif [ "$TIPO_C" = tutto ]; then
+      python3 ~/info_turno.py "cancella ultima"
+    else
+      python3 ~/info_turno.py "cancella ultima" "$TIPO_C"
+    fi
+    ESITO=$? ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
     # il riepilogo completo è nel pulsante 04 Totali
@@ -2773,15 +2800,41 @@ def descrivi_gruppo(gruppo):
     return " + ".join(f"{v['categoria']} {v['importo']:.2f} €" for v in vv) + (f" ({vv[0]['metodo']})" if vv else "")
 
 
-def cancella_ultima():
-    gruppi = transazioni(leggi_csv())
+def tipo_voce(v):
+    """Tipo per "cancella ultima <tipo>": danea (market e taniche AdBlue), carburante, adblue (sfuso), fax."""
+    if not v:
+        return None
+    if v["reparto"] == "Market" or (v["reparto"] == "AdBlue" and v.get("unita") != "l"):
+        return "danea"
+    return {"Carburante": "carburante", "AdBlue": "adblue", "Fax": "fax"}.get(v["reparto"])
+
+
+NOMI_TIPO = {"danea": "Danea", "carburante": "carburante", "adblue": "AdBlue sfuso", "fax": "fax"}
+
+
+def cancella_ultima(tipo=""):
+    """Senza tipo: l'ultima operazione intera. Con un tipo: l'ultima voce di quel tipo
+    (in una vendita mista toglie solo quella parte, es. i red bull e non il gasolio)."""
+    righe = leggi_csv()
+    gruppi = transazioni(righe)
     if not gruppi:
         print("Totale: 0.00 € | Vendite: 0\nNessuna transazione da cancellare.")
         return
-    righe_aggiornate = [r for g in gruppi[:-1] for r in g]
+    if not tipo:
+        righe_aggiornate = [r for g in gruppi[:-1] for r in g]
+        cancellate = gruppi[-1]
+        testo = f"🗑️ Cancellata l'ultima vendita: {descrivi_gruppo(cancellate)}"
+    else:
+        gruppo = next((g for g in reversed(gruppi) if any(tipo_voce(vendita(r)) == tipo for r in g)), None)
+        if not gruppo:
+            print(f"❌ Nessuna vendita di {NOMI_TIPO.get(tipo, tipo)} da cancellare.")
+            sys.exit(1)
+        cancellate = [r for r in gruppo if tipo_voce(vendita(r)) == tipo]
+        righe_aggiornate = [r for r in righe if r not in cancellate]
+        testo = f"🗑️ Cancellato l'ultimo {NOMI_TIPO.get(tipo, tipo)}: {descrivi_gruppo(cancellate)}"
     scrivi_csv(righe_aggiornate)
     salva_copia()
-    print(f"🗑️ Cancellata l'ultima vendita: {descrivi_gruppo(gruppi[-1])}")
+    print(testo)
     notifica_breve(righe_aggiornate)
 
 
@@ -2881,7 +2934,7 @@ def main():
     comando = " ".join(sys.argv[1:]).lower() if len(sys.argv) > 1 else "notifica"
 
     if "cancella ultima" in comando or "elimina ultima" in comando:
-        cancella_ultima()
+        cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
@@ -8119,14 +8172,9 @@ casa
 FINE_FILE
 cat > ~/.shortcuts/"06 Cancella ultima" <<'FINE_FILE'
 #!/bin/bash
-# Pulsante: cancella l'ultima vendita, dopo averla mostrata
+# Pulsante: cancella l'ultima operazione, o l'ultima di un tipo (Danea, carburante, AdBlue, fax)
 . ~/.termux/tasker/widget_comune.sh
-ULTIME=$(python3 ~/info_turno.py ultimi | tail -4)
-if conferma "🗑️ Cancellare l'ultima vendita?" "$ULTIME"; then
-  esito "$(bash $CASSA "cancella ultima")"
-else
-  messaggio "Niente cancellato"
-fi
+esito "$(bash $CASSA "cancella ultima")"   # compare il riquadro "Cosa cancello?"
 casa
 FINE_FILE
 cat > ~/.shortcuts/"07 Abbuono o resto" <<'FINE_FILE'
@@ -9677,7 +9725,11 @@ e gli dai lo stesso importo in contanti)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 4. CORREGGERE E CANCELLARE
 ━━━━━━━━━━━━━━━━━━━━━━━━
-• "cancella ultima" (o "cancella ultimo") / "cancella penultima": toglie la vendita intera.
+• "cancella ultima": compare il riquadro "Cosa cancello?": ultima operazione (qualsiasi),
+  ultimo Danea (anche taniche AdBlue), ultimo carburante, ultimo AdBlue sfuso, ultimo fax.
+• Oppure dillo subito: "cancella ultima danea" / "carburante" / "adblue" / "fax".
+  In una vendita mista toglie solo quella parte (es. i red bull, non il gasolio).
+• "cancella penultima": toglie la penultima operazione intera.
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo.
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
@@ -9771,7 +9823,7 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
 03 AdBlue litri: litri e pagamento
 04 Totali (finestra) · 05 Ultime vendite (finestra)
-06 Cancella ultima: mostra le ultime vendite e chiede conferma
+06 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
 07 Abbuono o resto: scegli quale e quanti centesimi
 08 Credito cliente · 09 Credito riscosso · 10 Anticipo Cartissima
 11 Prodotti venduti (finestra) · 12 Erogazioni AdBlue (finestra)
@@ -9830,4 +9882,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 15:33"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:15"
