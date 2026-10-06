@@ -123,13 +123,29 @@ case "$FRASE" in
   *"versamento"*|*"versato"*)
     if turno_aperto; then
       # Le banconote servono per il riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100...)
-      IMPORTO_V=$(python3 ~/info_turno.py importo "$FRASE")
-      BANCONOTE=""
-      if [ -n "$IMPORTO_V" ]; then
-        BANCONOTE=$(chiedi "🏦 Banconote del versamento di $IMPORTO_V €" "es. 200 50 50 50  oppure  1x200 3x50 (vuoto = le calcolo io)")
+      if [[ "$FRASE" =~ (cancella|annulla|togli|elimina) ]]; then
+        python3 ~/info_turno.py "cancella versamento"
+        ESITO=$?
+      else
+        IMPORTO_V=$(python3 ~/info_turno.py importo "$FRASE")
+        TITOLO="🏦 Banconote del versamento di $IMPORTO_V €"
+        for TENTATIVO in 1 2 3; do
+          BANCONOTE=""
+          if [ -n "$IMPORTO_V" ]; then
+            BANCONOTE=$(chiedi "$TITOLO" "es. 200 50 50 50  oppure  1x200 3x50 (vuoto = le calcolo io)")
+            if [ $TENTATIVO -gt 1 ] && [ -z "$BANCONOTE" ]; then   # annullato dopo un errore: niente salvato
+              RISPOSTA_V="❌ Banconote non corrette: versamento NON salvato. Ridillo."; ESITO=3; break
+            fi
+          fi
+          RISPOSTA_V=$(python3 ~/info_turno.py versamento "$FRASE" "$BANCONOTE")
+          ESITO=$?
+          [ $ESITO -ne 3 ] && break
+          # Le banconote non tornano: si richiedono (niente salvato finché non tornano)
+          TITOLO="❌ Non tornano, riscrivi le banconote di $IMPORTO_V €"
+        done
+        [ $ESITO -eq 3 ] && ESITO=1
+        echo "$RISPOSTA_V"
       fi
-      python3 ~/info_turno.py versamento "$FRASE" "$BANCONOTE"
-      ESITO=$?
       python3 ~/info_turno.py salva > /dev/null 2>&1
     fi ;;
   *"avanzo"*)

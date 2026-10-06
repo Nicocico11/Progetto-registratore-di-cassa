@@ -291,6 +291,22 @@ def leggi_banconote(testo):
     return conta
 
 
+def cancella_versamento():
+    """"cancella versamento": toglie l'ultimo versamento (importo e banconote)."""
+    t = turno_attuale(leggi_csv())
+    if not t.get("versamenti"):
+        print("❌ Nessun versamento da cancellare in questo turno.")
+        sys.exit(1)
+    ultimo = t["versamenti"].pop()
+    t["versamento"] = round((t.get("versamento") or 0) - ultimo["importo"], 2)
+    totali = dict(t.get("banconote_versamento") or {})
+    for taglio, n in ultimo["banconote"].items():
+        totali[taglio] = totali.get(taglio, 0) - n
+    t["banconote_versamento"] = {k: v for k, v in totali.items() if v > 0}
+    salva_turno(t)
+    print(f"🗑️ Versamento di {euro(ultimo['importo'])} cancellato (totale versato nel turno: {euro(t['versamento'])})")
+
+
 def banconote_calcolate(valore):
     """Le banconote più grandi possibili (se non sono state dette)."""
     conta, resto = {}, round(valore)
@@ -315,14 +331,17 @@ def aggiungi_versamento(testo, banconote_testo=""):
         if resto:
             avviso += f" (restano {resto} € che non fanno una banconota)"
     elif sum(t * n for t, n in banconote.items()) != round(valore, 2):
-        avviso = (f"⚠️ Le banconote fanno {sum(t * n for t, n in banconote.items())} € ma il versamento è "
-                  f"{euro(valore)}: controlla nell'Excel")
+        # Non tornano: niente salvato, il riquadro si ripresenta (codice 3)
+        print(f"❌ Le banconote fanno {sum(t * n for t, n in banconote.items())} € ma il versamento è "
+              f"{euro(valore)}. Niente salvato.")
+        sys.exit(3)
     t = turno_attuale(leggi_csv())
     t["versamento"] = round((t.get("versamento") or 0) + valore, 2)
     totali = {int(k): v for k, v in (t.get("banconote_versamento") or {}).items()}
     for taglio, n in banconote.items():
         totali[taglio] = totali.get(taglio, 0) + n
     t["banconote_versamento"] = {str(k): v for k, v in totali.items()}
+    t.setdefault("versamenti", []).append({"importo": valore, "banconote": {str(k): v for k, v in banconote.items()}})
     salva_turno(t)
     if avviso:
         print(avviso)
@@ -774,6 +793,8 @@ def main():
             pass
     elif comando.startswith("contatore"):
         imposta_contatore(" ".join(sys.argv[2:]) or comando)
+    elif comando == "cancella versamento":
+        cancella_versamento()
     elif comando.startswith("versamento"):
         aggiungi_versamento(sys.argv[2] if len(sys.argv) > 2 else "", sys.argv[3] if len(sys.argv) > 3 else "")
     elif comando.startswith("importo"):

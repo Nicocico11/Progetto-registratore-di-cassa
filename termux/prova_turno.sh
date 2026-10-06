@@ -29,6 +29,8 @@ case "$*" in
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
   *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
   *"AdBlue sfuso: litri"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
+  *"di 70 €"*) echo '{"code": -1, "text": "50"}' ;;            # non tornano: 3 tentativi, niente salvato
+  *"versamento di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
   *"Banconote del versamento"*) echo '{"code": -1, "text": "1 da 50"}' ;;
   *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
@@ -138,6 +140,9 @@ controlla "camion 950: normale"       "950 di gasolio sul nero"                 
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "OPT"                       "50 opt"                                       "OPT 50.00 € - OPT"
 controlla "OPT detto male"            "o p t 35 e 50"                                "OPT 35.50"
+controlla "versamento sbagliato"      "versamento 70"                                "Niente salvato"
+controlla "versamento da cancellare"  "versamento 100"                               "Banconote: 1×100"
+controlla "cancella versamento"       "cancella versamento"                          "Versamento di 100.00 € cancellato"
 controlla "versamento a parole"       "versamento cinquanta"                         "Banconote: 1×50"
 controlla "numeri in lettere"         "trentacinque di verde sul bianco"             "Benzina 35.00 € - POS bianco"
 controlla "centesimi"                 "venti e cinquanta di gasolio"                 "Gasolio 20.50"
