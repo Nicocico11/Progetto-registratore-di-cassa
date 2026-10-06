@@ -106,6 +106,7 @@ bash "$QUI/widget/02 Vendita Danea" > /dev/null 2>&1; grep -q "Red Bull 6.00 €
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"
+python3 $HOME/info_turno.py | grep -A1 "Ultime transazioni" | grep -q "3× RED BULL" && echo "  ok   Danea nella tendina" || { echo "  ERRORE Danea nella tendina"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "importo piccolo da solo"   "2"                                            "solo un importo piccolo"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

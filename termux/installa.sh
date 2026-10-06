@@ -2721,6 +2721,17 @@ def titolo_notifica():
     return f"{icona} {t['tipo']}{prova} · " + (ora if ora else "ora collega non inserita")
 
 
+def voce_breve(v):
+    """"2× RED BULL", "GASOLIO", "ADBLUE 10l": cosa è stato venduto, in poche parole."""
+    nome = v["categoria"].upper()
+    q = v["quantita"]
+    if v.get("unita") == "l" and v["reparto"] == "AdBlue":
+        return f"{nome} {q:g}l"
+    if v["reparto"] == "Market" and q > 1:
+        return f"{q:g}× {nome}"
+    return nome
+
+
 def notifica_breve(righe):
     vv = vendite(righe)
     if not vv:
@@ -2746,9 +2757,14 @@ def notifica_breve(righe):
 
     out.append("────────────────")
     out.append("🔍 Ultime transazioni:")
-    # Le vendite market non compaiono qui (solo nel totale sopra)
-    for v in reversed([v for v in vv if v["reparto"] != "Market"][-5:]):
-        out.append(f"• {v['ora']} | {v['importo']:.2f}€ ({sigla(v['metodo'])}) {v['note']}")
+    # Tutte le operazioni (anche Danea), una riga per vendita: le più recenti in alto
+    for gruppo in reversed(transazioni(righe)[-5:]):
+        g = [v for v in (vendita(r) for r in gruppo) if v]
+        if not g:
+            continue
+        metodi = "/".join(dict.fromkeys(sigla(v["metodo"]) for v in g))
+        cosa = " + ".join(voce_breve(v) for v in g)
+        out.append(f"• {g[0]['ora']} | {sum(v['importo'] for v in g):.2f}€ ({metodi}) {cosa}")
     print("\n".join(out))
 
 
@@ -9882,4 +9898,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:15"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:24"
