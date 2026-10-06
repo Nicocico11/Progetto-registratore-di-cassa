@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pulsante: vendita carburante con i riquadri (importo e pagamento)
 . ~/.termux/tasker/widget_comune.sh
-IMPORTO=$(numero "⛽ Importo carburante (€)" "es. 45,50"); [ -z "$IMPORTO" ] && annullato
+IMPORTO=$(numero "⛽ Carburante (€)" "45,50"); [ -z "$IMPORTO" ] && annullato
 PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "$IMPORTO euro $PAGATO")"
 casa

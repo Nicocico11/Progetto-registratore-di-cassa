@@ -69,10 +69,10 @@ case "$FRASE" in
       if ! python3 ~/info_turno.py aperto; then
         # Valori del turno PRECEDENTE (di un altro operatore): si scrivono sempre a mano,
         # vuoto = non inserito (nell'Excel restano da scrivere)
-        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50")
-        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "tutto attaccato, es. 140532" -n)
-        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "numero sulla colonnina, es. 68624,4")
-        TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
+        AVANZO=$(chiedi "Avanzo (€)" "150,50")
+        ORA_PREC=$(chiedi "Ora chiusura precedente" "140532" -n)
+        CONTATORE=$(chiedi "Contatore AdBlue" "68624,4")
+        TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
       fi
       echo "🟢 TURNO APERTO"
       rm -f ~/.cassa_da_segnare   # vendite "da segnare" rimaste da un turno vecchio
@@ -90,10 +90,10 @@ case "$FRASE" in
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
       ORARIO=$(grep -oE '[0-9]+' <<< "$FRASE" | tr '\n' ' ')
       if [ -z "$ORARIO" ]; then
-        ORARIO=$(chiedi "Orario terminale pompe" "ore minuti secondi, es. 140532" -n)
+        ORARIO=$(chiedi "Orario terminale" "140532" -n)
       fi
       # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
-      CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
+      CASSAFORTE=$(chiedi "Cassaforte (€)" "vuoto = niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
       python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE"
       spegni_ia
@@ -137,11 +137,11 @@ case "$FRASE" in
         ESITO=$?
       else
         IMPORTO_V=$(python3 ~/info_turno.py importo "$FRASE")
-        TITOLO="🏦 Banconote del versamento di $IMPORTO_V €"
+        TITOLO="🏦 Banconote di $IMPORTO_V €"
         for TENTATIVO in 1 2 3; do
           BANCONOTE=""
           if [ -n "$IMPORTO_V" ]; then
-            BANCONOTE=$(chiedi "$TITOLO" "es. 200 50 50 50  oppure  1x200 3x50 (vuoto = le calcolo io)")
+            BANCONOTE=$(chiedi "$TITOLO" "200 50 50 50 (vuoto = le calcolo io)")
             if [ $TENTATIVO -gt 1 ] && [ -z "$BANCONOTE" ]; then   # annullato dopo un errore: niente salvato
               RISPOSTA_V="❌ Banconote non corrette: versamento NON salvato. Ridillo."; ESITO=3; break
             fi
@@ -150,7 +150,7 @@ case "$FRASE" in
           ESITO=$?
           [ $ESITO -ne 3 ] && break
           # Le banconote non tornano: si richiedono (niente salvato finché non tornano)
-          TITOLO="❌ Non tornano, riscrivi le banconote di $IMPORTO_V €"
+          TITOLO="❌ Non tornano: banconote di $IMPORTO_V €"
         done
         [ $ESITO -eq 3 ] && ESITO=1
         echo "$RISPOSTA_V"
@@ -212,7 +212,7 @@ except Exception:
       echo "$RISPOSTA"
       # Frase non capita (parola sentita male): riquadro per scriverla giusta
       if [ $ESITO -eq 1 ] && [[ "$RISPOSTA" == *"❓"* ]] && [[ "$RISPOSTA" != *"Quale prodotto"* ]]; then
-        CORRETTA=$(chiedi "✏️ Non capito: scrivi la frase giusta" "$TESTO")
+        CORRETTA=$(chiedi "✏️ Non capito, riscrivi" "$TESTO")
         if [ -n "$CORRETTA" ]; then
           echo "$(date) - Corretta a mano: '$CORRETTA'" >> ~/debug_tasker.log
           echo "✏️ $CORRETTA"
@@ -307,10 +307,10 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
 annullato() { messaggio "Niente salvato"; casa; }
 
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
-pagamento() {   # pagamento "titolo" [senza_cassa | carburante]   (OPT solo per il carburante: solo gasolio)
-  local scelte="Contanti,POS cassa (negozio),POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ "$2" = carburante ] && scelte="$scelte,OPT (solo gasolio)"
+pagamento() {   # pagamento "titolo" [senza_cassa | carburante]   (OPT solo per il carburante)
+  local scelte="Contanti,POS cassa,POS nero,POS bianco,Petrolifere"
+  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere"
+  [ "$2" = carburante ] && scelte="$scelte,OPT"
   case "$(scegli "$1" "$scelte")" in
     Contanti) echo "contanti" ;;
     "POS cassa"*) echo "in cassa" ;;
@@ -385,16 +385,16 @@ case "$1" in
       read -r TIPO ORA < "$FILE"
       TOT=$(grep -c . "$FILE")
       if [ "$TIPO" = fax ]; then
-        COSA=$(numero "📠 Fax delle $ORA (ne restano $TOT): quanti euro?" "es. 1,50")
+        COSA=$(numero "📠 Fax delle $ORA (€) · $TOT da segnare" "1,50")
         [ -n "$COSA" ] && COSA="fax $COSA euro"
       else
-        COSA=$(testo "🛒 Danea delle $ORA (ne restano $TOT): cosa?" "es. ichnusa · 2 red bull · danea caricabatterie 15")
+        COSA=$(testo "🛒 Danea delle $ORA · $TOT da segnare" "2 red bull")
       fi
       PAGATO=""
       [ -n "$COSA" ] && PAGATO=$(pagamento "💳 Pagamento di: $COSA")
       if [ -z "$COSA" ] || [ -z "$PAGATO" ]; then
         # Annullato: tocco sbagliato (si scarta) oppure si segna più tardi
-        if conferma "🗑️ Scarto questa vendita?" "Sì = era un tocco sbagliato, la tolgo. No = la tengo e la segno dopo."; then
+        if conferma "🗑️ Scarto questa vendita?" "No = la segno dopo"; then
           sed -i '1d' "$FILE"
           FATTE+="🗑️ $TIPO delle $ORA scartato"$'\n'
           continue
@@ -8307,7 +8307,7 @@ cat > ~/.shortcuts/"01 Vendita carburante" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: vendita carburante con i riquadri (importo e pagamento)
 . ~/.termux/tasker/widget_comune.sh
-IMPORTO=$(numero "⛽ Importo carburante (€)" "es. 45,50"); [ -z "$IMPORTO" ] && annullato
+IMPORTO=$(numero "⛽ Carburante (€)" "45,50"); [ -z "$IMPORTO" ] && annullato
 PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "$IMPORTO euro $PAGATO")"
 casa
@@ -8316,7 +8316,7 @@ cat > ~/.shortcuts/"02 Vendita Danea" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: vendita market scritta (niente errori di AutoVoice)
 . ~/.termux/tasker/widget_comune.sh
-PRODOTTO=$(testo "🛒 Prodotto Danea" "es. ichnusa · 2 red bull e 1 mars · danea caricabatterie 15")
+PRODOTTO=$(testo "🛒 Danea" "2 red bull e 1 mars")
 [ -z "$PRODOTTO" ] && annullato
 PAGATO=$(pagamento "💳 Pagamento di: $PRODOTTO"); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "$PRODOTTO $PAGATO")"
@@ -8326,7 +8326,7 @@ cat > ~/.shortcuts/"03 AdBlue litri" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: AdBlue sfuso a litri (litri e pagamento)
 . ~/.termux/tasker/widget_comune.sh
-LITRI=$(numero "🧪 AdBlue sfuso: litri" "es. 20"); [ -z "$LITRI" ] && annullato
+LITRI=$(numero "🧪 AdBlue (litri)" "20"); [ -z "$LITRI" ] && annullato
 PAGATO=$(pagamento "💳 Pagamento di $LITRI litri di AdBlue" senza_cassa); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "adblue $LITRI litri $PAGATO")"
 casa
@@ -8364,9 +8364,9 @@ cat > ~/.shortcuts/"08 Abbuono o resto" <<'FINE_FILE'
 # Pulsante: centesimi da aggiungere dopo la vendita
 #   abbuono = il cliente paga qualche centesimo in meno; resto = lascia qualche centesimo
 . ~/.termux/tasker/widget_comune.sh
-TIPO=$(scegli "🪙 Cosa aggiungi?" "Abbuono (mancano: ha pagato meno),Resto lasciato (in più: non ha voluto il resto)")
+TIPO=$(scegli "🪙 Centesimi" "Abbuono,Resto lasciato")
 [ -z "$TIPO" ] && annullato
-CENT=$(numero "🪙 Quanti centesimi?" "es. 10"); [ -z "$CENT" ] && annullato
+CENT=$(numero "🪙 Centesimi" "10"); [ -z "$CENT" ] && annullato
 case "$TIPO" in
   Abbuono*) esito "$(bash $CASSA "abbuono $CENT centesimi")" ;;
   *)        esito "$(bash $CASSA "lasciato $CENT centesimi")" ;;
@@ -8377,7 +8377,7 @@ cat > ~/.shortcuts/"09 Versamento" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: versamento (contanti tolti dal cassetto); poi chiede le banconote come a voce
 . ~/.termux/tasker/widget_comune.sh
-IMPORTO=$(numero "🏦 Versamento (€)" "es. 350"); [ -z "$IMPORTO" ] && annullato
+IMPORTO=$(numero "🏦 Versamento (€)" "350"); [ -z "$IMPORTO" ] && annullato
 esito "$(bash $CASSA "versamento $IMPORTO")"
 casa
 FINE_FILE
@@ -8385,8 +8385,8 @@ cat > ~/.shortcuts/"10 Credito cliente" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito cliente (il cliente prende ora e paga più avanti)
 . ~/.termux/tasker/widget_comune.sh
-NOME=$(testo "📒 Credito cliente: nome" "es. Rossi"); [ -z "$NOME" ] && annullato
-IMPORTO=$(numero "📒 Credito di $NOME (€)" "es. 50,50"); [ -z "$IMPORTO" ] && annullato
+NOME=$(testo "📒 Credito: nome" "Rossi"); [ -z "$NOME" ] && annullato
+IMPORTO=$(numero "📒 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
 esito "$(bash $CASSA "credito cliente $NOME $IMPORTO euro")"
 casa
 FINE_FILE
@@ -8394,8 +8394,8 @@ cat > ~/.shortcuts/"11 Credito riscosso" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito riscosso (il cliente paga un vecchio credito)
 . ~/.termux/tasker/widget_comune.sh
-NOME=$(testo "💰 Credito riscosso: nome" "es. Rossi"); [ -z "$NOME" ] && annullato
-IMPORTO=$(numero "💰 Quanto paga $NOME (€)" "es. 50,50"); [ -z "$IMPORTO" ] && annullato
+NOME=$(testo "💰 Riscosso: nome" "Rossi"); [ -z "$NOME" ] && annullato
+IMPORTO=$(numero "💰 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
 PAGATO=$(pagamento "💳 Come paga $NOME?"); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "credito riscosso $NOME $IMPORTO euro $PAGATO")"
 casa
@@ -8404,7 +8404,7 @@ cat > ~/.shortcuts/"12 Anticipo Cartissima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: paga con Cartissima (come gasolio, senza rifornimento) e riceve i contanti
 . ~/.termux/tasker/widget_comune.sh
-IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "pagato con Cartissima e dato in contanti"); [ -z "$IMPORTO" ] && annullato
+IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "100"); [ -z "$IMPORTO" ] && annullato
 esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")"
 casa
 FINE_FILE
@@ -8419,7 +8419,7 @@ cat > ~/.shortcuts/"14 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: apertura turno (vero o di prova); poi i 4 riquadri dei valori del collega
 . ~/.termux/tasker/widget_comune.sh
-TIPO=$(scegli "🟢 Apertura turno" "Turno vero,Turno di PROVA (file TEST - mail solo a me)")
+TIPO=$(scegli "🟢 Apertura turno" "Turno vero,Turno di PROVA")
 [ -z "$TIPO" ] && annullato
 case "$TIPO" in
   *PROVA*) FRASE="apertura turno prova" ;;
@@ -8432,7 +8432,7 @@ cat > ~/.shortcuts/"15 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
 . ~/.termux/tasker/widget_comune.sh
-if ! conferma "🔴 Chiudere il turno?" "Poi chiede l'orario del terminale e la cassaforte"; then
+if ! conferma "🔴 Chiudere il turno?" ""; then
   messaggio "Turno NON chiuso"; casa
 fi
 RISULTATO=$(bash $CASSA "chiusura turno")
@@ -9866,7 +9866,7 @@ OPT (accettatore esterno, senza metodo di pagamento) — SOLO GASOLIO
 • "50 opt" · "50 gasolio opt" · "opt 35 e 50" · "ottanta di opt"
   Benzina, GPL, AdBlue o prodotti con "opt" NON vengono salvati.
   → una casella della sezione OPT dell'Excel (I2:O3) per ogni importo.
-  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT (solo gasolio)".
+  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT".
 
 CENTESIMI
 • "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €
@@ -10117,7 +10117,7 @@ Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
   - "prezzo detto … invece di …": prezzo diverso dal listino.
   Se è sbagliata: "cancella ultima".
 • Frase non capita (parola sentita male): compare il riquadro
-  "✏️ Non capito: scrivi la frase giusta", con la frase sentita scritta in grigio.
+  "✏️ Non capito, riscrivi", con la frase sentita scritta in grigio.
   Scrivi la frase corretta (es. "20 pos bianco") e premi OK: viene registrata.
   Annulla = niente salvato. Se la parola non è nel listino usa "danea … euro".
 • "❌ Turno non aperto": di' prima "apertura turno".
@@ -10140,4 +10140,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 18:59"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 19:04"

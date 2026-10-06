@@ -1,8 +1,8 @@
 #!/bin/bash
 # Pulsante: credito riscosso (il cliente paga un vecchio credito)
 . ~/.termux/tasker/widget_comune.sh
-NOME=$(testo "💰 Credito riscosso: nome" "es. Rossi"); [ -z "$NOME" ] && annullato
-IMPORTO=$(numero "💰 Quanto paga $NOME (€)" "es. 50,50"); [ -z "$IMPORTO" ] && annullato
+NOME=$(testo "💰 Riscosso: nome" "Rossi"); [ -z "$NOME" ] && annullato
+IMPORTO=$(numero "💰 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
 PAGATO=$(pagamento "💳 Come paga $NOME?"); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "credito riscosso $NOME $IMPORTO euro $PAGATO")"
 casa

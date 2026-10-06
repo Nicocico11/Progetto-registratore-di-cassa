@@ -64,10 +64,10 @@ case "$FRASE" in
       if ! python3 ~/info_turno.py aperto; then
         # Valori del turno PRECEDENTE (di un altro operatore): si scrivono sempre a mano,
         # vuoto = non inserito (nell'Excel restano da scrivere)
-        AVANZO=$(chiedi "Avanzo cassa turno precedente (€)" "es. 150,50")
-        ORA_PREC=$(chiedi "Ora chiusura turno precedente" "tutto attaccato, es. 140532" -n)
-        CONTATORE=$(chiedi "Contatore AdBlue iniziale" "numero sulla colonnina, es. 68624,4")
-        TANICHE=$(chiedi "Taniche AdBlue presenti" "es. 59" -n)
+        AVANZO=$(chiedi "Avanzo (€)" "150,50")
+        ORA_PREC=$(chiedi "Ora chiusura precedente" "140532" -n)
+        CONTATORE=$(chiedi "Contatore AdBlue" "68624,4")
+        TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
       fi
       echo "🟢 TURNO APERTO"
       rm -f ~/.cassa_da_segnare   # vendite "da segnare" rimaste da un turno vecchio
@@ -85,10 +85,10 @@ case "$FRASE" in
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
       ORARIO=$(grep -oE '[0-9]+' <<< "$FRASE" | tr '\n' ' ')
       if [ -z "$ORARIO" ]; then
-        ORARIO=$(chiedi "Orario terminale pompe" "ore minuti secondi, es. 140532" -n)
+        ORARIO=$(chiedi "Orario terminale" "140532" -n)
       fi
       # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
-      CASSAFORTE=$(chiedi "In cassaforte (€)" "vuoto se non c'è niente")
+      CASSAFORTE=$(chiedi "Cassaforte (€)" "vuoto = niente")
       echo "🔴 TURNO CHIUSO - IA spenta"
       python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE"
       spegni_ia
@@ -132,11 +132,11 @@ case "$FRASE" in
         ESITO=$?
       else
         IMPORTO_V=$(python3 ~/info_turno.py importo "$FRASE")
-        TITOLO="🏦 Banconote del versamento di $IMPORTO_V €"
+        TITOLO="🏦 Banconote di $IMPORTO_V €"
         for TENTATIVO in 1 2 3; do
           BANCONOTE=""
           if [ -n "$IMPORTO_V" ]; then
-            BANCONOTE=$(chiedi "$TITOLO" "es. 200 50 50 50  oppure  1x200 3x50 (vuoto = le calcolo io)")
+            BANCONOTE=$(chiedi "$TITOLO" "200 50 50 50 (vuoto = le calcolo io)")
             if [ $TENTATIVO -gt 1 ] && [ -z "$BANCONOTE" ]; then   # annullato dopo un errore: niente salvato
               RISPOSTA_V="❌ Banconote non corrette: versamento NON salvato. Ridillo."; ESITO=3; break
             fi
@@ -145,7 +145,7 @@ case "$FRASE" in
           ESITO=$?
           [ $ESITO -ne 3 ] && break
           # Le banconote non tornano: si richiedono (niente salvato finché non tornano)
-          TITOLO="❌ Non tornano, riscrivi le banconote di $IMPORTO_V €"
+          TITOLO="❌ Non tornano: banconote di $IMPORTO_V €"
         done
         [ $ESITO -eq 3 ] && ESITO=1
         echo "$RISPOSTA_V"
@@ -207,7 +207,7 @@ except Exception:
       echo "$RISPOSTA"
       # Frase non capita (parola sentita male): riquadro per scriverla giusta
       if [ $ESITO -eq 1 ] && [[ "$RISPOSTA" == *"❓"* ]] && [[ "$RISPOSTA" != *"Quale prodotto"* ]]; then
-        CORRETTA=$(chiedi "✏️ Non capito: scrivi la frase giusta" "$TESTO")
+        CORRETTA=$(chiedi "✏️ Non capito, riscrivi" "$TESTO")
         if [ -n "$CORRETTA" ]; then
           echo "$(date) - Corretta a mano: '$CORRETTA'" >> ~/debug_tasker.log
           echo "✏️ $CORRETTA"

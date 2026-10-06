@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pulsante: paga con Cartissima (come gasolio, senza rifornimento) e riceve i contanti
 . ~/.termux/tasker/widget_comune.sh
-IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "pagato con Cartissima e dato in contanti"); [ -z "$IMPORTO" ] && annullato
+IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "100"); [ -z "$IMPORTO" ] && annullato
 esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")"
 casa

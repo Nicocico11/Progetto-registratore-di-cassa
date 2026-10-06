@@ -24,23 +24,23 @@ case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
-  *cassaforte*) echo '{"code": -1, "text": "20"}' ;;
+  *assaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista
   *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
-  *"AdBlue sfuso: litri"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
+  *"AdBlue (litri)"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
   *"di 70 €"*) echo '{"code": -1, "text": "50"}' ;;            # non tornano: 3 tentativi, niente salvato
   *"Versamento (€)"*) echo '{"code": -1, "text": "100"}' ;;            # widget 09 Versamento
-  *"versamento di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
-  *"Banconote del versamento"*) echo '{"code": -1, "text": "1 da 50"}' ;;
+  *"Banconote di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
+  *"Banconote di"*) echo '{"code": -1, "text": "1 da 50"}' ;;
   *"Cosa cancello"*) echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
-  *"Importo carburante"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
+  *"Carburante (€)"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Danea delle"*) [ -f ~/annulla ] && echo '{"code": -2, "text": ""}' || echo '{"code": -1, "text": "2 red bull"}' ;;  # tendina
   *"Fax delle"*) echo '{"code": -1, "text": "1,50"}' ;;
   *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
-  *"Prodotto Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
-  *"Cosa aggiungi"*) echo '{"code": -1, "text": "Abbuono (mancano: ha pagato meno)", "index": 0}' ;;  # widget 06
-  *"Quanti centesimi"*) echo '{"code": -1, "text": "7"}' ;;
+  *"🛒 Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
+  *"Abbuono,Resto"*) echo '{"code": -1, "text": "Abbuono", "index": 0}' ;;  # widget 06
+  *"🪙 Centesimi"*) echo '{"code": -1, "text": "7"}' ;;
   *"Pagamento di"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;
   *"quale POS"*) echo '{"code": -1, "text": "POS nero", "index": 1}' ;;   # "carta" generica -> POS nero
   *)          echo '{"code": -2, "text": ""}' ;;
@@ -187,7 +187,7 @@ controlla "OPT con gasolio"           "20 gasolio opt"                          
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "OPT solo gasolio: benzina" "30 di benzina opt"                            "solo il gasolio"
 controlla "OPT solo gasolio: adblue"  "20 litri adblue opt"                          "solo il gasolio"
-grep -qF 'OPT (solo gasolio)' $HOME/.termux/tasker/widget_comune.sh && grep -q 'senza_cassa)' "$QUI/widget/03 AdBlue litri" \
+grep -qF 'carburante ] && scelte="$scelte,OPT"' $HOME/.termux/tasker/widget_comune.sh && grep -q 'senza_cassa)' "$QUI/widget/03 AdBlue litri" \
   && echo "  ok   OPT nel widget solo per il carburante" || { echo "  ERRORE OPT nei widget"; ERRORI=$((ERRORI+1)); }
 TOT_CARB=$(python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -m1 "= Carburanti" | grep -oE '[0-9]+\.[0-9]{2}')
 python3 $HOME/info_turno.py totali | grep -A8 "⛽ CARBURANTI" | grep -qE "OPT +85.50" && python3 $HOME/info_turno.py | grep -q "CARBURANTI: ${TOT_CARB}€" \

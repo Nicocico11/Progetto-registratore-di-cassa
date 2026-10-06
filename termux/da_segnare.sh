@@ -33,16 +33,16 @@ case "$1" in
       read -r TIPO ORA < "$FILE"
       TOT=$(grep -c . "$FILE")
       if [ "$TIPO" = fax ]; then
-        COSA=$(numero "📠 Fax delle $ORA (ne restano $TOT): quanti euro?" "es. 1,50")
+        COSA=$(numero "📠 Fax delle $ORA (€) · $TOT da segnare" "1,50")
         [ -n "$COSA" ] && COSA="fax $COSA euro"
       else
-        COSA=$(testo "🛒 Danea delle $ORA (ne restano $TOT): cosa?" "es. ichnusa · 2 red bull · danea caricabatterie 15")
+        COSA=$(testo "🛒 Danea delle $ORA · $TOT da segnare" "2 red bull")
       fi
       PAGATO=""
       [ -n "$COSA" ] && PAGATO=$(pagamento "💳 Pagamento di: $COSA")
       if [ -z "$COSA" ] || [ -z "$PAGATO" ]; then
         # Annullato: tocco sbagliato (si scarta) oppure si segna più tardi
-        if conferma "🗑️ Scarto questa vendita?" "Sì = era un tocco sbagliato, la tolgo. No = la tengo e la segno dopo."; then
+        if conferma "🗑️ Scarto questa vendita?" "No = la segno dopo"; then
           sed -i '1d' "$FILE"
           FATTE+="🗑️ $TIPO delle $ORA scartato"$'\n'
           continue

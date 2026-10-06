@@ -2,9 +2,9 @@
 # Pulsante: centesimi da aggiungere dopo la vendita
 #   abbuono = il cliente paga qualche centesimo in meno; resto = lascia qualche centesimo
 . ~/.termux/tasker/widget_comune.sh
-TIPO=$(scegli "🪙 Cosa aggiungi?" "Abbuono (mancano: ha pagato meno),Resto lasciato (in più: non ha voluto il resto)")
+TIPO=$(scegli "🪙 Centesimi" "Abbuono,Resto lasciato")
 [ -z "$TIPO" ] && annullato
-CENT=$(numero "🪙 Quanti centesimi?" "es. 10"); [ -z "$CENT" ] && annullato
+CENT=$(numero "🪙 Centesimi" "10"); [ -z "$CENT" ] && annullato
 case "$TIPO" in
   Abbuono*) esito "$(bash $CASSA "abbuono $CENT centesimi")" ;;
   *)        esito "$(bash $CASSA "lasciato $CENT centesimi")" ;;

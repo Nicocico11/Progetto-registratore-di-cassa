@@ -53,10 +53,10 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
 annullato() { messaggio "Niente salvato"; casa; }
 
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)
-pagamento() {   # pagamento "titolo" [senza_cassa | carburante]   (OPT solo per il carburante: solo gasolio)
-  local scelte="Contanti,POS cassa (negozio),POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere (Cartissima)"
-  [ "$2" = carburante ] && scelte="$scelte,OPT (solo gasolio)"
+pagamento() {   # pagamento "titolo" [senza_cassa | carburante]   (OPT solo per il carburante)
+  local scelte="Contanti,POS cassa,POS nero,POS bianco,Petrolifere"
+  [ -n "$2" ] && scelte="Contanti,POS nero,POS bianco,Petrolifere"
+  [ "$2" = carburante ] && scelte="$scelte,OPT"
   case "$(scegli "$1" "$scelte")" in
     Contanti) echo "contanti" ;;
     "POS cassa"*) echo "in cassa" ;;
