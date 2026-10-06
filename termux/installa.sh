@@ -865,6 +865,9 @@ def voce_listino(nome, testo):
     # "2 red bull" = 2 x prezzo; "adblue 20 litri" = 20 x 1,30; "adblue 13 euro" = importo 13
     p = listino[nome]
     prezzo = float(p['prezzo'])
+    if p.get('unita', 'pz') == 'pz':
+        # "lavavetri 5 litri", "olio da 1 litro": è il formato del prodotto, non la quantità
+        testo = re.sub(NUMERO + r'\s*(?:litri|litro|lt|l|ml|cl|kg|chili|grammi|gr|g)\b', ' ', testo)
     euro = numero_in_euro(testo)
     prezzo_detto = prezzo
     if euro is not None and p.get('unita', 'pz') == 'pz':
@@ -9898,4 +9901,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:24"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 16:36"

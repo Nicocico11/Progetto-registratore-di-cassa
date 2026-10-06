@@ -386,6 +386,9 @@ def voce_listino(nome, testo):
     # "2 red bull" = 2 x prezzo; "adblue 20 litri" = 20 x 1,30; "adblue 13 euro" = importo 13
     p = listino[nome]
     prezzo = float(p['prezzo'])
+    if p.get('unita', 'pz') == 'pz':
+        # "lavavetri 5 litri", "olio da 1 litro": è il formato del prodotto, non la quantità
+        testo = re.sub(NUMERO + r'\s*(?:litri|litro|lt|l|ml|cl|kg|chili|grammi|gr|g)\b', ' ', testo)
     euro = numero_in_euro(testo)
     prezzo_detto = prezzo
     if euro is not None and p.get('unita', 'pz') == 'pz':
