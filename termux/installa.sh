@@ -613,6 +613,43 @@ if not testo_originale.strip():
 testo_basso = testo_originale.lower()
 
 
+DA_CODICE = set()   # prodotti letti dal codice a barre: sono certi, niente lista "Quale prodotto?"
+
+
+def codici_a_barre(testo):
+    """Codici a barre (scanner o scritti) -> prodotti: "8002270014901 8002270014901" -> "2 red bull".
+    Un codice lungo che non è nel listino: niente salvato (sennò diventerebbe un rifornimento enorme)."""
+    if not re.search(r'\d{5,}|[a-z]\d{3,}', testo):
+        return testo
+    try:
+        with open(prezzi_path, encoding='utf-8') as f:
+            mappa = {str(v['barre']).lower(): nome for nome, v in json.load(f).items()
+                     if isinstance(v, dict) and v.get('barre')}
+    except Exception:
+        mappa = {}
+    conta, resto = {}, []
+    for parola in testo.split():
+        pulita = parola.strip('.,;:')
+        if pulita in mappa:
+            conta[mappa[pulita]] = conta.get(mappa[pulita], 0) + 1
+        elif re.fullmatch(r'\d{8,14}', pulita):
+            print(f"❓ Codice a barre {pulita} non nel listino. Niente salvato: "
+                  f"di' o scrivi \"danea nome prezzo\" per questo prodotto.")
+            sys.exit(1)
+        else:
+            resto.append(parola)
+    if not conta:
+        return testo
+    DA_CODICE.update(conta)
+    resto = " ".join(resto).strip()
+    if re.search(r'\d', resto) and not resto.startswith(('e ', 'ed ')):
+        resto = "e " + resto                     # "codici 50 gasolio" -> "... e 50 gasolio": voce a parte
+    return " e ".join(f"{n} {nome.lower()}" for nome, n in conta.items()) + " " + resto
+
+
+testo_basso = codici_a_barre(testo_basso)
+
+
 # "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
 from numeri import in_cifre, senza_accenti
 testo_basso = senza_accenti(in_cifre(testo_basso))                                    # "estathé" -> estathe
@@ -840,7 +877,7 @@ OLI_MOTORE = sorted(n for n, p in listino.items()
                     if p.get('categoria') == 'LUBRIFICANTI' and re.search(r'\d+W-?\d+', n))   # 5W-40, 0W-20...
 AVVISI = []     # cose da controllare: la vendita si salva con 2 vibrazioni
 SIMILI = {}     # parole sentite male e il nome del listino più simile ("icnusa": "ichnusa")
-SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
+SCELTI = set(DA_CODICE)  # prodotti scelti dalla lista "Quale prodotto?" (o letti dal codice a barre)
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
@@ -1931,7 +1968,7 @@ import json, os, re, shutil, sys
 
 # Converte l'esportazione prodotti di Danea Easyfatt (Prodotti.xlsx) nel listino della cassa vocale.
 # Uso: python3 danea_listino.py ~/storage/downloads/Prodotti.xlsx [~/prezzi.json]
-# Colonne attese: Categoria, Descrizione, Listino 1 (ivato).
+# Colonne attese: Categoria, Descrizione, Listino 1 (ivato); se c'è, anche Cod. a barre (per lo scanner).
 #
 # Per ogni prodotto crea i "nomi a voce" (alias) togliendo formati e misure:
 # "COCA COLA BOTT 400" -> "coca cola". I nomi extra si aggiungono in ALIAS_EXTRA qui sotto.
@@ -2003,6 +2040,7 @@ def converti(path_xlsx):
     i_cat = intest.index('categoria')
     i_desc = intest.index('descrizione')
     i_prezzo = next(i for i, c in enumerate(intest) if c.startswith('listino'))
+    i_barre = next((i for i, c in enumerate(intest) if 'barre' in c), None)
 
     listino, saltati = {}, []
     for r in righe[1:]:
@@ -2016,10 +2054,14 @@ def converti(path_xlsx):
         if not isinstance(prezzo, (int, float)) or prezzo <= 0:
             saltati.append(desc)
             continue
+        barre = str(r[i_barre] or '').strip() if i_barre is not None else ''
+        barre = barre[:-2] if barre.endswith('.0') else barre      # numero letto da Excel come 8.05e12
         if desc.upper() in SPECIALI:
             s = SPECIALI[desc.upper()]
             listino[s['nome']] = {'prezzo': float(prezzo), 'alias': s['alias'],
                                   'reparto': s['reparto'], 'unita': s['unita'], 'danea': desc}
+            if barre:
+                listino[s['nome']]['barre'] = barre
             continue
         alias = alias_da_nome(desc) + ALIAS_EXTRA.get(desc.upper(), [])
         if not alias:
@@ -2027,6 +2069,8 @@ def converti(path_xlsx):
             continue
         listino[desc.upper()] = {'prezzo': float(prezzo), 'alias': sorted(set(alias)),
                                  'reparto': 'Market', 'unita': 'pz', 'categoria': cat or 'ALTRO'}
+        if barre:
+            listino[desc.upper()]['barre'] = barre
     return listino, saltati
 
 
@@ -3636,7 +3680,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ALTRO"
+  "categoria": "ALTRO",
+  "barre": "8053369073088"
  },
  "CACIOTTA DELLA LUNIGIANA": {
   "prezzo": 6.1,
@@ -3654,7 +3699,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ALTRO"
+  "categoria": "ALTRO",
+  "barre": "5450564042520"
  },
  "PANNO SONAX PELLE PLASTICA": {
   "prezzo": 4.5,
@@ -3663,7 +3709,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ALTRO"
+  "categoria": "ALTRO",
+  "barre": "4064700415607"
  },
  "SET TAPPI PNEUMATICI": {
   "prezzo": 2.0,
@@ -3672,7 +3719,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692024881"
  },
  "ADESIVI ITALIA STIKY": {
   "prezzo": 8.0,
@@ -3681,7 +3729,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692150047"
  },
  "NUMERI/PAROLE ADESIVI 80X35": {
   "prezzo": 1.0,
@@ -3691,7 +3740,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692079621"
  },
  "TANICA CAMION 25 LITRI CON RUBINETTO": {
   "prezzo": 27.0,
@@ -3700,7 +3750,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4847001"
  },
  "TANICA ROSSA 5 LITRI": {
   "prezzo": 6.5,
@@ -3709,7 +3760,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8010710001343"
  },
  "PRIMO SOCCORSO": {
   "prezzo": 15.0,
@@ -3718,7 +3770,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8034028011139"
  },
  "VULCANO ZAMPIRONE": {
   "prezzo": 2.5,
@@ -3727,7 +3780,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8008090063488"
  },
  "SPONGE 2 IN UNO": {
   "prezzo": 6.5,
@@ -3736,7 +3790,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252418971"
  },
  "SPUGNA": {
   "prezzo": 2.5,
@@ -3745,7 +3800,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001003330"
  },
  "TUBO 12MT GONFIAGGIO": {
   "prezzo": 48.0,
@@ -3755,7 +3811,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001008540"
  },
  "KIT GONFIAGGIO": {
   "prezzo": 75.0,
@@ -3764,7 +3821,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001008533"
  },
  "VENTILATORE 24V": {
   "prezzo": 32.0,
@@ -3774,7 +3832,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252299976"
  },
  "DISCHI TACHIGRAFO": {
   "prezzo": 12.0,
@@ -3783,7 +3842,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4028875001195"
  },
  "ATTACCO GPL": {
   "prezzo": 20.0,
@@ -3792,7 +3852,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001004337"
  },
  "ADESIVI RIFRANGENTI VELOCITA": {
   "prezzo": 6.5,
@@ -3810,7 +3871,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001007314"
  },
  "POMMELLO VOLANTE": {
   "prezzo": 25.0,
@@ -3819,7 +3881,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692000434"
  },
  "TAPPO SERBATOIO": {
   "prezzo": 18.0,
@@ -3828,7 +3891,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252079806"
  },
  "TAPPO ADBLUE": {
   "prezzo": 12.0,
@@ -3837,7 +3901,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978061"
  },
  "PISTOLE SOFFIAGGIO": {
   "prezzo": 14.0,
@@ -3856,7 +3921,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4050300925202"
  },
  "FUSIBILI": {
   "prezzo": 2.5,
@@ -3865,7 +3931,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692700846"
  },
  "CAVI BATTERIA 35MM": {
   "prezzo": 59.0,
@@ -3874,7 +3941,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252361826"
  },
  "CORDA TIRANTE CAMION": {
   "prezzo": 21.0,
@@ -3883,7 +3951,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "5903991494405"
  },
  "CORDA CRICCHETTO ITIS": {
   "prezzo": 21.0,
@@ -3892,7 +3961,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8022698164347"
  },
  "CORDA CRIK CAMION": {
   "prezzo": 19.0,
@@ -3901,7 +3971,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "5903839954207"
  },
  "TAPPETTO AUTO": {
   "prezzo": 12.0,
@@ -3910,7 +3981,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692260111"
  },
  "PARASOLE": {
   "prezzo": 15.0,
@@ -3919,7 +3991,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252341934"
  },
  "TANICA 10 LT": {
   "prezzo": 12.0,
@@ -3928,7 +4001,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8010710001350"
  },
  "TANICA ROSSA 5 LT": {
   "prezzo": 6.5,
@@ -3946,7 +4020,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252722276"
  },
  "CARICO SPORGENTE": {
   "prezzo": 9.5,
@@ -3955,7 +4030,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8022593651416"
  },
  "CAVO BATTERIA": {
   "prezzo": 47.0,
@@ -3964,7 +4040,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252361819"
  },
  "FRIGGITRICE ARIA": {
   "prezzo": 110.0,
@@ -3982,7 +4059,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252036687"
  },
  "CAFFETTIERA CIALDE": {
   "prezzo": 40.0,
@@ -3991,7 +4069,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252391557"
  },
  "TENDINA CALZA PARASOLE": {
   "prezzo": 18.0,
@@ -4000,7 +4079,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8016565048946"
  },
  "SECCHIO TONDO RICHIUDIBILE": {
   "prezzo": 11.0,
@@ -4009,7 +4089,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252475387"
  },
  "SECCHIO QUADRATO": {
   "prezzo": 11.0,
@@ -4018,7 +4099,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252496191"
  },
  "FUSIBILI LAMA": {
   "prezzo": 4.0,
@@ -4027,7 +4109,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252327334"
  },
  "PULITORE VALVOLE GPL": {
   "prezzo": 18.0,
@@ -4036,7 +4119,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8032919011046"
  },
  "NASTRO ISOLANTE MEDIO": {
   "prezzo": 4.5,
@@ -4045,7 +4129,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8001814309572"
  },
  "CHIAVE CROCE AUTO": {
   "prezzo": 15.0,
@@ -4054,7 +4139,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252044538"
  },
  "FASCETTA PLASTICA NERA": {
   "prezzo": 12.0,
@@ -4063,7 +4149,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252721125"
  },
  "SPAZZOLONE FUTURA": {
   "prezzo": 20.0,
@@ -4072,7 +4159,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692380062"
  },
  "ANGLES MORTS": {
   "prezzo": 4.7,
@@ -4081,7 +4169,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001008038"
  },
  "KIT RIPARA GOMME": {
   "prezzo": 15.5,
@@ -4090,7 +4179,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8016565023981"
  },
  "GIUBBOTTO DI SICUREZZA": {
   "prezzo": 7.0,
@@ -4099,7 +4189,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252007366"
  },
  "TENDINE PARASOLE": {
   "prezzo": 5.0,
@@ -4108,7 +4199,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252021348"
  },
  "COPRIVOLANTE CAMION": {
   "prezzo": 20.0,
@@ -4117,7 +4209,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252101873"
  },
  "COPRIVOLANTE": {
   "prezzo": 11.0,
@@ -4126,7 +4219,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692329863"
  },
  "CHAMOIS SPONGE": {
   "prezzo": 8.0,
@@ -4135,7 +4229,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692371527"
  },
  "PRO CLEAN ALVEOLAR": {
   "prezzo": 5.0,
@@ -4144,7 +4239,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692371633"
  },
  "PANNO FIBRA DOUBLE FACE": {
   "prezzo": 15.0,
@@ -4153,7 +4249,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692371657"
  },
  "PANNO ANTIAPPANNANTE": {
   "prezzo": 3.0,
@@ -4162,7 +4259,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692377048"
  },
  "CLEANING CLOTHS": {
   "prezzo": 7.0,
@@ -4171,7 +4269,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692377130"
  },
  "CHAMOIS LEATHER": {
   "prezzo": 15.0,
@@ -4180,7 +4279,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692382936"
  },
  "DETERGI VETRI": {
   "prezzo": 5.0,
@@ -4189,7 +4289,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692384152"
  },
  "PLUG IN EVO": {
   "prezzo": 18.0,
@@ -4198,7 +4299,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692389751"
  },
  "SPINOTTO": {
   "prezzo": 9.0,
@@ -4207,7 +4309,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980903"
  },
  "MULTI SOCKET": {
   "prezzo": 19.0,
@@ -4216,7 +4319,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390245"
  },
  "DUO 4": {
   "prezzo": 18.0,
@@ -4225,7 +4329,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390481"
  },
  "SWIVEL ADAPTER": {
   "prezzo": 12.0,
@@ -4234,7 +4339,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390528"
  },
  "TWIN SCKET": {
   "prezzo": 12.0,
@@ -4243,7 +4349,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390627"
  },
  "DUAL MUFFLER": {
   "prezzo": 13.0,
@@ -4252,7 +4359,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390801"
  },
  "CUSCINO DA VIAGGIO MEMORI WAP": {
   "prezzo": 19.0,
@@ -4261,7 +4369,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692541661"
  },
  "TTIE DOWMN 2X250CM": {
   "prezzo": 12.0,
@@ -4271,7 +4380,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601501"
  },
  "TIOE DOWN 500": {
   "prezzo": 15.0,
@@ -4280,7 +4390,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601594"
  },
  "NASTRO TENSORE": {
   "prezzo": 8.5,
@@ -4289,7 +4400,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601624"
  },
  "TIE DOWN 500 CM": {
   "prezzo": 15.0,
@@ -4298,7 +4410,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601617"
  },
  "CORDE ELASTICHE 200M": {
   "prezzo": 11.0,
@@ -4307,7 +4420,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692602218"
  },
  "DISCO ORARIO": {
   "prezzo": 1.5,
@@ -4316,7 +4430,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692653500"
  },
  "TAPPETO ANTISCIVOLO": {
   "prezzo": 2.0,
@@ -4325,7 +4440,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692654484"
  },
  "ASHTRAY": {
   "prezzo": 13.0,
@@ -4334,7 +4450,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692654613"
  },
  "PARASOLE XXL": {
   "prezzo": 15.0,
@@ -4343,7 +4460,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692668436"
  },
  "MOLLY FACE TENDINA": {
   "prezzo": 6.0,
@@ -4352,7 +4470,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669082"
  },
  "TANICA RUBINETTO 25 LITRI": {
   "prezzo": 27.0,
@@ -4361,7 +4480,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669686"
  },
  "TANICA PER ALIMENTI 5 LITRI": {
   "prezzo": 7.0,
@@ -4370,7 +4490,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669914"
  },
  "TANICA PER ALIMENTI LITRI 10": {
   "prezzo": 11.0,
@@ -4379,7 +4500,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669921"
  },
  "TANICA PER ALIMENTI 15 LITRI": {
   "prezzo": 18.0,
@@ -4388,7 +4510,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669938"
  },
  "TAN ICA PER ALIMENTI LITRI 20": {
   "prezzo": 20.0,
@@ -4397,7 +4520,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669945"
  },
  "TANICA CON RUBINETTO LT 15": {
   "prezzo": 20.0,
@@ -4406,7 +4530,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669976"
  },
  "TANICA CON RUBINETTO 10 LITRI": {
   "prezzo": 20.0,
@@ -4415,7 +4540,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "6962642"
  },
  "TANICA CO RUBINETTO 20 LITRI": {
   "prezzo": 24.0,
@@ -4424,7 +4550,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692670163"
  },
  "EASY CAP": {
   "prezzo": 9.0,
@@ -4433,7 +4560,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692670255"
  },
  "CLIP ADESIVA PER TELEPASS": {
   "prezzo": 7.0,
@@ -4442,7 +4570,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692699416"
  },
  "CLIPS": {
   "prezzo": 7.0,
@@ -4451,7 +4580,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692699461"
  },
  "ADESIVO TELEPSASS": {
   "prezzo": 5.0,
@@ -4460,7 +4590,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692700037"
  },
  "BELT STOPPER": {
   "prezzo": 7.0,
@@ -4469,7 +4600,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692723883"
  },
  "ZITTO 2": {
   "prezzo": 12.0,
@@ -4478,7 +4610,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692723975"
  },
  "ZITTO": {
   "prezzo": 8.0,
@@ -4487,7 +4620,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692723999"
  },
  "TRAVEL KIT 3PZ": {
   "prezzo": 9.0,
@@ -4497,7 +4631,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692724088"
  },
  "NEK SUPPORT": {
   "prezzo": 6.0,
@@ -4506,7 +4641,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692724118"
  },
  "FRIGGITRICE ARIA 24 VOLT": {
   "prezzo": 110.0,
@@ -4515,7 +4651,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252572345"
  },
  "GANCI PER TENDE": {
   "prezzo": 3.5,
@@ -4524,7 +4661,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692970904"
  },
  "SCALDAVIVANDE": {
   "prezzo": 26.0,
@@ -4533,7 +4671,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692971413"
  },
  "ADAPTOR D3": {
   "prezzo": 4.5,
@@ -4543,7 +4682,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972007"
  },
  "RACCORDO RAPIDO D1": {
   "prezzo": 9.0,
@@ -4553,7 +4693,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972083"
  },
  "RACCORDO RAPIDO D2": {
   "prezzo": 5.0,
@@ -4563,7 +4704,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980057"
  },
  "RACCORDO RAPIDO L1": {
   "prezzo": 8.5,
@@ -4573,7 +4715,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972106"
  },
  "RACCORDO RAPIDO": {
   "prezzo": 8.0,
@@ -4582,7 +4725,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972120"
  },
  "FUEL CAP D-6": {
   "prezzo": 14.0,
@@ -4592,7 +4736,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692977989"
  },
  "FUEL CAP D 1": {
   "prezzo": 14.0,
@@ -4601,7 +4746,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978009"
  },
  "FUEL CAP D-2": {
   "prezzo": 8.0,
@@ -4611,7 +4757,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978016"
  },
  "FUEL CAP D 3": {
   "prezzo": 15.0,
@@ -4620,7 +4767,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978023"
  },
  "FUEL CAP D-4": {
   "prezzo": 12.0,
@@ -4630,7 +4778,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978030"
  },
  "FUEL CAP D-5": {
   "prezzo": 12.0,
@@ -4640,7 +4789,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978047"
  },
  "UREA CAP U1": {
   "prezzo": 7.0,
@@ -4650,7 +4800,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978054"
  },
  "UREA CAP U3": {
   "prezzo": 8.5,
@@ -4660,7 +4811,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978078"
  },
  "UREA CAP U4": {
   "prezzo": 9.0,
@@ -4670,7 +4822,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978085"
  },
  "UREA CAP U-5": {
   "prezzo": 19.0,
@@ -4680,7 +4833,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978092"
  },
  "TANICA CON RUBINETTO E PORTASAPONE LT 25": {
   "prezzo": 25.0,
@@ -4689,7 +4843,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978689"
  },
  "SKIN COVER": {
   "prezzo": 15.0,
@@ -4698,7 +4853,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692979174"
  },
  "CONNECTOR C4": {
   "prezzo": 10.0,
@@ -4708,7 +4864,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692979822"
  },
  "CONNECTOR C 5": {
   "prezzo": 15.0,
@@ -4717,7 +4874,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692979839"
  },
  "RACCORDO RAPIDO T 4": {
   "prezzo": 5.0,
@@ -4726,7 +4884,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980040"
  },
  "CONNETTORE ARIA T5": {
   "prezzo": 6.2,
@@ -4736,7 +4895,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980064"
  },
  "MOLTIPLICATORE DI FORZA PER DADI": {
   "prezzo": 70.0,
@@ -4745,7 +4905,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980415"
  },
  "ROTOLINI TACHIGRAFO": {
   "prezzo": 10.0,
@@ -4754,7 +4915,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980460"
  },
  "PORTA TARGA RIPETITRICE": {
   "prezzo": 14.0,
@@ -4763,7 +4925,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980729"
  },
  "CONNECTOR T1": {
   "prezzo": 8.5,
@@ -4773,7 +4936,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980750"
  },
  "CONNECTOR C1": {
   "prezzo": 12.5,
@@ -4783,7 +4947,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980767"
  },
  "CONNECTOR C 2": {
   "prezzo": 14.0,
@@ -4792,7 +4957,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980774"
  },
  "SET PISTOLA GONFIAGGIO": {
   "prezzo": 29.0,
@@ -4801,7 +4967,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980781"
  },
  "CONNETTORE C 3": {
   "prezzo": 12.0,
@@ -4810,7 +4977,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980798"
  },
  "CONNECTOR T2": {
   "prezzo": 18.0,
@@ -4820,7 +4988,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980811"
  },
  "TUBO ARIA": {
   "prezzo": 14.0,
@@ -4829,7 +4998,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980866"
  },
  "CIGARETTE LIGHTER": {
   "prezzo": 13.0,
@@ -4838,7 +5008,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980910"
  },
  "PISTOLA SOFFIAGGIO ARIA": {
   "prezzo": 16.0,
@@ -4847,7 +5018,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980958"
  },
  "DC/CD ADAPTER": {
   "prezzo": 24.0,
@@ -4856,7 +5028,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692983478"
  },
  "ADATTATORE X2 USCITE": {
   "prezzo": 11.0,
@@ -4866,7 +5039,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692983485"
  },
  "LAMPADA P21W": {
   "prezzo": 5.0,
@@ -4876,7 +5050,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692983645"
  },
  "COPRIVOLANTE 46-48": {
   "prezzo": 20.0,
@@ -4885,7 +5060,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692988473"
  },
  "BENDA RIPARA MMARMITTE": {
   "prezzo": 5.0,
@@ -4894,7 +5070,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "5010373046456"
  },
  "KAMPADSA H7 OSRAM": {
   "prezzo": 7.0,
@@ -4904,7 +5081,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4050300386522"
  },
  "RACCORDO RAPIDO T4": {
   "prezzo": 8.0,
@@ -4914,7 +5092,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI AUTO/CAMION"
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972137"
  },
  "SUPER ATTAK": {
   "prezzo": 7.0,
@@ -4923,7 +5102,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000776157658"
  },
  "SILICONE NERO/TRASPARENTE": {
   "prezzo": 8.0,
@@ -4932,7 +5112,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8016818028213"
  },
  "LUCCHETTO 40MM": {
   "prezzo": 4.0,
@@ -4941,7 +5122,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252793887"
  },
  "LUCCHETTO 50MM": {
   "prezzo": 5.5,
@@ -4959,7 +5141,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252487335"
  },
  "LUCCHETTO BLACK+DEKER 70MM": {
   "prezzo": 25.0,
@@ -4968,7 +5151,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252231891"
  },
  "LUCCHETTO BLACK DEKER 40MM": {
   "prezzo": 14.0,
@@ -4977,7 +5161,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252232171"
  },
  "MULTI TOOLS": {
   "prezzo": 8.0,
@@ -4986,7 +5171,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692661246"
  },
  "MULTI PLIER": {
   "prezzo": 12.0,
@@ -4995,7 +5181,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692661239"
  },
  "ACCENDIGAS": {
   "prezzo": 4.0,
@@ -5013,7 +5200,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "5450564030350"
  },
  "FORNELLO KOK": {
   "prezzo": 21.0,
@@ -5022,7 +5210,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "6934589406509"
  },
  "FOTNELLO KOK 150": {
   "prezzo": 37.0,
@@ -5031,7 +5220,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "6934589408602"
  },
  "PONCHO PER ADULTI": {
   "prezzo": 7.5,
@@ -5040,7 +5230,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252911984"
  },
  "ATOMIC GAS 60ML": {
   "prezzo": 4.5,
@@ -5049,7 +5240,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "4014663158936"
  },
  "LETTERE ADESIVE": {
   "prezzo": 1.0,
@@ -5067,7 +5259,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8001814169176"
  },
  "NASTRO TELATO": {
   "prezzo": 15.0,
@@ -5076,7 +5269,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8001814000165"
  },
  "CARTA ASSORBENTE": {
   "prezzo": 12.0,
@@ -5085,7 +5279,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8001512900255"
  },
  "5 PANNI FIBRE": {
   "prezzo": 5.0,
@@ -5094,7 +5289,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252563237"
  },
  "LAMPADINA P21W": {
   "prezzo": 9.5,
@@ -5104,7 +5300,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983669"
  },
  "CACCIAVITE TAGLIO": {
   "prezzo": 3.0,
@@ -5113,7 +5310,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595237"
  },
  "CACCIAVITE": {
   "prezzo": 3.0,
@@ -5122,7 +5320,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692595282"
  },
  "CACCIAVITE CROCE": {
   "prezzo": 3.0,
@@ -5131,7 +5330,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692595305"
  },
  "FORBICI 140MM": {
   "prezzo": 7.0,
@@ -5140,7 +5340,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692660065"
  },
  "ACCENDINI PICCOLI BIC": {
   "prezzo": 1.5,
@@ -5149,7 +5350,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "070330600072"
  },
  "ACCENDINO GRANDE BIC": {
   "prezzo": 2.0,
@@ -5158,7 +5360,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "ACCESSORI FAI DA TE"
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "070330600065"
  },
  "AdBlue sfuso": {
   "prezzo": 1.3,
@@ -5184,7 +5387,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "AdBlue",
   "unita": "pz",
-  "danea": "TANICA ADBLUE"
+  "danea": "TANICA ADBLUE",
+  "barre": "8000899721088"
  },
  "BIRRA HEINEKEN 33 CL": {
   "prezzo": 3.5,
@@ -5193,7 +5397,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "8006890627015"
  },
  "BIRRA MORETTI 66 CL": {
   "prezzo": 4.0,
@@ -5202,7 +5407,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "8001435500013"
  },
  "SUCCO DI FRUTTA YOGA": {
   "prezzo": 2.5,
@@ -5211,7 +5417,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "8001440136986"
  },
  "COCA COLA BOTT 400": {
   "prezzo": 3.0,
@@ -5222,7 +5429,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "42105220"
  },
  "ESTATHE BRICK": {
   "prezzo": 1.5,
@@ -5233,7 +5441,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "80050803"
  },
  "ESTA THE LIMONE PESCA": {
   "prezzo": 3.0,
@@ -5245,7 +5454,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "8001440137037"
  },
  "BOX 6 BOTTIGLIE ACQUA": {
   "prezzo": 5.5,
@@ -5256,7 +5466,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "04847100"
  },
  "ICHNUSA METODO LENTO": {
   "prezzo": 3.5,
@@ -5275,7 +5486,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "90435874"
  },
  "FANTA 0,400 CL": {
   "prezzo": 3.0,
@@ -5284,7 +5496,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "54032354"
  },
  "ACQUA CONFEZ.1,5 LITRI": {
   "prezzo": 2.5,
@@ -5297,7 +5510,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "8002495512343"
  },
  "ACQUA BOTT 0,500": {
   "prezzo": 1.5,
@@ -5309,7 +5523,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "BEVANDE"
+  "categoria": "BEVANDE",
+  "barre": "80097402"
  },
  "RICOLA": {
   "prezzo": 3.0,
@@ -5318,7 +5533,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "7610700901021"
  },
  "FISHERMANS FRIEND": {
   "prezzo": 3.0,
@@ -5327,7 +5543,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "50819218"
  },
  "HALLS": {
   "prezzo": 1.0,
@@ -5336,7 +5553,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80000327"
  },
  "PECTOL": {
   "prezzo": 1.0,
@@ -5345,7 +5563,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "84115942"
  },
  "CARAMELLE MARY GIO": {
   "prezzo": 3.0,
@@ -5354,7 +5573,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "1002001"
  },
  "VIGORSOL": {
   "prezzo": 3.0,
@@ -5363,7 +5583,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80656074"
  },
  "DAYGUM": {
   "prezzo": 3.0,
@@ -5372,7 +5593,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80818793"
  },
  "VIVIDENT": {
   "prezzo": 3.0,
@@ -5381,7 +5603,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80593980"
  },
  "GOLIA ACTIVE PASTIGLIE": {
   "prezzo": 3.0,
@@ -5390,7 +5613,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80737018"
  },
  "BARATTI": {
   "prezzo": 1.5,
@@ -5399,7 +5623,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "8007692058106"
  },
  "VIOLETTE": {
   "prezzo": 3.5,
@@ -5408,7 +5633,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "V379SH"
  },
  "HAPPYDENT": {
   "prezzo": 3.0,
@@ -5417,7 +5643,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80695929"
  },
  "TIC TAC": {
   "prezzo": 2.0,
@@ -5426,7 +5653,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80052043"
  },
  "TIC TAC TWO": {
   "prezzo": 2.2,
@@ -5435,7 +5663,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "80785385"
  },
  "KORDOEAN LIQUIRIZIA": {
   "prezzo": 3.0,
@@ -5444,7 +5673,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "V379KB"
  },
  "VICKS RESPIRO VIVO": {
   "prezzo": 2.5,
@@ -5453,7 +5683,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "8006530442787"
  },
  "LEONE PASTIGLIE VESPA": {
   "prezzo": 3.5,
@@ -5462,7 +5693,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "8005028137525"
  },
  "LEONE PASTIGLIE C'ERA UNA VOLTA": {
   "prezzo": 3.5,
@@ -5471,7 +5703,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "8005028117015"
  },
  "PASTIGLIE LEONE": {
   "prezzo": 3.5,
@@ -5480,7 +5713,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CARAMELLE"
+  "categoria": "CARAMELLE",
+  "barre": "8005028136665"
  },
  "AREXONS ADDITTIVO/ INIETTORI/COMMON RAIL": {
   "prezzo": 12.0,
@@ -5489,7 +5723,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565096544"
  },
  "AREXONS ADDITTIVO ANTIGELO -20": {
   "prezzo": 11.0,
@@ -5498,7 +5733,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565096506"
  },
  "AREXONS TRATTAMENTO FAP/DPF": {
   "prezzo": 14.0,
@@ -5507,7 +5743,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565098005"
  },
  "RHUTTEN PULITORE INIETTORI": {
   "prezzo": 9.5,
@@ -5516,7 +5753,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565034840"
  },
  "DISISCROSTANTE RADIATORI": {
   "prezzo": 5.5,
@@ -5525,7 +5763,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8013099008033"
  },
  "DEGHIACCIANTE SPRAY": {
   "prezzo": 5.0,
@@ -5534,7 +5773,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "5010373046838"
  },
  "ADDITIVO D+ MOTORE DIESEL": {
   "prezzo": 11.0,
@@ -5552,7 +5792,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8032919013002"
  },
  "RAIN OF VISIERA": {
   "prezzo": 5.0,
@@ -5561,7 +5802,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565085654"
  },
  "GONFIA E RIPARA": {
   "prezzo": 8.5,
@@ -5570,7 +5812,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8015353003563"
  },
  "GRASSO SPRY": {
   "prezzo": 6.0,
@@ -5579,7 +5822,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8015353003198"
  },
  "RHUTTEN PASTA ABRASIVA": {
   "prezzo": 7.0,
@@ -5588,7 +5832,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565001712"
  },
  "AREXONS CERA": {
   "prezzo": 13.0,
@@ -5597,7 +5842,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565082707"
  },
  "RHUTTEN POLISH V10": {
   "prezzo": 9.5,
@@ -5607,7 +5853,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565001729"
  },
  "AREXONS RIMUOVI GRAFFI": {
   "prezzo": 6.0,
@@ -5616,7 +5863,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565082509"
  },
  "RHUTTEN ACQUA BLU WC": {
   "prezzo": 8.5,
@@ -5625,7 +5873,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565039203"
  },
  "VETROX LIQUIDO VETRI": {
   "prezzo": 3.5,
@@ -5634,7 +5883,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8007596001628"
  },
  "RHUTTEN LAVAVETRO 1 LITRO": {
   "prezzo": 3.5,
@@ -5643,7 +5893,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565014606"
  },
  "LAVAVETRO 5 LITRI": {
   "prezzo": 16.0,
@@ -5652,7 +5903,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8007596001642"
  },
  "RUTTEN NERO GOMME": {
   "prezzo": 8.0,
@@ -5661,7 +5913,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565026388"
  },
  "PULITORE CERCHIONI SHELL": {
   "prezzo": 6.5,
@@ -5670,7 +5923,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "7317191049163"
  },
  "RHUTTEN VETRI AUTO": {
   "prezzo": 4.5,
@@ -5679,7 +5933,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565001361"
  },
  "RHUTTEN SHAMPOO AUTO": {
   "prezzo": 6.0,
@@ -5688,7 +5943,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565004362"
  },
  "AREXONS SHAMPOO CERA": {
   "prezzo": 11.0,
@@ -5697,7 +5953,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8002565083605"
  },
  "LUCIDACRUSCOTTO IL PIU": {
   "prezzo": 8.0,
@@ -5706,7 +5963,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8015353006007"
  },
  "RHUTTEN LUCIDANTE CRUSCOTTO": {
   "prezzo": 8.0,
@@ -5715,7 +5973,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565025800"
  },
  "RHUTTEN RAVVIVANTE CRUSCOTTO": {
   "prezzo": 8.0,
@@ -5724,7 +5983,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8016565013388"
  },
  "CLEANING GEL": {
   "prezzo": 4.0,
@@ -5733,7 +5993,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8000692381571"
  },
  "LAVAVETRO LAMPA": {
   "prezzo": 4.0,
@@ -5742,7 +6003,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8000692380895"
  },
  "POWER ONE SGRASSATORE": {
   "prezzo": 4.5,
@@ -5751,7 +6013,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "CHIMICI"
+  "categoria": "CHIMICI",
+  "barre": "8000692382813"
  },
  "ARBRE MAGIQUE": {
   "prezzo": 2.5,
@@ -5760,7 +6023,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8001365022906"
  },
  "DEKODORANTE POWER AIR": {
   "prezzo": 4.0,
@@ -5769,7 +6033,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8595600903421"
  },
  "AEBRE MAGIUQUE POP": {
   "prezzo": 4.5,
@@ -5778,7 +6043,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8001365290053"
  },
  "DEODORANTE DANNY": {
   "prezzo": 4.5,
@@ -5787,7 +6053,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692354070"
  },
  "DEODORANTE KING": {
   "prezzo": 10.0,
@@ -5796,7 +6063,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692351826"
  },
  "RICARICHE DEODORANTE KING": {
   "prezzo": 3.5,
@@ -5805,7 +6073,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692351956"
  },
  "DEODORANTE Q8": {
   "prezzo": 4.0,
@@ -5824,7 +6093,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "DEODORANTI AUTO"
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692353844"
  },
  "NASTRO IMBALLAGGI": {
   "prezzo": 4.5,
@@ -5833,7 +6103,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8001814003906"
  },
  "NASTRO TPL BLACK": {
   "prezzo": 15.0,
@@ -5842,7 +6113,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8001814000226"
  },
  "NASTRO TPL SILVER": {
   "prezzo": 15.0,
@@ -5860,7 +6132,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8711252068305"
  },
  "ACCENDIFUOCO": {
   "prezzo": 4.5,
@@ -5869,7 +6142,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8008150112163"
  },
  "BOMBOLETTA GAS": {
   "prezzo": 3.5,
@@ -5878,7 +6152,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8711252213767"
  },
  "KIT SERRAGGIO": {
   "prezzo": 8.5,
@@ -5887,7 +6162,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8711252040691"
  },
  "KINZO FASCETTE 4,8MM 400 MM": {
   "prezzo": 15.0,
@@ -5896,7 +6172,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8711252721170"
  },
  "CORDE ELARSTCHE 150 MM": {
   "prezzo": 8.5,
@@ -5905,7 +6182,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8004068008093"
  },
  "CORDE ELASTICHE 100": {
   "prezzo": 7.5,
@@ -5914,7 +6192,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8004068008086"
  },
  "CHIAVE 21": {
   "prezzo": 8.0,
@@ -5923,7 +6202,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595114"
  },
  "FASCETTE 6PZ": {
   "prezzo": 6.5,
@@ -5933,7 +6213,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8711252041278"
  },
  "NASTRO ADESIVO": {
   "prezzo": 4.5,
@@ -5951,7 +6232,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8011869006739"
  },
  "STRISCE RIFRANGENTI": {
   "prezzo": 14.0,
@@ -5969,7 +6251,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "5450564028937"
  },
  "SCARPE ANTINFORTUNISTICHE COVERGUARD": {
   "prezzo": 45.0,
@@ -5978,7 +6261,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "5450564045781"
  },
  "PORTACHIAVI ITALIA": {
   "prezzo": 4.0,
@@ -5987,7 +6271,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8057094080175"
  },
  "STATUETTE CARICATURE": {
   "prezzo": 12.0,
@@ -5996,7 +6281,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8057094109593"
  },
  "CASCO TESCHIO SALCADANAIO": {
   "prezzo": 21.0,
@@ -6014,7 +6300,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "4029811451746"
  },
  "CHIAVE 10 11 15 17 13": {
   "prezzo": 5.0,
@@ -6023,7 +6310,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595077"
  },
  "SET CHIAVI": {
   "prezzo": 62.0,
@@ -6032,7 +6320,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595015"
  },
  "CHIVE 6": {
   "prezzo": 2.0,
@@ -6041,7 +6330,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595039"
  },
  "SET CACCIAVITI": {
   "prezzo": 32.0,
@@ -6050,7 +6340,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595329"
  },
  "PINZA": {
   "prezzo": 10.0,
@@ -6059,7 +6350,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595350"
  },
  "CHIAVE PAPPÈAGALLO": {
   "prezzo": 10.0,
@@ -6068,7 +6360,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595381"
  },
  "PINZA CURVA": {
   "prezzo": 10.0,
@@ -6077,7 +6370,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595374"
  },
  "CHIVE INGLESE": {
   "prezzo": 16.0,
@@ -6086,7 +6380,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692595022"
  },
  "CORDE ELASTICHE 80": {
   "prezzo": 7.5,
@@ -6095,7 +6390,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692601914"
  },
  "SET CACCIAVITI MICRO": {
   "prezzo": 6.5,
@@ -6104,7 +6400,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692659939"
  },
  "CUTTERS": {
   "prezzo": 7.0,
@@ -6113,7 +6410,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692659984"
  },
  "SET CHIAVI ESAGONALI": {
   "prezzo": 9.0,
@@ -6122,7 +6420,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692660034"
  },
  "TORX KEY SET": {
   "prezzo": 9.0,
@@ -6131,7 +6430,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692660041"
  },
  "CHIAVI BRUGOLA": {
   "prezzo": 9.0,
@@ -6140,7 +6440,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692660515"
  },
  "DOUBLE SIDED": {
   "prezzo": 9.0,
@@ -6149,7 +6450,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692700112"
  },
  "FASCETTE FERMACAVO": {
   "prezzo": 10.0,
@@ -6158,7 +6460,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692700181"
  },
  "ADHESIVE TAPES": {
   "prezzo": 15.0,
@@ -6167,7 +6470,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "FAI DA TE"
+  "categoria": "FAI DA TE",
+  "barre": "8000692700280"
  },
  "MR COOKIE": {
   "prezzo": 2.8,
@@ -6249,7 +6553,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "GUANTI"
+  "categoria": "GUANTI",
+  "barre": "8032765478598"
  },
  "H7 12V55W OSRAM": {
   "prezzo": 10.0,
@@ -6269,7 +6574,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO"
+  "categoria": "LAMPADINE AUTO",
+  "barre": "4062172395014"
  },
  "LAMPADE H7 BLUE": {
   "prezzo": 13.0,
@@ -6279,7 +6585,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO"
+  "categoria": "LAMPADINE AUTO",
+  "barre": "8000692982877"
  },
  "LAMPADINA H4": {
   "prezzo": 9.0,
@@ -6289,7 +6596,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580400"
  },
  "LAMPADINA T10": {
   "prezzo": 13.0,
@@ -6299,7 +6607,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983614"
  },
  "LAMPADINA LED T10": {
   "prezzo": 11.0,
@@ -6309,7 +6618,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692583968"
  },
  "LAMPADINA H1": {
   "prezzo": 7.0,
@@ -6319,7 +6629,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580103"
  },
  "LAMPADINA ALOGENA": {
   "prezzo": 6.0,
@@ -6328,7 +6639,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580301"
  },
  "LAMPADINA H5": {
   "prezzo": 8.0,
@@ -6338,7 +6650,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580509"
  },
  "LAMOADINA H7": {
   "prezzo": 9.5,
@@ -6348,7 +6661,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580530"
  },
  "LAMPADINA P21/5W": {
   "prezzo": 6.0,
@@ -6358,7 +6672,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580622"
  },
  "LAMPADINA PY21W": {
   "prezzo": 3.5,
@@ -6368,7 +6683,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580653"
  },
  "LAMPADINA MICRO": {
   "prezzo": 6.0,
@@ -6377,7 +6693,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580806"
  },
  "LAMPADINA W5W": {
   "prezzo": 3.5,
@@ -6387,7 +6704,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692581056"
  },
  "LAMPADA T10": {
   "prezzo": 12.0,
@@ -6397,7 +6715,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692583951"
  },
  "LAMPADA H1": {
   "prezzo": 7.0,
@@ -6407,7 +6726,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982037"
  },
  "LAMPADINA R10W": {
   "prezzo": 3.0,
@@ -6417,7 +6737,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982150"
  },
  "LAMPADE 24 5WR5W": {
   "prezzo": 3.0,
@@ -6427,7 +6748,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982174"
  },
  "LAMPADINA SV8 5-8": {
   "prezzo": 10.0,
@@ -6437,7 +6759,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983584"
  },
  "CP LAMPADE   24 21": {
   "prezzo": 4.0,
@@ -6446,7 +6769,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982310"
  },
  "LAMPADA C5W": {
   "prezzo": 4.0,
@@ -6456,7 +6780,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982495"
  },
  "LAMPADE 260 LUMEN P21W": {
   "prezzo": 15.0,
@@ -6466,7 +6791,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983522"
  },
  "LAMPADA P21W 25 WHITE": {
   "prezzo": 12.5,
@@ -6476,7 +6802,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982570"
  },
  "LAMPADINE P21W 100WHITE": {
   "prezzo": 6.0,
@@ -6486,7 +6813,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982594"
  },
  "LAMPADA NICRO": {
   "prezzo": 3.0,
@@ -6495,7 +6823,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982617"
  },
  "LAMPADA T10 WHITE": {
   "prezzo": 10.0,
@@ -6505,7 +6834,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982686"
  },
  "LAMPSADA 7 LUMEN BLUE": {
   "prezzo": 3.0,
@@ -6514,7 +6844,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LAMPADINE AUTO/CAMION"
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983423"
  },
  "ACQUA DISTILLATA": {
   "prezzo": 3.6,
@@ -6523,7 +6854,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LIQUIDI X AUTO"
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8711252088327"
  },
  "TURAFALLE RADIIATORI": {
   "prezzo": 9.5,
@@ -6532,7 +6864,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LIQUIDI X AUTO"
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8013099008019"
  },
  "LIQUIDO LAVAVETRI Q8 250ML": {
   "prezzo": 4.0,
@@ -6542,7 +6875,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LIQUIDI X AUTO"
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8000899001562"
  },
  "LIQUIDO RADIATORE  CORA": {
   "prezzo": 10.0,
@@ -6551,7 +6885,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LIQUIDI X AUTO"
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8010718000201"
  },
  "LIQUIDO LAVAVETRI PROF 3 LT": {
   "prezzo": 7.5,
@@ -6560,7 +6895,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LIQUIDI X AUTO"
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8000692380581"
  },
  "Q8 FORMULA EXCEL PLUS 5W-40": {
   "prezzo": 16.5,
@@ -6570,7 +6906,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899148281"
  },
  "Q8 FORMULA VX LONG LIFE 5W-30": {
   "prezzo": 23.0,
@@ -6580,7 +6917,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046372"
  },
  "Q8 FORMULA ULTRA 0W-20": {
   "prezzo": 23.0,
@@ -6590,7 +6928,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046334"
  },
  "Q8 FORMULA V BLUE 0W-20": {
   "prezzo": 23.0,
@@ -6600,7 +6939,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046327"
  },
  "Q8 ZC 90  CAMBI MANUALI": {
   "prezzo": 14.0,
@@ -6610,7 +6950,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899207339"
  },
  "Q8 AUTO 14 AUTOMATIC TRASMISSION FLUID": {
   "prezzo": 14.5,
@@ -6620,7 +6961,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899207742"
  },
  "LIQUIDO FLUID -38 SHELL": {
   "prezzo": 9.0,
@@ -6629,7 +6971,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "5011987028500"
  },
  "LIQUIDO RADIATORI RHUTTEN BLU/ROSSO/ROSA": {
   "prezzo": 10.0,
@@ -6638,7 +6981,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8016565039111"
  },
  "DOT 4": {
   "prezzo": 6.5,
@@ -6647,7 +6991,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8002565081106"
  },
  "RHUTTEN GARDEN OIL": {
   "prezzo": 28.0,
@@ -6656,7 +7001,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8016565038725"
  },
  "RHUTTEN GARDEN OIL 100 ML": {
   "prezzo": 4.5,
@@ -6665,7 +7011,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8016565038695"
  },
  "SF5288": {
   "prezzo": 20.0,
@@ -6693,7 +7040,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046389"
  },
  "Q8 FORMULA PRESTIGE V 5W-30": {
   "prezzo": 20.0,
@@ -6703,7 +7051,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899047751"
  },
  "Q8 FORM R LONGLIFE 5W-30": {
   "prezzo": 22.0,
@@ -6713,7 +7062,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899047966"
  },
  "Q8 FORMULA ADVANCE PLUS 10W-40": {
   "prezzo": 16.5,
@@ -6723,7 +7073,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899148298"
  },
  "Q8 FORMULA SPECIAL FE 0W-20": {
   "prezzo": 24.5,
@@ -6733,7 +7084,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899147482"
  },
  "Q8 FORMULA PLUS 15W-40": {
   "prezzo": 15.5,
@@ -6743,7 +7095,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "LUBRIFICANTI"
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899148328"
  },
  "OCCHIALI VISTA ZIPPO": {
   "prezzo": 9.9,
@@ -6752,7 +7105,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "OCCHIALI"
+  "categoria": "OCCHIALI",
+  "barre": "8057717112610"
  },
  "OCCHIALI DA SOLE ZIPPO": {
   "prezzo": 19.9,
@@ -6761,7 +7115,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "OCCHIALI"
+  "categoria": "OCCHIALI",
+  "barre": "8057717118537"
  },
  "DURACELL PILA TORCIA": {
   "prezzo": 6.5,
@@ -6770,7 +7125,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394019171"
  },
  "DURACELL PILA MEZZATORCIA": {
   "prezzo": 5.7,
@@ -6779,7 +7135,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394019089"
  },
  "DURACELL MIN ISTILO": {
   "prezzo": 6.0,
@@ -6788,7 +7145,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394160743"
  },
  "DURACELL CR2430": {
   "prezzo": 4.0,
@@ -6798,7 +7156,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394030398"
  },
  "DURACELL 2016": {
   "prezzo": 3.5,
@@ -6807,7 +7166,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394033948"
  },
  "DURACELL 2032": {
   "prezzo": 7.5,
@@ -6816,7 +7176,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394203921"
  },
  "DURTACELL 2025": {
   "prezzo": 7.5,
@@ -6825,7 +7186,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394203907"
  },
  "TORCIA ENERGIZER": {
   "prezzo": 12.0,
@@ -6834,7 +7196,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "7638900015096"
  },
  "PILE MINISTYLO ENERGIZER": {
   "prezzo": 1.5,
@@ -6843,7 +7206,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "7638900410693"
  },
  "DURACELL  PILE STYLO": {
   "prezzo": 6.0,
@@ -6852,7 +7216,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PILE E TORCE"
+  "categoria": "PILE E TORCE",
+  "barre": "5000394002241"
  },
  "SPRAY PEPERONCINO": {
   "prezzo": 15.0,
@@ -6861,7 +7226,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8000692669556"
  },
  "CEROTTI SALVELOX": {
   "prezzo": 5.0,
@@ -6879,7 +7245,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8008090044012"
  },
  "SCHIUMA DA BARBA GILETTE 400": {
   "prezzo": 6.0,
@@ -6888,7 +7255,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8700216473460"
  },
  "SCHIUMA DA BARBA GILETTE 300": {
   "prezzo": 4.5,
@@ -6897,7 +7265,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "3014260302733"
  },
  "GILETTE RASOIO B 2": {
   "prezzo": 5.5,
@@ -6906,7 +7275,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "3014260201753"
  },
  "\\RASOIO 20 PEZZI": {
   "prezzo": 12.0,
@@ -6924,7 +7294,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002140036293"
  },
  "DENTIFRICIO ACQUA FRESH": {
   "prezzo": 3.5,
@@ -6942,7 +7313,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8008970056067"
  },
  "DOCCIASCHIUMA VIDAL": {
   "prezzo": 3.0,
@@ -6951,7 +7323,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8008970036984"
  },
  "SALVIETTE FRESH CLEAN": {
   "prezzo": 4.5,
@@ -6960,7 +7333,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002340012509"
  },
  "DETERGENTE MANI": {
   "prezzo": 4.0,
@@ -6969,7 +7343,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8003693402115"
  },
  "SALVIETTA FRIA MILLEUSI": {
   "prezzo": 3.5,
@@ -6978,7 +7353,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8009432019002"
  },
  "SALVIETTE FRESH CLEAN BABY": {
   "prezzo": 6.0,
@@ -6987,7 +7363,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002340008984"
  },
  "FAZZOLETTINI 6 PEZZI": {
   "prezzo": 3.5,
@@ -6996,7 +7373,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8001512205633"
  },
  "VELINE 2 VELI 150": {
   "prezzo": 4.5,
@@ -7005,7 +7383,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8001512982084"
  },
  "OMBRELLO  BLUE DROP": {
   "prezzo": 7.0,
@@ -7014,7 +7393,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8013054015328"
  },
  "PETTINE": {
   "prezzo": 7.0,
@@ -7023,7 +7403,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8004992461339"
  },
  "SPAZZOLA": {
   "prezzo": 6.0,
@@ -7032,7 +7413,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8711252998305"
  },
  "LAMETTE GILETTE": {
   "prezzo": 5.5,
@@ -7050,7 +7432,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002840818144"
  },
  "KILLER ZANZARE": {
   "prezzo": 9.0,
@@ -7059,7 +7442,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8683190709063"
  },
  "DEO SPRAY MANTOVANI": {
   "prezzo": 6.0,
@@ -7068,7 +7452,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002340008496"
  },
  "ASSORBENTI": {
   "prezzo": 3.0,
@@ -7077,7 +7462,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8001480401600"
  },
  "RASOIO BIC LADY": {
   "prezzo": 3.0,
@@ -7086,7 +7472,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "3086123493056"
  },
  "FAZZOLETTINI": {
   "prezzo": 2.8,
@@ -7095,7 +7482,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI IGIENE"
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8005892343695"
  },
  "OLIO EVO FERRARI VIVALDI 0,75 LT": {
   "prezzo": 18.0,
@@ -7131,7 +7519,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8020619000231"
  },
  "CONFETTURA GUSTI VARI": {
   "prezzo": 6.5,
@@ -7140,7 +7529,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420828"
  },
  "MIELE GUSTI VARI GR.400": {
   "prezzo": 9.0,
@@ -7150,7 +7540,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421382"
  },
  "MIELE DI CASTAGNO PAPPINI KG 1": {
   "prezzo": 18.0,
@@ -7159,7 +7550,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "00071"
  },
  "MIELE DI ACACIA PAPPINI 1 KG": {
   "prezzo": 22.0,
@@ -7186,7 +7578,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421023"
  },
  "SUGO POMODORO E BASILICO": {
   "prezzo": 3.5,
@@ -7195,7 +7588,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420248"
  },
  "FARINA DI CASTAGNO 500 GR": {
   "prezzo": 10.0,
@@ -7204,7 +7598,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420156"
  },
  "FARINA DI MAIS KG 1": {
   "prezzo": 8.0,
@@ -7222,7 +7617,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420071"
  },
  "FUNGHI PORCINI SOT OLIO": {
   "prezzo": 18.5,
@@ -7231,7 +7627,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420064"
  },
  "FUNGHI SECCHI MISTI": {
   "prezzo": 7.0,
@@ -7240,7 +7637,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420217"
  },
  "FUNGHI SECCHI PORCINI": {
   "prezzo": 9.0,
@@ -7258,7 +7656,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420675"
  },
  "CONDIMENTO SECCO GUSTI VARI": {
   "prezzo": 4.5,
@@ -7267,7 +7666,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420507"
  },
  "VERDURE DEL CONTADINO": {
   "prezzo": 4.5,
@@ -7276,7 +7676,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8009609007252"
  },
  "CARCIOFI A SPICCHI": {
   "prezzo": 4.5,
@@ -7285,7 +7686,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420460"
  },
  "PEPERONCINO RIPIENO": {
   "prezzo": 8.0,
@@ -7294,7 +7696,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420712"
  },
  "TESTAROLO DELLA LUNIGIANA": {
   "prezzo": 4.7,
@@ -7303,7 +7706,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8052211060009"
  },
  "MIRTILLI SCHIACCIATI": {
   "prezzo": 6.0,
@@ -7312,7 +7716,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420972"
  },
  "PANIGACCI": {
   "prezzo": 3.5,
@@ -7321,7 +7726,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8055118802000"
  },
  "FUNGHI PORCINI 40 GRAMMI": {
   "prezzo": 11.0,
@@ -7330,7 +7736,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420927"
  },
  "MIELE DI ACACIA 400 GR": {
   "prezzo": 11.0,
@@ -7348,7 +7755,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421498"
  },
  "SALSA PICCANTE": {
   "prezzo": 5.0,
@@ -7357,7 +7765,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PRODOTTI TIPICI"
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421214"
  },
  "DEODORANTE LUXURY 300 ML": {
   "prezzo": 14.0,
@@ -7366,7 +7775,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PROFUMI CASA PERSONA"
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8053369073897"
  },
  "DEODORANTE LUXURY ML 150": {
   "prezzo": 7.5,
@@ -7375,7 +7785,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PROFUMI CASA PERSONA"
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8053369073187"
  },
  "LIQUIDO INSETTICIDA": {
   "prezzo": 3.5,
@@ -7384,7 +7795,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PROFUMI CASA PERSONA"
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8008090079151"
  },
  "PROFUMO UOMO": {
   "prezzo": 15.0,
@@ -7393,7 +7805,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "PROFUMI CASA PERSONA"
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8715658350224"
  },
  "COPPA DELLA LUNIGIANA GR 950": {
   "prezzo": 20.5,
@@ -7520,7 +7933,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8019278603280"
  },
  "SRTUDIDI FICHI": {
   "prezzo": 2.5,
@@ -7531,7 +7945,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8029404008445"
  },
  "KINDER BUENO": {
   "prezzo": 2.0,
@@ -7540,7 +7955,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "80761761"
  },
  "BOUNTY": {
   "prezzo": 2.0,
@@ -7549,7 +7965,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "5000159557771"
  },
  "NUTELLA BISCUITS": {
   "prezzo": 2.0,
@@ -7558,7 +7975,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8000500359358"
  },
  "CROCCANTE": {
   "prezzo": 1.5,
@@ -7567,7 +7985,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8013273103530"
  },
  "SNIKERS": {
   "prezzo": 2.0,
@@ -7577,7 +7996,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "5900951311505"
  },
  "KIT KAT CLASSICO": {
   "prezzo": 2.0,
@@ -7586,7 +8006,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "40052410"
  },
  "TWIX": {
   "prezzo": 2.0,
@@ -7595,7 +8016,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "5900951313592"
  },
  "MARS": {
   "prezzo": 2.0,
@@ -7604,7 +8026,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "5900951311321"
  },
  "LISBONA TOMATIS": {
   "prezzo": 2.0,
@@ -7613,7 +8036,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8056479000081"
  },
  "KINDER CEREALI": {
   "prezzo": 1.5,
@@ -7622,7 +8046,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "80310266"
  },
  "KINDERE CIOCCOLATO": {
   "prezzo": 2.0,
@@ -7632,7 +8057,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "80177609"
  },
  "KINDER CRISPY": {
   "prezzo": 2.2,
@@ -7641,7 +8067,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8000500434123"
  },
  "NIPPON": {
   "prezzo": 3.2,
@@ -7650,7 +8077,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "4021700900021"
  },
  "NUTELLA BREADY": {
   "prezzo": 2.0,
@@ -7659,7 +8087,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8000500224281"
  },
  "M E MS": {
   "prezzo": 2.0,
@@ -7671,7 +8100,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "40111445"
  },
  "LION": {
   "prezzo": 2.0,
@@ -7680,7 +8110,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "7613038315706"
  },
  "BARRETTA FITNESS": {
   "prezzo": 2.0,
@@ -7689,7 +8120,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "3387390320558"
  },
  "FERRERO ROCHER": {
   "prezzo": 2.5,
@@ -7698,7 +8130,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "80050278"
  },
  "MINI OREO": {
   "prezzo": 1.8,
@@ -7707,7 +8140,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "84100429"
  },
  "OREO": {
   "prezzo": 2.4,
@@ -7716,7 +8150,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "84100733"
  },
  "CANESTRELLI": {
   "prezzo": 3.5,
@@ -7725,7 +8160,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8029404004324"
  },
  "FIOR DI COCCO": {
   "prezzo": 3.5,
@@ -7734,7 +8170,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8029404005932"
  },
  "CROSTATA FALCONE": {
   "prezzo": 1.5,
@@ -7743,7 +8180,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK DOLCI"
+  "categoria": "SNACK DOLCI",
+  "barre": "8023696006073"
  },
  "PAN PIZZA": {
   "prezzo": 3.0,
@@ -7752,7 +8190,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8029404005239"
  },
  "PAN AJO": {
   "prezzo": 3.0,
@@ -7761,7 +8200,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8029404005246"
  },
  "BRUSCHETTA": {
   "prezzo": 2.8,
@@ -7770,7 +8210,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8029404007202"
  },
  "PATATINA AMICA CHIPS": {
   "prezzo": 2.0,
@@ -7781,7 +8222,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8008714000028"
  },
  "TUC MINI": {
   "prezzo": 1.5,
@@ -7790,7 +8232,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8100090000019"
  },
  "RITZ MINI": {
   "prezzo": 1.5,
@@ -7799,7 +8242,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "7622300791490"
  },
  "YONKER": {
   "prezzo": 1.6,
@@ -7808,7 +8252,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "4009267003300"
  },
  "CIPSTER": {
   "prezzo": 1.6,
@@ -7817,7 +8262,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8000090600519"
  },
  "FONZIES": {
   "prezzo": 1.6,
@@ -7826,7 +8272,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "4009267003409"
  },
  "STIRACCHIE": {
   "prezzo": 3.0,
@@ -7835,7 +8282,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "8029404012367"
  },
  "PRINGLESS MGUSTI VARI": {
   "prezzo": 2.5,
@@ -7845,7 +8293,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SNACK SALATI"
+  "categoria": "SNACK SALATI",
+  "barre": "5053990107384"
  },
  "SPAZZOLE Q8": {
   "prezzo": 15.0,
@@ -7855,7 +8304,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SPAZZOLE TERGI"
+  "categoria": "SPAZZOLE TERGI",
+  "barre": "8000866110990"
  },
  "TERGI ONE FIT": {
   "prezzo": 13.5,
@@ -7864,7 +8314,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SPAZZOLE TERGI"
+  "categoria": "SPAZZOLE TERGI",
+  "barre": "8000692192153"
  },
  "SPAZZOLA TERGI SKYLON": {
   "prezzo": 13.5,
@@ -7873,7 +8324,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "SPAZZOLE TERGI"
+  "categoria": "SPAZZOLE TERGI",
+  "barre": "8000692193129"
  },
  "VOLT BLUETOOTH": {
   "prezzo": 28.0,
@@ -7882,7 +8334,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387399"
  },
  "TYPE C CABLE 1 M": {
   "prezzo": 8.9,
@@ -7891,7 +8344,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388082"
  },
  "POWER BANK 5000": {
   "prezzo": 16.0,
@@ -7900,7 +8354,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692386774"
  },
  "APPLE 8 PIN 1 M": {
   "prezzo": 8.9,
@@ -7909,7 +8364,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388075"
  },
  "CAVO TYPE C 1 M": {
   "prezzo": 8.9,
@@ -7927,7 +8383,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692386873"
  },
  "CAR CHARGER USB C": {
   "prezzo": 13.0,
@@ -7936,7 +8393,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692386927"
  },
  "APPLE 8 PIN": {
   "prezzo": 14.0,
@@ -7945,7 +8403,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387016"
  },
  "TYPE C SPRING 100 CM": {
   "prezzo": 7.5,
@@ -7954,7 +8413,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387023"
  },
  "LIGHTNING PRO 100 CM IPHOINE IPAD": {
   "prezzo": 28.0,
@@ -7963,7 +8423,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387108"
  },
  "TYPE C PRO 100 CM": {
   "prezzo": 18.0,
@@ -7972,7 +8433,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387139"
  },
  "TYPE C KIT PRO 100 CM": {
   "prezzo": 25.0,
@@ -7981,7 +8443,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387153"
  },
  "USB POWER PRO": {
   "prezzo": 21.0,
@@ -7990,7 +8453,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387160"
  },
  "SION 5,0": {
   "prezzo": 28.0,
@@ -7999,7 +8463,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387405"
  },
  "EKKO 5,0 BLUETOOTH": {
   "prezzo": 31.0,
@@ -8008,7 +8473,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692387412"
  },
  "MICRO USB CABLE 1 M": {
   "prezzo": 7.0,
@@ -8017,7 +8483,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388068"
  },
  "CARICATORE DOMESTICO": {
   "prezzo": 10.0,
@@ -8026,7 +8493,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388105"
  },
  "CAVI APPLE 8 PIN 2 METRI": {
   "prezzo": 9.9,
@@ -8035,7 +8503,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388150"
  },
  "CAVO TYPE C 2 M": {
   "prezzo": 9.9,
@@ -8044,7 +8513,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388167"
  },
  "ROCKET DUAL": {
   "prezzo": 15.0,
@@ -8053,7 +8523,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388266"
  },
  "UNIVERSAL CONNECTOR APPLE": {
   "prezzo": 16.0,
@@ -8062,7 +8533,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388402"
  },
  "UNIVERSAL CONNECTORMICRO USB": {
   "prezzo": 19.0,
@@ -8071,7 +8543,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388419"
  },
  "CERBERO": {
   "prezzo": 29.0,
@@ -8080,7 +8553,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388471"
  },
  "APPLE IRON": {
   "prezzo": 19.5,
@@ -8089,7 +8563,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388563"
  },
  "TYPE C IRON 100 CM": {
   "prezzo": 19.0,
@@ -8098,7 +8573,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388570"
  },
  "SPLITTER APPLE": {
   "prezzo": 25.0,
@@ -8107,7 +8583,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388594"
  },
  "UNIVERSAL 2 USB": {
   "prezzo": 20.0,
@@ -8116,7 +8593,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388716"
  },
  "TYPE C 100 CM": {
   "prezzo": 16.0,
@@ -8125,7 +8603,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388907"
  },
  "TYPE C 200 CM": {
   "prezzo": 16.0,
@@ -8134,7 +8613,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388914"
  },
  "CLIP MULTIPOINT BLUETOOTH": {
   "prezzo": 46.0,
@@ -8143,7 +8623,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388969"
  },
  "MONO UNIVERSAL": {
   "prezzo": 10.0,
@@ -8152,7 +8633,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388976"
  },
  "PÈHIXIA AUX AUX": {
   "prezzo": 9.0,
@@ -8161,7 +8643,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389003"
  },
  "BLUETOOTH CAR KIT": {
   "prezzo": 35.0,
@@ -8179,7 +8662,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389171"
  },
  "LIGHTNINIG IPHONE IPAD": {
   "prezzo": 28.0,
@@ -8188,7 +8672,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389201"
  },
  "LIGHTNING IPHONE IPAD": {
   "prezzo": 27.0,
@@ -8197,7 +8682,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389300"
  },
  "MICRO USB ULTRA SPEED": {
   "prezzo": 13.0,
@@ -8206,7 +8692,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389317"
  },
  "KIT LIGHTNING 2 IN 1": {
   "prezzo": 31.0,
@@ -8215,7 +8702,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389379"
  },
  "KIT MICRO USB 2 IN 1": {
   "prezzo": 21.0,
@@ -8224,7 +8712,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692389386"
  },
  "CAVO TYPE C": {
   "prezzo": 12.0,
@@ -8233,7 +8722,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692386842"
  },
  "CUFFIE BLUETOOTH": {
   "prezzo": 20.0,
@@ -8242,7 +8732,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692386897"
  },
  "AURICOLARI TYPE C": {
   "prezzo": 14.0,
@@ -8251,7 +8742,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692386934"
  },
  "TECNO ARM PORTATELEFONO": {
   "prezzo": 18.0,
@@ -8260,7 +8752,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692724613"
  },
  "MAGNETO BASIC": {
   "prezzo": 13.0,
@@ -8269,7 +8762,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725252"
  },
  "MAGNTO PLUS": {
   "prezzo": 18.0,
@@ -8278,7 +8772,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725269"
  },
  "SNAP ELEVATOR": {
   "prezzo": 22.0,
@@ -8287,7 +8782,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725276"
  },
  "ATMOS ELEVATOR PORTATELEFONO": {
   "prezzo": 28.0,
@@ -8296,7 +8792,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725283"
  },
  "SNAP FIN PORTA TELEFONO": {
   "prezzo": 25.0,
@@ -8305,7 +8802,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725306"
  },
  "ATMOS FIN PORTATELEFONO": {
   "prezzo": 25.0,
@@ -8314,7 +8812,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "-8000692725313"
  },
  "VISOR SNAP": {
   "prezzo": 20.0,
@@ -8323,7 +8822,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725351"
  },
  "SUPER GRIP 2,0": {
   "prezzo": 26.0,
@@ -8332,7 +8832,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725382"
  },
  "STYCKY EXTRA STRONG": {
   "prezzo": 5.0,
@@ -8341,7 +8842,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725405"
  },
  "GRAVITON BASIC PORTATELEFONO": {
   "prezzo": 25.0,
@@ -8350,7 +8852,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692725498"
  },
  "CAR CARGER  A+A": {
   "prezzo": 9.9,
@@ -8359,7 +8862,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692388112"
  },
  "HOMEUSB POWER": {
   "prezzo": 21.0,
@@ -8368,7 +8872,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692917985"
  },
  "MAG SURFACE": {
   "prezzo": 20.0,
@@ -8377,7 +8882,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8000692918135"
  },
  "SIM ADDATTATORE": {
   "prezzo": 9.0,
@@ -8386,7 +8892,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8058129150016"
  },
  "TRVEL MATE": {
   "prezzo": 28.0,
@@ -8395,7 +8902,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "TELEFONIA"
+  "categoria": "TELEFONIA",
+  "barre": "8052132150049"
  },
  "VERMENTINO COLLI DI LUNI": {
   "prezzo": 14.0,
@@ -8404,7 +8912,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "VINI"
+  "categoria": "VINI",
+  "barre": "8032523503074"
  },
  "AUXO COLLI DI LUNI": {
   "prezzo": 14.0,
@@ -8413,7 +8922,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   ],
   "reparto": "Market",
   "unita": "pz",
-  "categoria": "VINI"
+  "categoria": "VINI",
+  "barre": "8032523503081"
  },
  "CASTAGNINI ROSE": {
   "prezzo": 12.5,
@@ -8433,8 +8943,7 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   "unita": "pz",
   "categoria": "VINI"
  }
-}
-FINE_FILE
+}FINE_FILE
 if ! cmp -s ~/.termux/tasker/prezzi_danea.json ~/.termux/tasker/.prezzi_danea_installato; then
   [ -f ~/prezzi.json ] && cp ~/prezzi.json ~/prezzi.json.vecchio
   cp ~/.termux/tasker/prezzi_danea.json ~/prezzi.json
@@ -10364,4 +10873,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 07/10 23:27"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:25"

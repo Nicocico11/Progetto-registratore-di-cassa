@@ -53,6 +53,9 @@ chmod +x $HOME/bin/termux-dialog $HOME/llama.cpp/build/bin/llama-server
 export PATH=$HOME/bin:$PATH
 echo '{"adblue_sfuso":1.30,"adblue_tanica":26.00,"redbull":3.00,"mars":2.00,"birra_moretti":4.00,"birra_heineken":3.50,"lampadina_h7":10.00,"lampadina_h4":9.00,"lavavetro_5_litri":16.00,"chiave_21":8.00,"sugo_pomodoro_e_basilico":3.50}' > $HOME/prezzi.json
 python3 $HOME/.termux/tasker/migra_prezzi.py > /dev/null
+python3 -c "
+import json, os; p = os.path.expanduser('~/prezzi.json'); d = json.load(open(p))
+d['Red Bull']['barre'] = '90435874'; json.dump(d, open(p, 'w'))"   # codice a barre di prova
 
 S=$HOME/.termux/tasker/avvia_ia.sh
 D=$HOME/storage/downloads/Chiusure_Turno
@@ -127,6 +130,9 @@ controlla "e dentro il nome"          "sugo pomodoro e basilico"                
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "migliaia a parole"         "milleduecento di gasolio petrolifere"         "Gasolio 1200.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "codice a barre"            "90435874 90435874 sul nero"                   "2 × Red Bull 6.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "codice a barre sconosciuto" "8000000000001"                               "non nel listino"
 controlla "quantità e importo"        "2 red bull 7 euro"                            "2 × Red Bull 7.00"
 controlla "correggi quantità"         "correggi ultima 3"                            "3 × Red Bull 10.50"
 python3 $HOME/info_turno.py elenco | sed -n 3p | grep -q "3× RED BULL" && echo "  ok   elenco vendite (pulsante 05)" || { echo "  ERRORE elenco vendite"; ERRORI=$((ERRORI+1)); }

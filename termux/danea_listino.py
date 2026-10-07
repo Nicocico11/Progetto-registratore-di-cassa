@@ -2,7 +2,7 @@ import json, os, re, shutil, sys
 
 # Converte l'esportazione prodotti di Danea Easyfatt (Prodotti.xlsx) nel listino della cassa vocale.
 # Uso: python3 danea_listino.py ~/storage/downloads/Prodotti.xlsx [~/prezzi.json]
-# Colonne attese: Categoria, Descrizione, Listino 1 (ivato).
+# Colonne attese: Categoria, Descrizione, Listino 1 (ivato); se c'è, anche Cod. a barre (per lo scanner).
 #
 # Per ogni prodotto crea i "nomi a voce" (alias) togliendo formati e misure:
 # "COCA COLA BOTT 400" -> "coca cola". I nomi extra si aggiungono in ALIAS_EXTRA qui sotto.
@@ -74,6 +74,7 @@ def converti(path_xlsx):
     i_cat = intest.index('categoria')
     i_desc = intest.index('descrizione')
     i_prezzo = next(i for i, c in enumerate(intest) if c.startswith('listino'))
+    i_barre = next((i for i, c in enumerate(intest) if 'barre' in c), None)
 
     listino, saltati = {}, []
     for r in righe[1:]:
@@ -87,10 +88,14 @@ def converti(path_xlsx):
         if not isinstance(prezzo, (int, float)) or prezzo <= 0:
             saltati.append(desc)
             continue
+        barre = str(r[i_barre] or '').strip() if i_barre is not None else ''
+        barre = barre[:-2] if barre.endswith('.0') else barre      # numero letto da Excel come 8.05e12
         if desc.upper() in SPECIALI:
             s = SPECIALI[desc.upper()]
             listino[s['nome']] = {'prezzo': float(prezzo), 'alias': s['alias'],
                                   'reparto': s['reparto'], 'unita': s['unita'], 'danea': desc}
+            if barre:
+                listino[s['nome']]['barre'] = barre
             continue
         alias = alias_da_nome(desc) + ALIAS_EXTRA.get(desc.upper(), [])
         if not alias:
@@ -98,6 +103,8 @@ def converti(path_xlsx):
             continue
         listino[desc.upper()] = {'prezzo': float(prezzo), 'alias': sorted(set(alias)),
                                  'reparto': 'Market', 'unita': 'pz', 'categoria': cat or 'ALTRO'}
+        if barre:
+            listino[desc.upper()]['barre'] = barre
     return listino, saltati
 
 

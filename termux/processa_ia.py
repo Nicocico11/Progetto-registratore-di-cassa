@@ -24,6 +24,43 @@ if not testo_originale.strip():
 testo_basso = testo_originale.lower()
 
 
+DA_CODICE = set()   # prodotti letti dal codice a barre: sono certi, niente lista "Quale prodotto?"
+
+
+def codici_a_barre(testo):
+    """Codici a barre (scanner o scritti) -> prodotti: "8002270014901 8002270014901" -> "2 red bull".
+    Un codice lungo che non è nel listino: niente salvato (sennò diventerebbe un rifornimento enorme)."""
+    if not re.search(r'\d{5,}|[a-z]\d{3,}', testo):
+        return testo
+    try:
+        with open(prezzi_path, encoding='utf-8') as f:
+            mappa = {str(v['barre']).lower(): nome for nome, v in json.load(f).items()
+                     if isinstance(v, dict) and v.get('barre')}
+    except Exception:
+        mappa = {}
+    conta, resto = {}, []
+    for parola in testo.split():
+        pulita = parola.strip('.,;:')
+        if pulita in mappa:
+            conta[mappa[pulita]] = conta.get(mappa[pulita], 0) + 1
+        elif re.fullmatch(r'\d{8,14}', pulita):
+            print(f"❓ Codice a barre {pulita} non nel listino. Niente salvato: "
+                  f"di' o scrivi \"danea nome prezzo\" per questo prodotto.")
+            sys.exit(1)
+        else:
+            resto.append(parola)
+    if not conta:
+        return testo
+    DA_CODICE.update(conta)
+    resto = " ".join(resto).strip()
+    if re.search(r'\d', resto) and not resto.startswith(('e ', 'ed ')):
+        resto = "e " + resto                     # "codici 50 gasolio" -> "... e 50 gasolio": voce a parte
+    return " e ".join(f"{n} {nome.lower()}" for nome, n in conta.items()) + " " + resto
+
+
+testo_basso = codici_a_barre(testo_basso)
+
+
 # "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
 from numeri import in_cifre, senza_accenti
 testo_basso = senza_accenti(in_cifre(testo_basso))                                    # "estathé" -> estathe
@@ -251,7 +288,7 @@ OLI_MOTORE = sorted(n for n, p in listino.items()
                     if p.get('categoria') == 'LUBRIFICANTI' and re.search(r'\d+W-?\d+', n))   # 5W-40, 0W-20...
 AVVISI = []     # cose da controllare: la vendita si salva con 2 vibrazioni
 SIMILI = {}     # parole sentite male e il nome del listino più simile ("icnusa": "ichnusa")
-SCELTI = set()  # prodotti scelti dalla lista "Quale prodotto?"
+SCELTI = set(DA_CODICE)  # prodotti scelti dalla lista "Quale prodotto?" (o letti dal codice a barre)
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
