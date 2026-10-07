@@ -208,10 +208,11 @@ except Exception:
       BANCONOTE=$(chiedi "🧮 Banconote nella borsa" "50x2 20x2 10x7 5x13")
       CASSETTO=$(chiedi "🪙 Spiccioli cassetto (€)" "54,62")
       BORSA=$(chiedi "👜 Monete nella borsa (pezzi)" "2x3 1x5 0,50x4")
+      CASSAFORTE_C=$(chiedi "🔒 Cassaforte (€)" "vuoto = niente")
       if [ -z "$BANCONOTE$CASSETTO$BORSA" ]; then
         echo "Niente contato"
       else
-        CONTO=$(python3 ~/info_turno.py contacassa "$BANCONOTE" "$CASSETTO" "$BORSA")
+        CONTO=$(python3 ~/info_turno.py contacassa "$BANCONOTE" "$CASSETTO" "$BORSA" "$CASSAFORTE_C")
         ESITO=$?
         nohup termux-dialog confirm -t "🧮 Conta cassa" -i "$CONTO" > /dev/null 2>&1 &
         grep -E "🎯|✅|⚠️" <<< "$CONTO"

@@ -217,7 +217,7 @@ VERSAMENTI
   Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno banconote e
   spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
   Se non conti, l'Excel usa i contanti calcolati dal telefono.
-  Se ci sono soldi in cassaforte durante il turno, contali nella borsa.
+  4) cassaforte, in euro (vuoto = niente): non va contata nel cassetto.
 Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━

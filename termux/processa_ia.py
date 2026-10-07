@@ -502,8 +502,9 @@ def voce_sconto(testo):
         importo = numero_in_euro(testo) or primo_numero(testo)
     if not importo:
         return None
-    return {"categoria": "Abbuono", "reparto": "Sconto", "importo": -round(importo, 2),
-            "metodo_pagamento": "Contanti"}
+    # Pagamento: quello della vendita ("20,10 gasolio sul nero, abbuono 10 centesimi" -> sul POS ne arrivano
+    # 20,00); detto da solo, quello detto o i contanti
+    return {"categoria": "Abbuono", "reparto": "Sconto", "importo": -round(importo, 2)}
 
 
 # Il contrario dell'abbuono: il cliente lascia qualche centesimo (contanti in più nel cassetto)
@@ -515,7 +516,7 @@ def voce_resto(testo):
     if not v:
         return None
     return {"categoria": "Resto lasciato dal cliente", "reparto": "Resto lasciato",
-            "importo": -v['importo'], "metodo_pagamento": "Contanti"}
+            "importo": -v['importo']}
 
 
 def parole_libere(testo, togli_prodotti=True):

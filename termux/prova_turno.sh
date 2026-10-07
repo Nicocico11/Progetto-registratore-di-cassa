@@ -24,6 +24,7 @@ case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
+  *"🔒 Cassaforte"*) echo '{"code": -1, "text": ""}' ;;                  # conta cassa: niente in cassaforte
   *assaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
   *"Quale prodotto"*) echo '{"code": -1, "text": "?", "index": 1}' ;;    # seconda birra della lista

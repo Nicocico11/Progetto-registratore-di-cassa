@@ -302,12 +302,14 @@ def leggi_banconote(testo):
     return conta
 
 
-def firma_vendite(righe):
-    """Cambia se si aggiunge, cancella o corregge una vendita (per sapere se un conteggio è ancora valido)."""
-    return f"{len(righe)}|{round(sum(v['importo'] for v in vendite(righe)), 2)}|{righe[-1][0] if righe else ''}"
+def firma_vendite(righe, t=None):
+    """Cambia se si aggiunge, cancella o corregge una vendita o un versamento (per sapere se un conteggio
+    è ancora valido)."""
+    versato = (t or {}).get("versamento") or 0
+    return f"{len(righe)}|{round(sum(v['importo'] for v in vendite(righe)), 2)}|{righe[-1][0] if righe else ''}|{versato}"
 
 
-def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
+def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_testo=""):
     """Conteggio della cassa come nel riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel:
     confronta i contanti contati con quelli attesi e mostra la DIFFERENZA che uscirà nell'Excel."""
     righe = leggi_csv()
@@ -315,6 +317,8 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
     banconote = leggi_banconote(banconote_testo)
     cassetto = importo_da_testo(cassetto_testo) or 0.0
     borsa = leggi_monete(borsa_testo)       # monete della borsa contate a pezzi ("3x2 5x1 4x0,50")
+    if (cassaforte_testo or "").strip():
+        t["cassaforte"] = importo_da_testo(cassaforte_testo)   # soldi in cassaforte: non sono nel cassetto
     in_banconote = sum(taglio * n for taglio, n in banconote.items())
     contati = round(in_banconote + cassetto + borsa, 2)
     vv = vendite(righe)
@@ -325,7 +329,7 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
     non_spiegati = round(contati - attesi, 2)
     differenza_excel = round(non_spiegati + centesimi, 2)
     t["conteggio"] = {"banconote": {str(k): n for k, n in banconote.items()}, "cassetto": cassetto, "borsa": borsa,
-                      "totale": contati, "ora": datetime.now().strftime("%H:%M"), "firma": firma_vendite(righe)}
+                      "totale": contati, "ora": datetime.now().strftime("%H:%M"), "firma": firma_vendite(righe, t)}
     salva_turno(t)
     segno = lambda x: f"{'+' if x > 0 else ''}{x:.2f} €".replace(".", ",")
     out = [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
@@ -888,7 +892,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     # Cassa contata ("conta cassa") e nessuna vendita dopo: nell'Excel vanno le banconote e gli spiccioli veri
     conteggio = t.get("conteggio")
     if conteggio and t["contati"] is None:
-        if conteggio.get("firma") == firma_vendite(righe):
+        if conteggio.get("firma") == firma_vendite(righe, t):
             t["contati"] = conteggio["totale"]
             t["conteggio_valido"] = True
             print(f"🧮 Nell'Excel la cassa contata alle {conteggio['ora']}: {euro(conteggio['totale'])}")
@@ -897,7 +901,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
                   "nell'Excel restano i contanti attesi")
     if t["contati"] is not None and not t.get("prova"):
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
-            f.write(f"{t['contati']:.2f}")
+            f.write(f"{t['contati'] + (t['cassaforte'] or 0):.2f}")   # cassetto + cassaforte = avanzo dopo
     adesso = datetime.now()
     testo = testo_documento(righe, t, finale=True, orario_terminale=orario_terminale)
     salvato = salva_documento(righe, t, finale=True, orario_terminale=orario_terminale)
@@ -942,8 +946,8 @@ def main():
     comando = " ".join(sys.argv[1:]).lower() if len(sys.argv) > 1 else "notifica"
 
     if sys.argv[1:2] == ["contacassa"]:
-        argomenti = sys.argv[2:] + ["", "", ""]
-        conta_cassa(*argomenti[:3])
+        argomenti = sys.argv[2:] + ["", "", "", ""]
+        conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
     elif "penultima" in comando:
