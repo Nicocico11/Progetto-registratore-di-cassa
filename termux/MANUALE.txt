@@ -304,6 +304,21 @@ Appena c'è tempo tocca "📝 Segna": chiede una vendita alla volta, in ordine
 Se premi Annulla chiede "Scarto questa vendita?": Sì = era un tocco sbagliato, No = la segni dopo.
 Il turno non si chiude finché ci sono vendite da segnare.
 
+SCANNER DEI CODICI A BARRE (app Binary Eye, per i clienti con tanti prodotti)
+Impostazioni di Binary Eye (una volta sola):
+  • Scansione continua: SÌ          • Ignora duplicati: Nessuno (per contare 2 prodotti uguali)
+  • Ritardo tra scansioni continue: un secondo
+  • Inoltra le scansioni: SÌ
+  • URL a cui inoltrare:  http://127.0.0.1:8765/?c=
+  • Tipo di richiesta: GET e aggiungi contenuto
+Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso prodotto
+due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
+con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
+c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
+Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
+Un codice che non è nel listino: "❓ codice sconosciuto" → svuota e usa "danea nome prezzo".
+I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
+
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml

@@ -7,7 +7,7 @@ set -u
 QUI=$(cd "$(dirname "$0")" && pwd)
 export HOME=$(mktemp -d)
 mkdir -p $HOME/.termux/tasker $HOME/bin $HOME/storage/downloads $HOME/llama.cpp/build/bin
-cp $QUI/*.sh $QUI/processa_ia.py $QUI/numeri.py $QUI/invia_mail.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
+cp $QUI/*.sh $QUI/carrello.py $QUI/processa_ia.py $QUI/numeri.py $QUI/invia_mail.py $QUI/migra_prezzi.py $QUI/excel_turno.py $QUI/modello_turno.xlsx $HOME/.termux/tasker/
 cp $QUI/info_turno.py $HOME/
 printf '#!/bin/bash\necho "$*" >> ~/toast.log\n' > $HOME/bin/termux-toast; chmod +x $HOME/bin/termux-toast
 for c in termux-vibrate termux-wake-lock termux-wake-unlock; do
@@ -39,6 +39,8 @@ case "$*" in
   *"Carburante (€)"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Danea delle"*) [ -f ~/annulla ] && echo '{"code": -2, "text": ""}' || echo '{"code": -1, "text": "2 red bull"}' ;;  # tendina
   *"Fax delle"*) echo '{"code": -1, "text": "1,50"}' ;;
+  *"Togli l'ultimo letto"*) echo '{"code": -1, "text": "POS nero", "index": 2}' ;;   # paga carrello
+  *"Svuoto il carrello"*) echo '{"code": 0, "text": "yes"}' ;;
   *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
   *"🛒 Danea"*) echo '{"code": -1, "text": "2 red bull"}' ;;       # widget 02 Vendita Danea
   *"Abbuono,Resto"*) echo '{"code": -1, "text": "Abbuono", "index": 0}' ;;  # widget 06
@@ -176,6 +178,18 @@ bash $SEG segna > /dev/null 2>&1
   && echo "  ok   tendina: segnate le 2 vendite" || { echo "  ERRORE tendina segna"; tail -3 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
 bash $SEG danea; touch $HOME/annulla; bash $SEG segna > /dev/null 2>&1; rm -f $HOME/annulla
 [ ! -f $HOME/.cassa_da_segnare ] && [ $(wc -l < $HOME/transazioni_turno.csv) -eq $((RIGHE_PRIMA+2)) ] && echo "  ok   tendina: tocco sbagliato scartato" || { echo "  ERRORE tendina scarto"; ERRORI=$((ERRORI+1)); }
+# Scanner (Binary Eye) -> ricevitore -> carrello nella tendina -> "💳 Paga"
+bash $HOME/.termux/tasker/notifica.sh; sleep 1
+curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null; sleep 1.2; curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null
+curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null    # letto due volte di fila: non conta
+sleep 1
+[ "$(python3 $HOME/.termux/tasker/carrello.py riepilogo)" = "2× Red Bull · 6,00 €" ] && tail -12 $HOME/notifiche.log | grep -q "CARRELLO: 2× Red Bull" \
+  && echo "  ok   scanner: carrello nella tendina" || { echo "  ERRORE carrello: $(python3 $HOME/.termux/tasker/carrello.py riepilogo)"; ERRORI=$((ERRORI+1)); }
+controlla "chiusura con carrello"     "chiusura turno"                               "NON CHIUSO: c'è il carrello"
+bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
+[ ! -f $HOME/.cassa_carrello ] && tail -1 $HOME/transazioni_turno.csv | grep -q '2 × Red Bull\|"quantita"": 2.0' && tail -1 $HOME/transazioni_turno.csv | grep -q "POS nero" \
+  && echo "  ok   scanner: carrello pagato (una vendita)" || { echo "  ERRORE paga carrello"; tail -1 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
+controlla "cancella carrello pagato"  "cancella ultima"                              "Cancellata"
 controlla "cancella fax tendina"       "cancella ultima"                              "Cancellata"
 controlla "cancella danea tendina"     "cancella ultima"                              "Cancellata"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
@@ -382,5 +396,6 @@ import info_turno as i
 assert i.importo_da_testo('1.250') == 1250 and i.importo_da_testo('1.250,50') == 1250.5 and i.importo_da_testo('20.50') == 20.5
 " && echo "  ok   1.250 = milleduecentocinquanta" || { echo "  ERRORE punto migliaia"; ERRORI=$((ERRORI+1)); }
 
+[ -f $HOME/.cassa_carrello.pid ] && kill "$(cat $HOME/.cassa_carrello.pid)" 2>/dev/null   # ricevitore dello scanner
 [ -n "${TIENI:-}" ] && cp $D/*/Documenti/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
 if [ $ERRORI -eq 0 ]; then echo "✅ Tutto ok"; else echo "❌ $ERRORI errori"; exit 1; fi

@@ -70,13 +70,16 @@ case "$FRASE" in
         TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
       fi
       echo "🟢 TURNO APERTO"
-      rm -f ~/.cassa_da_segnare   # vendite "da segnare" rimaste da un turno vecchio
+      rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # vendite "da segnare" e carrello rimasti da un turno vecchio
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
       # "apertura turno prova" / "test": file con TEST nel nome, contatori veri non toccati
       PROVA=$(grep -oE 'prova|test' <<< "$FRASE" | head -1)
       python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO" "$PROVA"
       # L'IA non si accende più da sola: le vendite si capiscono con le regole ("accendi ia" se serve)
+    elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_carrello ]; then
+      # Prodotti letti con lo scanner e mai pagati
+      echo "⚠️ NON CHIUSO: c'è il carrello dello scanner da pagare ($(python3 $CARTELLA/carrello.py riepilogo)). Tocca \"💳 Paga carrello\" o \"🗑️ Svuota\" nella tendina, poi richiudi"
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_da_segnare ]; then
       # Vendite segnate con i pulsanti della tendina e mai registrate: prima vanno segnate
       echo "⚠️ NON CHIUSO: ci sono vendite da segnare ($(bash $CARTELLA/da_segnare.sh conta)). Tocca \"📝 Segna\" nella tendina, poi richiudi"

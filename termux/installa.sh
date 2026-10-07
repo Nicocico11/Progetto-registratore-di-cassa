@@ -75,13 +75,16 @@ case "$FRASE" in
         TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
       fi
       echo "🟢 TURNO APERTO"
-      rm -f ~/.cassa_da_segnare   # vendite "da segnare" rimaste da un turno vecchio
+      rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # vendite "da segnare" e carrello rimasti da un turno vecchio
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
       # "apertura turno prova" / "test": file con TEST nel nome, contatori veri non toccati
       PROVA=$(grep -oE 'prova|test' <<< "$FRASE" | head -1)
       python3 ~/info_turno.py apri turno "$AVANZO" "$ORA_PREC" "$CONTATORE" "$TANICHE" "$TIPO" "$PROVA"
       # L'IA non si accende più da sola: le vendite si capiscono con le regole ("accendi ia" se serve)
+    elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_carrello ]; then
+      # Prodotti letti con lo scanner e mai pagati
+      echo "⚠️ NON CHIUSO: c'è il carrello dello scanner da pagare ($(python3 $CARTELLA/carrello.py riepilogo)). Tocca \"💳 Paga carrello\" o \"🗑️ Svuota\" nella tendina, poi richiudi"
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_da_segnare ]; then
       # Vendite segnate con i pulsanti della tendina e mai registrate: prima vanno segnate
       echo "⚠️ NON CHIUSO: ci sono vendite da segnare ($(bash $CARTELLA/da_segnare.sh conta)). Tocca \"📝 Segna\" nella tendina, poi richiudi"
@@ -438,6 +441,153 @@ case "$1" in
     ;;
 esac
 FINE_FILE
+cat > ~/.termux/tasker/carrello.sh <<'FINE_FILE'
+#!/bin/bash
+# Pulsanti del carrello nella tendina (prodotti letti con lo scanner Binary Eye):
+#   carrello.sh paga    -> pagamento, poi salva tutto come una vendita sola
+#   carrello.sh svuota  -> chiede conferma e svuota
+. ~/.termux/tasker/widget_comune.sh
+C="python3 $HOME/.termux/tasker/carrello.py"
+NOTIFICA=~/.termux/tasker/notifica.sh
+
+case "$1" in
+  paga)
+    RIEPILOGO=$($C riepilogo)
+    [ -z "$RIEPILOGO" ] && { finestra "🛒 Carrello" "Il carrello è vuoto."; exit 0; }
+    SCELTA=$(scegli "🛒 $RIEPILOGO" "Contanti,POS cassa,POS nero,POS bianco,Petrolifere,🗑️ Togli l'ultimo letto")
+    case "$SCELTA" in
+      "") exit 0 ;;                                     # annullato: il carrello resta
+      🗑️*) $C togli; bash "$NOTIFICA"; exec bash "$0" paga ;;
+      Contanti) PAGATO="contanti" ;;
+      "POS cassa") PAGATO="in cassa" ;;
+      "POS nero") PAGATO="sul nero" ;;
+      "POS bianco") PAGATO="sul bianco" ;;
+      Petrolifere) PAGATO="petrolifere" ;;
+    esac
+    RISPOSTA=$(bash "$CASSA" "$($C codici) $PAGATO")
+    # Salvata: carrello vuoto. Non capita (es. codice sconosciuto): il carrello resta, si corregge
+    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C svuota; fi
+    bash "$NOTIFICA"
+    finestra "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
+    ;;
+  svuota)
+    if conferma "🗑️ Svuoto il carrello?" "$($C riepilogo)"; then
+      $C svuota
+      bash "$NOTIFICA"
+    fi
+    ;;
+esac
+FINE_FILE
+cat > ~/.termux/tasker/carrello.py <<'FINE_FILE'
+import json, os, re, subprocess, sys, time
+
+# Carrello dello scanner (app Binary Eye, "Inoltra le scansioni" a http://127.0.0.1:8765/?c=):
+# ogni codice letto arriva qui e si aggiunge al carrello; la tendina mostra prodotti e totale,
+# "💳 Paga" chiede il pagamento e salva tutto come una vendita sola (carrello.sh).
+#
+# Uso: python3 carrello.py server      -> ricevitore (lo avvia notifica.sh a turno aperto)
+#      python3 carrello.py riepilogo   -> "2× RED BULL, 1× TWIX · 8,00 €" (niente se vuoto)
+#      python3 carrello.py codici      -> i codici, per la vendita
+#      python3 carrello.py togli       -> toglie l'ultimo prodotto letto
+#      python3 carrello.py svuota
+
+PORTA = 8765
+FILE = os.path.expanduser('~/.cassa_carrello')
+PREZZI = os.path.expanduser('~/prezzi.json')
+NOTIFICA = os.path.expanduser('~/.termux/tasker/notifica.sh')
+
+
+def leggi():
+    try:
+        with open(FILE, encoding='utf-8') as f:
+            return [r.split('\t') for r in f.read().splitlines() if r.strip()]   # [codice, ora]
+    except FileNotFoundError:
+        return []
+
+
+def scrivi(righe):
+    if not righe:
+        if os.path.exists(FILE):
+            os.remove(FILE)
+        return
+    with open(FILE, 'w', encoding='utf-8') as f:
+        f.write("".join("\t".join(r) + "\n" for r in righe))
+
+
+def listino_per_codice():
+    try:
+        with open(PREZZI, encoding='utf-8') as f:
+            return {str(v['barre']).lower(): (nome, float(v['prezzo'])) for nome, v in json.load(f).items()
+                    if isinstance(v, dict) and v.get('barre')}
+    except Exception:
+        return {}
+
+
+def riepilogo():
+    righe = leggi()
+    if not righe:
+        return ""
+    mappa = listino_per_codice()
+    conta, totale, sconosciuti = {}, 0.0, 0
+    for codice, _ in righe:
+        if codice.lower() in mappa:
+            nome, prezzo = mappa[codice.lower()]
+            conta[nome] = conta.get(nome, 0) + 1
+            totale += prezzo
+        else:
+            sconosciuti += 1
+    parti = [f"{n}× {nome}" for nome, n in conta.items()]
+    if sconosciuti:
+        parti.append(f"❓ {sconosciuti} {'codice sconosciuto' if sconosciuti == 1 else 'codici sconosciuti'}")
+    return ", ".join(parti) + f" · {totale:.2f} €".replace(".", ",")
+
+
+def aggiorna_notifica():
+    subprocess.Popen(['bash', NOTIFICA], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def server():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from urllib.parse import urlparse, parse_qs, unquote
+    ultimo = {'codice': None, 'quando': 0.0}
+
+    class Ricevitore(BaseHTTPRequestHandler):
+        def do_GET(self):
+            url = urlparse(self.path)
+            codice = (parse_qs(url.query).get('c') or [unquote(url.path.strip('/'))])[0].strip()
+            if re.fullmatch(r'[0-9A-Za-z]{4,20}', codice):
+                adesso = time.time()
+                # lo stesso codice entro un secondo è una lettura doppia dello stesso pezzo
+                if not (codice == ultimo['codice'] and adesso - ultimo['quando'] < 1.0):
+                    with open(FILE, 'a', encoding='utf-8') as f:
+                        f.write(f"{codice}\t{time.strftime('%H:%M:%S')}\n")
+                    aggiorna_notifica()
+                ultimo.update(codice=codice, quando=adesso)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        do_POST = do_GET
+
+        def log_message(self, *args):
+            pass
+
+    ThreadingHTTPServer(('127.0.0.1', PORTA), Ricevitore).serve_forever()
+
+
+if __name__ == '__main__':
+    comando = sys.argv[1] if len(sys.argv) > 1 else 'riepilogo'
+    if comando == 'server':
+        server()
+    elif comando == 'riepilogo':
+        print(riepilogo())
+    elif comando == 'codici':
+        print(" ".join(c for c, _ in leggi()))
+    elif comando == 'togli':
+        scrivi(leggi()[:-1])
+    elif comando == 'svuota':
+        scrivi([])
+FINE_FILE
 cat > ~/.termux/tasker/avvia_server.sh <<'FINE_FILE'
 #!/bin/bash
 # Avvia llama-server una sola volta, a inizio turno.
@@ -562,20 +712,38 @@ cat > ~/.termux/tasker/notifica.sh <<'FINE_FILE'
 #!/bin/bash
 # Notifica fissa "Stato Turno" nella tendina: solo con il turno aperto.
 # Pulsanti: "+ Danea" e "+ Fax" segnano una vendita da registrare dopo (quando c'è tanta gente),
-# "Segna" chiede importo e pagamento di quelle rimaste (da_segnare.sh)
+# "Segna" chiede importo e pagamento di quelle rimaste (da_segnare.sh).
+# Con prodotti nel carrello dello scanner: "💳 Paga" e "🗑️ Svuota" (carrello.sh).
+PID_CARRELLO=~/.cassa_carrello.pid
 if ! python3 ~/info_turno.py aperto; then
   termux-notification-remove distributore_turno 2>/dev/null
+  # Turno chiuso: si spegne il ricevitore dello scanner
+  [ -f $PID_CARRELLO ] && kill "$(cat $PID_CARRELLO)" 2>/dev/null; rm -f $PID_CARRELLO
   exit 0
+fi
+# Ricevitore dello scanner (Binary Eye): acceso finché il turno è aperto
+if ! { [ -f $PID_CARRELLO ] && kill -0 "$(cat $PID_CARRELLO)" 2>/dev/null; }; then
+  nohup python3 ~/.termux/tasker/carrello.py server > /dev/null 2>&1 &
+  echo $! > $PID_CARRELLO
 fi
 TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
 TITOLO=$(python3 ~/info_turno.py titolo)   # turno e ora di chiusura del collega
 SEGNARE=~/.termux/tasker/da_segnare.sh
-PULSANTI=(--button1 "🛒 + Danea" --button1-action "bash $SEGNARE danea"
-          --button2 "📠 + Fax" --button2-action "bash $SEGNARE fax")
+CARRELLO=$(python3 ~/.termux/tasker/carrello.py riepilogo 2>/dev/null)
 DA_SEGNARE=$(bash $SEGNARE conta 2>/dev/null)
+if [ -n "$CARRELLO" ]; then
+  TESTO_NOTIFICA="🛒 CARRELLO: $CARRELLO"$'\n'"$TESTO_NOTIFICA"
+  PULSANTI=(--button1 "💳 Paga carrello" --button1-action "bash ~/.termux/tasker/carrello.sh paga"
+            --button2 "🗑️ Svuota" --button2-action "bash ~/.termux/tasker/carrello.sh svuota")
+else
+  PULSANTI=(--button1 "🛒 + Danea" --button1-action "bash $SEGNARE danea"
+            --button2 "📠 + Fax" --button2-action "bash $SEGNARE fax")
+fi
 if [ -n "$DA_SEGNARE" ]; then
   TESTO_NOTIFICA="📝 DA SEGNARE: $DA_SEGNARE"$'\n'"$TESTO_NOTIFICA"
   PULSANTI+=(--button3 "📝 Segna ($(grep -c . ~/.cassa_da_segnare))" --button3-action "bash $SEGNARE segna")
+elif [ -n "$CARRELLO" ]; then
+  PULSANTI+=(--button3 "🛒 + Danea" --button3-action "bash $SEGNARE danea")
 fi
 termux-notification \
   --id "distributore_turno" \
@@ -10821,6 +10989,21 @@ Appena c'è tempo tocca "📝 Segna": chiede una vendita alla volta, in ordine
 Se premi Annulla chiede "Scarto questa vendita?": Sì = era un tocco sbagliato, No = la segni dopo.
 Il turno non si chiude finché ci sono vendite da segnare.
 
+SCANNER DEI CODICI A BARRE (app Binary Eye, per i clienti con tanti prodotti)
+Impostazioni di Binary Eye (una volta sola):
+  • Scansione continua: SÌ          • Ignora duplicati: Nessuno (per contare 2 prodotti uguali)
+  • Ritardo tra scansioni continue: un secondo
+  • Inoltra le scansioni: SÌ
+  • URL a cui inoltrare:  http://127.0.0.1:8765/?c=
+  • Tipo di richiesta: GET e aggiungi contenuto
+Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso prodotto
+due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
+con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
+c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
+Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
+Un codice che non è nel listino: "❓ codice sconosciuto" → svuota e usa "danea nome prezzo".
+I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
+
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
@@ -10873,4 +11056,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:25"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:35"
