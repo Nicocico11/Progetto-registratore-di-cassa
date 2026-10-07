@@ -33,13 +33,94 @@ def scrivi(righe):
         f.write("".join("\t".join(r) + "\n" for r in righe))
 
 
-def listino_per_codice():
+IMPARATI = os.path.expanduser('~/.cassa_codici_imparati.json')   # codici insegnati a mano: restano anche
+                                                                  # quando si aggiorna il listino Danea
+
+
+def leggi_listino():
     try:
         with open(PREZZI, encoding='utf-8') as f:
-            return {str(v['barre']).lower(): (nome, float(v['prezzo'])) for nome, v in json.load(f).items()
-                    if isinstance(v, dict) and v.get('barre')}
+            return {n: v for n, v in json.load(f).items() if isinstance(v, dict)}
     except Exception:
         return {}
+
+
+def leggi_imparati():
+    try:
+        with open(IMPARATI, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def listino_per_codice():
+    """codice -> (nome, prezzo): dal listino Danea e dai codici insegnati a mano."""
+    listino = leggi_listino()
+    mappa = {str(v['barre']).lower(): (nome, float(v['prezzo'])) for nome, v in listino.items() if v.get('barre')}
+    for codice, d in leggi_imparati().items():
+        if d.get('nome') in listino:
+            mappa[codice.lower()] = (d['nome'], float(listino[d['nome']]['prezzo']))
+        elif d.get('prezzo') is not None:
+            mappa[codice.lower()] = (d['nome'], float(d['prezzo']))
+    return mappa
+
+
+def cerca(testo):
+    """Prodotti del listino che hanno nel nome tutte le parole scritte ("red bull" -> RED BULL)."""
+    parole = [w for w in re.findall(r'[a-z0-9]+', testo.lower()) if len(w) >= 2]
+    if not parole:
+        return []
+    trovati = []
+    for nome, v in leggi_listino().items():
+        nomi = [nome.lower()] + [a.lower() for a in v.get('alias', [])]
+        if any(all(w in n for w in parole) for n in nomi):
+            trovati.append(nome)
+    return sorted(trovati, key=len)
+
+
+def dialogo(*argomenti):
+    """termux-dialog: (testo, indice) se confermato, None se annullato."""
+    try:
+        r = subprocess.run(['termux-dialog', *argomenti], capture_output=True, text=True, timeout=120)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        return None
+    return (d.get('text', ''), d.get('index')) if d.get('code') == -1 else None
+
+
+def impara_sconosciuti():
+    """Per ogni codice sconosciuto chiede che prodotto è e lo ricorda. Esce con 1 se annullato."""
+    mappa = listino_per_codice()
+    sconosciuti = list(dict.fromkeys(c for c, _ in leggi() if c.lower() not in mappa))
+    imparati = leggi_imparati()
+    for codice in sconosciuti:
+        r = dialogo('text', '-t', f'❓ Codice {codice}: che prodotto è?', '-i', 'red bull · caricabatterie 15')
+        if not r or not r[0].strip():
+            sys.exit(1)
+        testo = r[0].strip()
+        trovati = cerca(testo) or cerca(re.sub(r'\s*\d+(?:[.,]\d+)?\s*(?:euro|€)?\s*$', '', testo))
+        if len(trovati) > 1:
+            voci = [f"{n} {leggi_listino()[n]['prezzo']:.2f}€".replace(',', ' ') for n in trovati[:20]]
+            r = dialogo('radio', '-t', '🛒 Quale prodotto?', '-v', ','.join(voci))
+            if not r:
+                sys.exit(1)
+            trovati = [trovati[r[1]]] if isinstance(r[1], int) and 0 <= r[1] < len(voci) else []
+        if trovati:
+            imparati[codice] = {'nome': trovati[0]}
+        else:
+            # Prodotto nuovo, non nel listino: nome e prezzo (es. "caricabatterie 15")
+            m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:euro|€)?\s*$', testo)
+            nome = (testo[:m.start()] if m else testo).strip().upper()
+            prezzo = float(m.group(1).replace(',', '.')) if m else None
+            if prezzo is None:
+                r = dialogo('text', '-n', '-t', f'💶 Prezzo di {nome} (€)', '-i', '2,50')
+                try:
+                    prezzo = float(r[0].replace(',', '.'))
+                except Exception:
+                    sys.exit(1)
+            imparati[codice] = {'nome': nome, 'prezzo': prezzo}
+        with open(IMPARATI, 'w', encoding='utf-8') as f:
+            json.dump(imparati, f, ensure_ascii=False, indent=1)
 
 
 def riepilogo():
@@ -102,6 +183,8 @@ if __name__ == '__main__':
         print(riepilogo())
     elif comando == 'codici':
         print(" ".join(c for c, _ in leggi()))
+    elif comando == 'impara':
+        impara_sconosciuti()
     elif comando == 'togli':
         scrivi(leggi()[:-1])
     elif comando == 'svuota':

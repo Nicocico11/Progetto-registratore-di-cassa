@@ -34,14 +34,26 @@ def codici_a_barre(testo):
         return testo
     try:
         with open(prezzi_path, encoding='utf-8') as f:
-            mappa = {str(v['barre']).lower(): nome for nome, v in json.load(f).items()
-                     if isinstance(v, dict) and v.get('barre')}
+            listino_codici = {n: v for n, v in json.load(f).items() if isinstance(v, dict)}
     except Exception:
-        mappa = {}
-    conta, resto = {}, []
+        listino_codici = {}
+    mappa = {str(v['barre']).lower(): nome for nome, v in listino_codici.items() if v.get('barre')}
+    nuovi = {}   # codici insegnati a mano per prodotti che non sono nel listino: "danea nome prezzo"
+    try:
+        with open(os.path.expanduser('~/.cassa_codici_imparati.json'), encoding='utf-8') as f:
+            for codice, d in json.load(f).items():
+                if d.get('nome') in listino_codici:
+                    mappa[codice.lower()] = d['nome']
+                elif d.get('prezzo') is not None:
+                    nuovi[codice.lower()] = d
+    except Exception:
+        pass
+    conta, resto, danea = {}, [], []
     for parola in testo.split():
         pulita = parola.strip('.,;:')
-        if pulita in mappa:
+        if pulita in nuovi:
+            danea.append(f"danea {nuovi[pulita]['nome'].lower()} {nuovi[pulita]['prezzo']:.2f} euro")
+        elif pulita in mappa:
             conta[mappa[pulita]] = conta.get(mappa[pulita], 0) + 1
         elif re.fullmatch(r'\d{8,14}', pulita):
             print(f"❓ Codice a barre {pulita} non nel listino. Niente salvato: "
@@ -49,13 +61,13 @@ def codici_a_barre(testo):
             sys.exit(1)
         else:
             resto.append(parola)
-    if not conta:
+    if not conta and not danea:
         return testo
     DA_CODICE.update(conta)
     resto = " ".join(resto).strip()
     if re.search(r'\d', resto) and not resto.startswith(('e ', 'ed ')):
         resto = "e " + resto                     # "codici 50 gasolio" -> "... e 50 gasolio": voce a parte
-    return " e ".join(f"{n} {nome.lower()}" for nome, n in conta.items()) + " " + resto
+    return " e ".join([f"{n} {nome.lower()}" for nome, n in conta.items()] + danea) + " " + resto
 
 
 testo_basso = codici_a_barre(testo_basso)

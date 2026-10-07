@@ -39,6 +39,8 @@ case "$*" in
   *"Carburante (€)"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Danea delle"*) [ -f ~/annulla ] && echo '{"code": -2, "text": ""}' || echo '{"code": -1, "text": "2 red bull"}' ;;  # tendina
   *"Fax delle"*) echo '{"code": -1, "text": "1,50"}' ;;
+  *"Codice 12345678"*) echo '{"code": -1, "text": "red bull"}' ;;           # codice sconosciuto: prodotto del listino
+  *"Codice 87654321"*) echo '{"code": -1, "text": "caricabatterie 15"}' ;;   # codice sconosciuto: prodotto nuovo
   *"Togli l'ultimo letto"*) echo '{"code": -1, "text": "POS nero", "index": 2}' ;;   # paga carrello
   *"Svuoto il carrello"*) echo '{"code": 0, "text": "yes"}' ;;
   *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
@@ -190,6 +192,15 @@ bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
 [ ! -f $HOME/.cassa_carrello ] && tail -1 $HOME/transazioni_turno.csv | grep -q '2 × Red Bull\|"quantita"": 2.0' && tail -1 $HOME/transazioni_turno.csv | grep -q "POS nero" \
   && echo "  ok   scanner: carrello pagato (una vendita)" || { echo "  ERRORE paga carrello"; tail -1 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
 controlla "cancella carrello pagato"  "cancella ultima"                              "Cancellata"
+curl -s "http://127.0.0.1:8765/?c=12345678" > /dev/null; curl -s "http://127.0.0.1:8765/?c=87654321" > /dev/null; sleep 1
+python3 $HOME/.termux/tasker/carrello.py riepilogo | grep -q "❓ 2 codici sconosciuti" && echo "  ok   scanner: codici sconosciuti nel carrello" || { echo "  ERRORE codici sconosciuti"; ERRORI=$((ERRORI+1)); }
+bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
+tail -2 $HOME/transazioni_turno.csv | grep -q "Red Bull" && tail -2 $HOME/transazioni_turno.csv | grep -q "CARICABATTERIE" && [ ! -f $HOME/.cassa_carrello ] \
+  && echo "  ok   scanner: codici sconosciuti insegnati e venduti" || { echo "  ERRORE insegna codici"; tail -2 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
+curl -s "http://127.0.0.1:8765/?c=12345678" > /dev/null; sleep 1.2; curl -s "http://127.0.0.1:8765/?c=87654321" > /dev/null; sleep 1
+[ "$(python3 $HOME/.termux/tasker/carrello.py riepilogo)" = "1× Red Bull, 1× CARICABATTERIE · 18,00 €" ] && echo "  ok   scanner: codici ricordati la volta dopo" || { echo "  ERRORE codici non ricordati: $(python3 $HOME/.termux/tasker/carrello.py riepilogo)"; ERRORI=$((ERRORI+1)); }
+python3 $HOME/.termux/tasker/carrello.py svuota
+controlla "cancella codici insegnati" "cancella ultima"                              "Cancellata"
 controlla "cancella fax tendina"       "cancella ultima"                              "Cancellata"
 controlla "cancella danea tendina"     "cancella ultima"                              "Cancellata"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

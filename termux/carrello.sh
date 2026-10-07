@@ -10,6 +10,12 @@ case "$1" in
   paga)
     RIEPILOGO=$($C riepilogo)
     [ -z "$RIEPILOGO" ] && { finestra "🛒 Carrello" "Il carrello è vuoto."; exit 0; }
+    # Codici sconosciuti: "che prodotto è?" (ricordato per le prossime volte); annullato = carrello com'è
+    if [[ "$RIEPILOGO" == *"❓"* ]]; then
+      $C impara || { bash "$NOTIFICA"; exit 0; }
+      bash "$NOTIFICA"
+      RIEPILOGO=$($C riepilogo)
+    fi
     SCELTA=$(scegli "🛒 $RIEPILOGO" "Contanti,POS cassa,POS nero,POS bianco,Petrolifere,🗑️ Togli l'ultimo letto")
     case "$SCELTA" in
       "") exit 0 ;;                                     # annullato: il carrello resta

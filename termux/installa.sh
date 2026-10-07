@@ -454,6 +454,12 @@ case "$1" in
   paga)
     RIEPILOGO=$($C riepilogo)
     [ -z "$RIEPILOGO" ] && { finestra "🛒 Carrello" "Il carrello è vuoto."; exit 0; }
+    # Codici sconosciuti: "che prodotto è?" (ricordato per le prossime volte); annullato = carrello com'è
+    if [[ "$RIEPILOGO" == *"❓"* ]]; then
+      $C impara || { bash "$NOTIFICA"; exit 0; }
+      bash "$NOTIFICA"
+      RIEPILOGO=$($C riepilogo)
+    fi
     SCELTA=$(scegli "🛒 $RIEPILOGO" "Contanti,POS cassa,POS nero,POS bianco,Petrolifere,🗑️ Togli l'ultimo letto")
     case "$SCELTA" in
       "") exit 0 ;;                                     # annullato: il carrello resta
@@ -514,13 +520,94 @@ def scrivi(righe):
         f.write("".join("\t".join(r) + "\n" for r in righe))
 
 
-def listino_per_codice():
+IMPARATI = os.path.expanduser('~/.cassa_codici_imparati.json')   # codici insegnati a mano: restano anche
+                                                                  # quando si aggiorna il listino Danea
+
+
+def leggi_listino():
     try:
         with open(PREZZI, encoding='utf-8') as f:
-            return {str(v['barre']).lower(): (nome, float(v['prezzo'])) for nome, v in json.load(f).items()
-                    if isinstance(v, dict) and v.get('barre')}
+            return {n: v for n, v in json.load(f).items() if isinstance(v, dict)}
     except Exception:
         return {}
+
+
+def leggi_imparati():
+    try:
+        with open(IMPARATI, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def listino_per_codice():
+    """codice -> (nome, prezzo): dal listino Danea e dai codici insegnati a mano."""
+    listino = leggi_listino()
+    mappa = {str(v['barre']).lower(): (nome, float(v['prezzo'])) for nome, v in listino.items() if v.get('barre')}
+    for codice, d in leggi_imparati().items():
+        if d.get('nome') in listino:
+            mappa[codice.lower()] = (d['nome'], float(listino[d['nome']]['prezzo']))
+        elif d.get('prezzo') is not None:
+            mappa[codice.lower()] = (d['nome'], float(d['prezzo']))
+    return mappa
+
+
+def cerca(testo):
+    """Prodotti del listino che hanno nel nome tutte le parole scritte ("red bull" -> RED BULL)."""
+    parole = [w for w in re.findall(r'[a-z0-9]+', testo.lower()) if len(w) >= 2]
+    if not parole:
+        return []
+    trovati = []
+    for nome, v in leggi_listino().items():
+        nomi = [nome.lower()] + [a.lower() for a in v.get('alias', [])]
+        if any(all(w in n for w in parole) for n in nomi):
+            trovati.append(nome)
+    return sorted(trovati, key=len)
+
+
+def dialogo(*argomenti):
+    """termux-dialog: (testo, indice) se confermato, None se annullato."""
+    try:
+        r = subprocess.run(['termux-dialog', *argomenti], capture_output=True, text=True, timeout=120)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        return None
+    return (d.get('text', ''), d.get('index')) if d.get('code') == -1 else None
+
+
+def impara_sconosciuti():
+    """Per ogni codice sconosciuto chiede che prodotto è e lo ricorda. Esce con 1 se annullato."""
+    mappa = listino_per_codice()
+    sconosciuti = list(dict.fromkeys(c for c, _ in leggi() if c.lower() not in mappa))
+    imparati = leggi_imparati()
+    for codice in sconosciuti:
+        r = dialogo('text', '-t', f'❓ Codice {codice}: che prodotto è?', '-i', 'red bull · caricabatterie 15')
+        if not r or not r[0].strip():
+            sys.exit(1)
+        testo = r[0].strip()
+        trovati = cerca(testo) or cerca(re.sub(r'\s*\d+(?:[.,]\d+)?\s*(?:euro|€)?\s*$', '', testo))
+        if len(trovati) > 1:
+            voci = [f"{n} {leggi_listino()[n]['prezzo']:.2f}€".replace(',', ' ') for n in trovati[:20]]
+            r = dialogo('radio', '-t', '🛒 Quale prodotto?', '-v', ','.join(voci))
+            if not r:
+                sys.exit(1)
+            trovati = [trovati[r[1]]] if isinstance(r[1], int) and 0 <= r[1] < len(voci) else []
+        if trovati:
+            imparati[codice] = {'nome': trovati[0]}
+        else:
+            # Prodotto nuovo, non nel listino: nome e prezzo (es. "caricabatterie 15")
+            m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:euro|€)?\s*$', testo)
+            nome = (testo[:m.start()] if m else testo).strip().upper()
+            prezzo = float(m.group(1).replace(',', '.')) if m else None
+            if prezzo is None:
+                r = dialogo('text', '-n', '-t', f'💶 Prezzo di {nome} (€)', '-i', '2,50')
+                try:
+                    prezzo = float(r[0].replace(',', '.'))
+                except Exception:
+                    sys.exit(1)
+            imparati[codice] = {'nome': nome, 'prezzo': prezzo}
+        with open(IMPARATI, 'w', encoding='utf-8') as f:
+            json.dump(imparati, f, ensure_ascii=False, indent=1)
 
 
 def riepilogo():
@@ -583,6 +670,8 @@ if __name__ == '__main__':
         print(riepilogo())
     elif comando == 'codici':
         print(" ".join(c for c, _ in leggi()))
+    elif comando == 'impara':
+        impara_sconosciuti()
     elif comando == 'togli':
         scrivi(leggi()[:-1])
     elif comando == 'svuota':
@@ -791,14 +880,26 @@ def codici_a_barre(testo):
         return testo
     try:
         with open(prezzi_path, encoding='utf-8') as f:
-            mappa = {str(v['barre']).lower(): nome for nome, v in json.load(f).items()
-                     if isinstance(v, dict) and v.get('barre')}
+            listino_codici = {n: v for n, v in json.load(f).items() if isinstance(v, dict)}
     except Exception:
-        mappa = {}
-    conta, resto = {}, []
+        listino_codici = {}
+    mappa = {str(v['barre']).lower(): nome for nome, v in listino_codici.items() if v.get('barre')}
+    nuovi = {}   # codici insegnati a mano per prodotti che non sono nel listino: "danea nome prezzo"
+    try:
+        with open(os.path.expanduser('~/.cassa_codici_imparati.json'), encoding='utf-8') as f:
+            for codice, d in json.load(f).items():
+                if d.get('nome') in listino_codici:
+                    mappa[codice.lower()] = d['nome']
+                elif d.get('prezzo') is not None:
+                    nuovi[codice.lower()] = d
+    except Exception:
+        pass
+    conta, resto, danea = {}, [], []
     for parola in testo.split():
         pulita = parola.strip('.,;:')
-        if pulita in mappa:
+        if pulita in nuovi:
+            danea.append(f"danea {nuovi[pulita]['nome'].lower()} {nuovi[pulita]['prezzo']:.2f} euro")
+        elif pulita in mappa:
             conta[mappa[pulita]] = conta.get(mappa[pulita], 0) + 1
         elif re.fullmatch(r'\d{8,14}', pulita):
             print(f"❓ Codice a barre {pulita} non nel listino. Niente salvato: "
@@ -806,13 +907,13 @@ def codici_a_barre(testo):
             sys.exit(1)
         else:
             resto.append(parola)
-    if not conta:
+    if not conta and not danea:
         return testo
     DA_CODICE.update(conta)
     resto = " ".join(resto).strip()
     if re.search(r'\d', resto) and not resto.startswith(('e ', 'ed ')):
         resto = "e " + resto                     # "codici 50 gasolio" -> "... e 50 gasolio": voce a parte
-    return " e ".join(f"{n} {nome.lower()}" for nome, n in conta.items()) + " " + resto
+    return " e ".join([f"{n} {nome.lower()}" for nome, n in conta.items()] + danea) + " " + resto
 
 
 testo_basso = codici_a_barre(testo_basso)
@@ -10991,7 +11092,7 @@ Il turno non si chiude finché ci sono vendite da segnare.
 
 SCANNER DEI CODICI A BARRE (app Binary Eye, per i clienti con tanti prodotti)
 Impostazioni di Binary Eye (una volta sola):
-  • Scansione continua: SÌ          • Ignora duplicati: Nessuno (per contare 2 prodotti uguali)
+  • Scansione continua: SÌ          • Ignora duplicati: Accetta duplicati (2 prodotti uguali = 2)
   • Ritardo tra scansioni continue: un secondo
   • Inoltra le scansioni: SÌ
   • URL a cui inoltrare:  http://127.0.0.1:8765/?c=
@@ -11001,7 +11102,10 @@ due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TW
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
 c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
 Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
-Un codice che non è nel listino: "❓ codice sconosciuto" → svuota e usa "danea nome prezzo".
+Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
+"❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,
+nome e prezzo ("caricabatterie 15"). Viene RICORDATO: la volta dopo il codice è riconosciuto
+(anche dopo un aggiornamento del listino Danea).
 I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
 
 SENZA VEDERE TERMUX (con Tasker)
@@ -11056,4 +11160,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:35"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:43"

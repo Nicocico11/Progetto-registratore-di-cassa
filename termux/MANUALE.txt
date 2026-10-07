@@ -306,7 +306,7 @@ Il turno non si chiude finché ci sono vendite da segnare.
 
 SCANNER DEI CODICI A BARRE (app Binary Eye, per i clienti con tanti prodotti)
 Impostazioni di Binary Eye (una volta sola):
-  • Scansione continua: SÌ          • Ignora duplicati: Nessuno (per contare 2 prodotti uguali)
+  • Scansione continua: SÌ          • Ignora duplicati: Accetta duplicati (2 prodotti uguali = 2)
   • Ritardo tra scansioni continue: un secondo
   • Inoltra le scansioni: SÌ
   • URL a cui inoltrare:  http://127.0.0.1:8765/?c=
@@ -316,7 +316,10 @@ due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TW
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
 c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
 Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
-Un codice che non è nel listino: "❓ codice sconosciuto" → svuota e usa "danea nome prezzo".
+Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
+"❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,
+nome e prezzo ("caricabatterie 15"). Viene RICORDATO: la volta dopo il codice è riconosciuto
+(anche dopo un aggiornamento del listino Danea).
 I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
 
 SENZA VEDERE TERMUX (con Tasker)
