@@ -192,9 +192,9 @@ except Exception:
   *"conta cassa"*|*"conto cassa"*|*"conta la cassa"*|*"contare la cassa"*|*"conteggio cassa"*|*"conta il cassetto"*)
     # Come il riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel: banconote e spiccioli contati
     if turno_aperto; then
-      BANCONOTE=$(chiedi "🧮 Banconote nel cassetto" "2x50 2x20 7x10 13x5")
+      BANCONOTE=$(chiedi "🧮 Banconote nella borsa" "50x2 20x2 10x7 5x13")
       CASSETTO=$(chiedi "🪙 Spiccioli cassetto (€)" "54,62")
-      BORSA=$(chiedi "👜 Spiccioli borsa (€)" "vuoto = niente")
+      BORSA=$(chiedi "👜 Monete nella borsa (pezzi)" "2x3 1x5 0,50x4")
       if [ -z "$BANCONOTE$CASSETTO$BORSA" ]; then
         echo "Niente contato"
       else

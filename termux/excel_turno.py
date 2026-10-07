@@ -200,7 +200,18 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     cassaforte = turno.get('cassaforte') or 0
     if cassaforte:
         ws['I28'] = cassaforte
-    ws['D34'] = round(totale_cassa - cassaforte, 2)
+    conteggio = turno.get('conteggio') if turno.get('conteggio_valido') else None
+    if conteggio:
+        # Cassa contata col telefono: banconote per taglio (C27 = da 500 ... C33 = da 5) e spiccioli veri,
+        # così AVANZO CASSA ATTUALE e DIFFERENZA sono quelli reali, come compilati a mano
+        for taglio, n in conteggio.get('banconote', {}).items():
+            riga = {500: 27, 200: 28, 100: 29, 50: 30, 20: 31, 10: 32, 5: 33}.get(int(taglio))
+            if riga and n:
+                ws[f'C{riga}'] = n
+        ws['D34'] = conteggio.get('cassetto') or None
+        ws['D35'] = conteggio.get('borsa') or None
+    else:
+        ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
     path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova') or turno.get('nomi_test')))

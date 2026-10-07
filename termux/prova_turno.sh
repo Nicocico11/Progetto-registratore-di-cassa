@@ -30,7 +30,7 @@ case "$*" in
   *"🧾 Cassa"*) echo '{"code": -1, "text": "01 Vendita carburante", "index": 0}' ;;   # menu di Tasker
   *"AdBlue (litri)"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
   *"di 70 €"*) echo '{"code": -1, "text": "50"}' ;;            # non tornano: 3 tentativi, niente salvato
-  *"Banconote nel cassetto"*) echo '{"code": -1, "text": "1x100 1x50"}' ;;   # conta cassa
+  *"Banconote nella borsa"*) echo '{"code": -1, "text": "1x100 1x50"}' ;;   # conta cassa
   *"Spiccioli cassetto"*) echo '{"code": -1, "text": "0,50"}' ;;
   *"Versamento (€)"*) echo '{"code": -1, "text": "100"}' ;;            # widget 09 Versamento
   *"Banconote di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
@@ -260,6 +260,7 @@ echo '{"mittente":"prova@gmail.com","password":"x","destinatario":"capo@example.
 export INVIA_MAIL_FINTO=$HOME/mail_finte; mkdir -p $INVIA_MAIL_FINTO
 CHIUSURA=$(bash $S "chiusura turno" 2>&1)
 [[ "$CHIUSURA" == *"Terminale pompe: 14:05:32"* ]] && echo "  ok   chiusura turno" || { echo "  ERRORE chiusura turno"; echo "$CHIUSURA" | sed 's/^/         /'; ERRORI=$((ERRORI+1)); }
+[[ "$CHIUSURA" == *"ma poi ci sono state altre vendite"* ]] && echo "  ok   conta cassa vecchio: non usato" || { echo "  ERRORE conteggio vecchio usato"; ERRORI=$((ERRORI+1)); }
 [ "$(cat $HOME/ultimo_conteggio.txt 2>/dev/null)" = "90.50" ] && echo "  ok   avanzo calcolato proposto al turno dopo" || { echo "  ERRORE avanzo calcolato"; ERRORI=$((ERRORI+1)); }
 sleep 1; tail -4 $HOME/notifiche.log | grep -q "togli stato_ia" && tail -4 $HOME/notifiche.log | grep -q "togli distributore_turno" && echo "  ok   notifiche tolte alla chiusura" || { echo "  ERRORE notifiche non tolte"; ERRORI=$((ERRORI+1)); }
 grep -q "Contanti attesi" $D/*/Documenti/*.txt && echo "  ok   quadratura nel documento" || { echo "  ERRORE quadratura"; ERRORI=$((ERRORI+1)); }
@@ -357,13 +358,17 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "conta cassa: torna"        "conta cassa"                                  "La cassa torna"
 python3 $HOME/info_turno.py contacassa "1x100" "0,50" | grep -q "mancano 50.00 €" && echo "  ok   conta cassa: mancano 50" || { echo "  ERRORE conta cassa mancano"; ERRORI=$((ERRORI+1)); }
 controlla "conta cassa di nuovo"      "conta cassa"                                  "DIFFERENZA Excel: 0,00 €"
-controlla "chiusura senza vendite"    "chiusura turno"                               "Mail inviata"
+python3 $HOME/info_turno.py contacassa "100" "0,50" "25x2" | grep -q "La cassa torna" && echo "  ok   conta cassa: monete della borsa a pezzi" || { echo "  ERRORE monete borsa"; ERRORI=$((ERRORI+1)); }
+python3 $HOME/info_turno.py versamento "versamento 600" "50x12" | grep -q "12×50" && echo "  ok   versamento 50x12 = 12 da 50" || { echo "  ERRORE versamento 50x12"; ERRORI=$((ERRORI+1)); }
+controlla "cancella versamento 600"   "cancella versamento"                          "cancellato"
+controlla "conta cassa (ultimo)"      "conta cassa"                                  "La cassa torna"
+controlla "chiusura senza vendite"    "chiusura turno"                               "Nell'Excel la cassa contata"
 python3 -c "
 import openpyxl, glob, sys
 f = [x for x in glob.glob(sys.argv[1] + '/*_Mattina_TEST/Excel/*mattina_TEST.xlsx')][0]
 ws = openpyxl.load_workbook(f).active
-assert ws['C29'].value is None and ws['C30'].value is None and ws['D34'].value == 130.5, (ws['C29'].value, ws['C30'].value, ws['D34'].value)
-" $D && echo "  ok   conta cassa solo controllo: l'Excel usa i contanti attesi" || { echo "  ERRORE conta cassa finito nell'Excel"; ERRORI=$((ERRORI+1)); }
+assert ws['C29'].value == 1 and ws['C30'].value == 1 and ws['D34'].value == 0.5, (ws['C29'].value, ws['C30'].value, ws['D34'].value)
+" $D && echo "  ok   conta cassa nell'Excel (banconote e spiccioli)" || { echo "  ERRORE conta cassa nell'Excel"; ERRORI=$((ERRORI+1)); }
 ls $D/*_Mattina_TEST/Excel 2>/dev/null | grep -q "xlsx" && echo "  ok   turno senza vendite: Excel creato" || { echo "  ERRORE turno senza vendite"; ls -R $D; ERRORI=$((ERRORI+1)); }
 python3 -c "
 import sys; sys.argv=['x','niente']; sys.path.insert(0, sys.argv[0] and '$HOME')

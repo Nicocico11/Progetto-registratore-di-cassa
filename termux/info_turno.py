@@ -281,16 +281,20 @@ TAGLI = (500, 200, 100, 50, 20, 10, 5)
 
 
 def leggi_banconote(testo):
-    """"200 50 50 50" / "1x200 3x50" / "una da 200 e tre da 50" -> {200: 1, 50: 3}."""
+    """"200 50 50 50" / "1x200 3x50" / "50x12" / "una da 200 e tre da 50" -> {200: 1, 50: 3}."""
     try:
         from numeri import in_cifre
         testo = in_cifre(testo or "")
     except ImportError:
         testo = (testo or "").lower()
     conta = {}
-    for n, taglio in re.findall(r'(\d+)\s*(?:x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', testo):
-        if int(taglio) in TAGLI:
-            conta[int(taglio)] = conta.get(int(taglio), 0) + int(n)
+    for a, segno, b in re.findall(r'(\d+)\s*(x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', testo):
+        a, b = int(a), int(b)
+        n, taglio = a, b                     # "3 da 50", "3x50": 3 banconote da 50
+        if segno in ('x', '*', 'per') and (b not in TAGLI or (a in TAGLI and a > b)):
+            n, taglio = b, a                 # "50x12": 12 da 50 (nell'ordine che viene; il taglio è il numero grande)
+        if taglio in TAGLI:
+            conta[taglio] = conta.get(taglio, 0) + n
     testo = re.sub(r'(\d+)\s*(?:x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', ' ', testo)
     for taglio in re.findall(r'\d+', testo):
         if int(taglio) in TAGLI:
@@ -298,14 +302,19 @@ def leggi_banconote(testo):
     return conta
 
 
+def firma_vendite(righe):
+    """Cambia se si aggiunge, cancella o corregge una vendita (per sapere se un conteggio è ancora valido)."""
+    return f"{len(righe)}|{round(sum(v['importo'] for v in vendite(righe)), 2)}|{righe[-1][0] if righe else ''}"
+
+
 def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
-    """Controllo facoltativo, come il riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel: confronta i contanti
-    contati con quelli attesi e mostra la DIFFERENZA. Non salva niente: l'Excel usa sempre i contanti attesi."""
+    """Conteggio della cassa come nel riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel:
+    confronta i contanti contati con quelli attesi e mostra la DIFFERENZA che uscirà nell'Excel."""
     righe = leggi_csv()
     t = turno_attuale(righe)
     banconote = leggi_banconote(banconote_testo)
     cassetto = importo_da_testo(cassetto_testo) or 0.0
-    borsa = importo_da_testo(borsa_testo) or 0.0
+    borsa = leggi_monete(borsa_testo)       # monete della borsa contate a pezzi ("3x2 5x1 4x0,50")
     in_banconote = sum(taglio * n for taglio, n in banconote.items())
     contati = round(in_banconote + cassetto + borsa, 2)
     vv = vendite(righe)
@@ -315,6 +324,9 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
     centesimi = round(sum(v["importo"] for v in vv if v["reparto"] in ("Sconto", "Resto lasciato")), 2)
     non_spiegati = round(contati - attesi, 2)
     differenza_excel = round(non_spiegati + centesimi, 2)
+    t["conteggio"] = {"banconote": {str(k): n for k, n in banconote.items()}, "cassetto": cassetto, "borsa": borsa,
+                      "totale": contati, "ora": datetime.now().strftime("%H:%M"), "firma": firma_vendite(righe)}
+    salva_turno(t)
     segno = lambda x: f"{'+' if x > 0 else ''}{x:.2f} €".replace(".", ",")
     out = [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
            f"💶 Attesi:  {euro(attesi)}",
@@ -325,8 +337,21 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
     else:
         out.append(f"⚠️ CONTROLLA: {'ci sono' if non_spiegati > 0 else 'mancano'} {euro(abs(non_spiegati))} "
                    f"{'in più' if non_spiegati > 0 else ''} rispetto alle vendite segnate".replace("  ", " "))
+    out.append("📋 Se chiudi senza altre vendite, questo conteggio va nell'Excel (banconote e spiccioli)")
     print("\n".join(out))
     sys.exit(0 if non_spiegati == 0 else 2)
+
+
+def leggi_monete(testo):
+    """Monete contate a pezzi: "3x2 5x1 4x0,50" / "2 2 1 0,50" -> totale in euro.
+    (A x B dà lo stesso totale in qualunque ordine: 3 da 2 € = 2 da 3... per l'Excel conta solo il totale)"""
+    testo = (testo or "").lower().replace(",", ".")
+    totale = 0.0
+    for a, b in re.findall(r'(\d+(?:\.\d+)?)\s*(?:x|\*|da|per)\s*(\d+(?:\.\d+)?)', testo):
+        totale += float(a) * float(b)
+    testo = re.sub(r'(\d+(?:\.\d+)?)\s*(?:x|\*|da|per)\s*(\d+(?:\.\d+)?)', ' ', testo)
+    totale += sum(float(n) for n in re.findall(r'\d+(?:\.\d+)?', testo))
+    return round(totale, 2)
 
 
 def cancella_versamento():
@@ -856,6 +881,16 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
+    # Cassa contata ("conta cassa") e nessuna vendita dopo: nell'Excel vanno le banconote e gli spiccioli veri
+    conteggio = t.get("conteggio")
+    if conteggio and t["contati"] is None:
+        if conteggio.get("firma") == firma_vendite(righe):
+            t["contati"] = conteggio["totale"]
+            t["conteggio_valido"] = True
+            print(f"🧮 Nell'Excel la cassa contata alle {conteggio['ora']}: {euro(conteggio['totale'])}")
+        else:
+            print(f"⚠️ Cassa contata alle {conteggio['ora']} ma poi ci sono state altre vendite: "
+                  "nell'Excel restano i contanti attesi")
     if t["contati"] is not None and not t.get("prova"):
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")

@@ -190,7 +190,7 @@ e gli dai lo stesso importo in contanti)
 
 VERSAMENTI
 • Se togli contanti dal cassetto per il versamento: "versamento 350"
-  Compare il riquadro delle BANCONOTE: scrivi "200 50 50 50" oppure "1x200 3x50".
+  Compare il riquadro delle BANCONOTE: scrivi "200 50 50 50" oppure "1x200 3x50" o "50x12".
   Vanno nel riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100, 50, 20, 10, 5).
   Se lo lasci vuoto le calcolo io (le più grandi possibili) e compare ⚠️ da controllare.
   Se le banconote NON fanno la cifra, il riquadro ricompare (fino a 3 volte): se non
@@ -207,14 +207,17 @@ VERSAMENTI
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
 • "archivio": i turni passati.
-• "CONTA CASSA" (o pulsante 10): come il riquadro CALCOLO AVANZO CASSA dell'Excel.
-  Scrivi le banconote del cassetto ("2x50 2x20 7x10 13x5"), gli spiccioli del cassetto
-  e quelli della borsa. Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
+• "CONTA CASSA" (o pulsante 10): FACOLTATIVO, come il riquadro CALCOLO AVANZO CASSA dell'Excel.
+  1) banconote nella borsa: "50x2 20x2 10x7 5x13" (oppure "2x50", "2 da 50": va bene in tutti e due gli ordini)
+  2) spiccioli del cassetto, in euro: "54,62"
+  3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
+  Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
   ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
-  ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate.
-  È solo un controllo FACOLTATIVO: non salva e non cambia niente. L'Excel usa sempre
-  i contanti calcolati dal telefono (non serve contare i soldi a fine turno).
-  Se ci sono soldi in cassaforte durante il turno, contali negli spiccioli della borsa.
+  ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (le vendite non cambiano).
+  Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno banconote e
+  spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
+  Se non conti, l'Excel usa i contanti calcolati dal telefono.
+  Se ci sono soldi in cassaforte durante il turno, contali nella borsa.
 Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
