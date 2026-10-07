@@ -9213,7 +9213,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
   "unita": "pz",
   "categoria": "VINI"
  }
-}FINE_FILE
+}
+FINE_FILE
 if ! cmp -s ~/.termux/tasker/prezzi_danea.json ~/.termux/tasker/.prezzi_danea_installato; then
   [ -f ~/prezzi.json ] && cp ~/prezzi.json ~/prezzi.json.vecchio
   cp ~/.termux/tasker/prezzi_danea.json ~/prezzi.json
@@ -11161,4 +11162,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:54"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:58"
