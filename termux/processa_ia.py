@@ -30,7 +30,7 @@ DA_CODICE = set()   # prodotti letti dal codice a barre: sono certi, niente list
 def codici_a_barre(testo):
     """Codici a barre (scanner o scritti) -> prodotti: "8002270014901 8002270014901" -> "2 red bull".
     Un codice lungo che non è nel listino: niente salvato (sennò diventerebbe un rifornimento enorme)."""
-    if not re.search(r'\d{5,}|[a-z]\d{3,}', testo):
+    if not re.search(r'\b(?=[a-z0-9]*\d)[a-z0-9]{4,20}\b', testo):     # come i codici che accetta lo scanner
         return testo
     try:
         with open(prezzi_path, encoding='utf-8') as f:
@@ -94,7 +94,10 @@ testo_basso = re.sub(r'\bc[ao]rtissim\w*', 'cartissima', testo_basso)           
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
-testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
+testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)
+testo_basso = re.sub(r'\badblue\s+(\d+)\s+tanic\w*', r'\1 taniche di adblue', testo_basso)   # "adblue 2 taniche"
+testo_basso = re.sub(r'\b(\d+)\s*euro\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|pezzi|fogli|fax|tanic|x\b|euro))',
+                     r'\1.\2 euro', testo_basso)                                               # "45 euro 50" = 45,50  # "tanica di blu"
 
 # Parole che identificano carburanti e metodi di pagamento
 CARBURANTI = {
@@ -469,6 +472,9 @@ def voce_listino(nome, testo):
         importo, quantita = euro, euro / prezzo      # AdBlue sfuso: "adblue 13 euro" = 10 litri
     else:
         quantita = primo_numero(testo) or 1.0  # "red bull" da solo = 1
+        if quantita != int(quantita) and p.get('unita', 'pz') in ('pz', 'fogli'):
+            # "red bull 3 e 50" / "mars 2 e 50": un numero con i centesimi è il prezzo, non 3,5 pezzi
+            return voce_listino(nome, re.sub(NUMERO, lambda m: m.group(1) + " euro", testo, count=1))
         importo = quantita * prezzo
     return {
         "categoria": nome, "prodotto": nome,
@@ -589,6 +595,9 @@ NOMI_CON_E = sorted({senza_accenti(a.lower()) for n, p in listino.items() for a 
                      if ' e ' in a.lower()}, key=len, reverse=True)
 
 
+PAROLE_CARBURANTE = r'\b(?:gasolio|diesel|benzina|verde|senza piombo|gpl|gas|carburante)\b'
+
+
 def dividi_in_pezzi(testo):
     # "50 gasolio, 20 litri adblue e 2 red bull" -> 3 pezzi.
     # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
@@ -601,16 +610,34 @@ def dividi_in_pezzi(testo):
     testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz|resto\b))', ', ', testo)
     grezzi = [p.strip().replace('&e&', 'e') for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo)
               if p.strip()]
+    # Prodotto e carburante nello stesso pezzo senza "e" ("50 di gasolio 2 red bull", "red bull 30 di gasolio"):
+    # il rifornimento diventa un pezzo a parte (sennò 50 diventava la quantità dei red bull)
+    separati = []
+    for p in grezzi:
+        m = None
+        if carburante_detto(p):
+            m = (re.search(r'(?<![\w.,])\d+(?:[.,]\d+)?\s*(?:euro\s+)?(?:di\s+)?' + PAROLE_CARBURANTE, p)
+                 or re.search(PAROLE_CARBURANTE + r'\s+(?:di\s+)?\d+(?:[.,]\d+)?(?:\s*euro\b)?', p))
+        resto = (p[:m.start()] + ' ' + p[m.end():]).strip() if m else ''
+        if m and resto and (prodotto_o_ambiguo(resto) or re.search(r'\badblue\b', resto)):
+            separati += [m.group(0).strip(), resto]
+        else:
+            separati.append(p)
+    grezzi = separati
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
     #    ma non "gasolio 50 e 20 litri di adblue" (lì sono due voci diverse)
     uniti = []
     for p in grezzi:
         fine = re.search(r'(\d+)(\s*(?:euro|€))?$', uniti[-1]) if uniti else None
-        cent = re.match(r'(\d{2})\b(.*)$', p)
-        if fine and cent and not (ha_voce(uniti[-1]) and ha_voce(p)):
+        cent = re.match(r'(\d{1,2})\b(.*)$', p)
+        # ...ma non "50 e 10 red bull" (il 10 è la quantità dei red bull: 50 di carburante e 10 red bull)
+        prodotto_dopo = cent and prodotto_o_ambiguo(p) and not re.search(r'\badblue\b', p)
+        if fine and cent and not prodotto_dopo and not (ha_voce(uniti[-1]) and ha_voce(p)):
             prima = uniti[-1][:fine.start()]
-            uniti[-1] = f"{prima}{fine.group(1)}.{cent.group(1)}{fine.group(2) or ''}{cent.group(2)}"
+            if len(cent.group(1)) == 1:      # "venti e cinque di gasolio": 20,05 (da controllare)
+                AVVISI.append(f"\"{fine.group(1)} e {cent.group(1)}\" letto come {fine.group(1)},0{cent.group(1)} €")
+            uniti[-1] = f"{prima}{fine.group(1)}.{int(cent.group(1)):02d}{fine.group(2) or ''}{cent.group(2)}"
         else:
             uniti.append(p)
 
@@ -1015,7 +1042,7 @@ salva_voci(voci, pezzi, metodo)
 totale = sum(float(v['importo']) for v in voci)
 
 # Cose da controllare: si scrivono PRIMA della vendita, così si leggono anche nel messaggio corto a schermo
-if any(v.get('categoria') == 'Carburante' and float(v['importo']) < 5 for v in voci):
+if any(v.get('reparto') == 'Carburante' and float(v['importo']) < 5 for v in voci):
     AVVISI.append("solo un importo piccolo, senza prodotto: era carburante?")   # "2 mars" -> "2"
 if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[0]).total_seconds() < 30:
     AVVISI.append("frase uguale alla vendita di pochi secondi fa: registrata due volte?")
@@ -1030,7 +1057,7 @@ if metodo == 'Contanti' and pagamento_detto(testo_basso) is None:
         AVVISI.insert(0, f"pagamento non capito (\"{simili[0]}\"): messa in CONTANTI")
     elif any(v['reparto'] == 'Carburante' for v in voci):
         AVVISI.insert(0, "pagamento non detto: carburante messo in CONTANTI")   # "112 e 02"
-if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco'):
+if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco', 'Petrolifere'):
     AVVISI.append("solo prodotti del negozio: di solito si pagano IN CASSA (\"correggi ultima in cassa\")")
 for detto, nome in SIMILI.items():
     AVVISI.append(f'"{detto}" capito come {nome}')

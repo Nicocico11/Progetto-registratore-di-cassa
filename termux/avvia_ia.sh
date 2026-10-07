@@ -78,9 +78,9 @@ case "$FRASE" in
         ORA_PREC=$(chiedi "Ora chiusura precedente" "140532" -n)
         CONTATORE=$(chiedi "Contatore AdBlue" "68624,4")
         TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
+        rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # "da segnare" e carrello rimasti da un turno vecchio
       fi
       echo "🟢 TURNO APERTO"
-      rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # vendite "da segnare" e carrello rimasti da un turno vecchio
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
       # "apertura turno prova" / "test": file con TEST nel nome, contatori veri non toccati
@@ -90,9 +90,11 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_carrello ]; then
       # Prodotti letti con lo scanner e mai pagati
       echo "⚠️ NON CHIUSO: c'è il carrello dello scanner da pagare ($(python3 $CARTELLA/carrello.py riepilogo)). Tocca \"💳 Paga carrello\" o \"🗑️ Svuota\" nella tendina, poi richiudi"
+      ESITO=1
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_da_segnare ]; then
       # Vendite segnate con i pulsanti della tendina e mai registrate: prima vanno segnate
       echo "⚠️ NON CHIUSO: ci sono vendite da segnare ($(bash $CARTELLA/da_segnare.sh conta)). Tocca \"📝 Segna\" nella tendina, poi richiudi"
+      ESITO=1
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
@@ -234,10 +236,13 @@ except Exception:
       # Rifornimento con il carrello dello scanner in attesa: si può pagare tutto insieme
       CODICI_CARRELLO=""
       # (non se la vendita ha già dei codici a barre: è il carrello stesso che si sta pagando)
-      if [ -s ~/.cassa_carrello ] && ! [[ "$FRASE" =~ (^|[^a-z])opt([^a-z]|$) ]] && ! [[ "$FRASE" =~ [0-9]{8} ]] && \
+      if [ -s ~/.cassa_carrello ] && [ -z "$CASSA_CARRELLO_INCLUSO" ] && ! [[ "$FRASE" =~ (^|[^a-z])opt([^a-z]|$) ]] && \
          [[ "$FRASE" =~ (gasolio|diesel|benzina|verde|gpl|gas|carburante) || \
             "$FRASE" =~ ^[0-9\ .,:e]+(euro)?\ *((sul|pos|col|con\ il)\ )?(contanti|nero|bianco|petrolifere|cartissima|carta|pos)?\ *$ ]]; then
-        if chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
+        # codici sconosciuti: prima "che prodotto è?" (se annullato il carrello resta fuori da questa vendita)
+        python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && python3 $CARTELLA/carrello.py impara
+        if ! python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && \
+           chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
           CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
           # Pagamento non detto: si chiede ora, per tutto
           if ! [[ "$FRASE" =~ (contant|nero|bianco|cass|cartissim|cortissim|petrolif|pos|boss|carta|bancomat) ]]; then
@@ -266,7 +271,7 @@ except Exception:
         fi
       fi
       if [ -n "$CODICI_CARRELLO" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-        python3 $CARTELLA/carrello.py svuota      # carrello pagato insieme al carburante
+        python3 $CARTELLA/carrello.py venduti "$(wc -w <<< "$CODICI_CARRELLO")"   # pagato insieme al carburante
       fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1

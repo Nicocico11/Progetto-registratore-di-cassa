@@ -12,8 +12,7 @@ if ! python3 ~/info_turno.py aperto; then
 fi
 # Ricevitore dello scanner (Binary Eye): acceso finché il turno è aperto
 if ! { [ -f $PID_CARRELLO ] && kill -0 "$(cat $PID_CARRELLO)" 2>/dev/null; }; then
-  nohup python3 ~/.termux/tasker/carrello.py server > /dev/null 2>&1 &
-  echo $! > $PID_CARRELLO
+  nohup python3 ~/.termux/tasker/carrello.py server > /dev/null 2>&1 &   # scrive lui il pid, se si accende
 fi
 TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
 TITOLO=$(python3 ~/info_turno.py titolo)   # turno e ora di chiusura del collega

@@ -27,6 +27,11 @@ case "$1" in
     conta
     ;;
   segna)
+    BLOCCO=~/.cassa_da_segnare.blocco      # tocco doppio su "Segna": un giro solo
+    if ! mkdir "$BLOCCO" 2>/dev/null; then
+      [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
+    fi
+    trap 'rmdir "$BLOCCO" 2>/dev/null' EXIT
     [ -s "$FILE" ] || { finestra "📝 Da segnare" "Nessuna vendita da segnare."; exit 0; }
     FATTE=""
     while [ -s "$FILE" ]; do

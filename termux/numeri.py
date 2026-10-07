@@ -53,7 +53,9 @@ def _migliaia(m):
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
     testo = _MIGLIAIA.sub(_migliaia, testo.lower())
-    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
+    testo = _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
+    # "mille e cinquecento" -> 1500 (non 1000 e 500: due vendite)
+    return re.sub(r'\b([1-9]\d?000)\s+e\s+(\d{1,3})\b(?![.,]\d)', lambda m: str(int(m.group(1)) + int(m.group(2))), testo)
 
 
 def senza_accenti(testo):

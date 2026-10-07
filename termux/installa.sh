@@ -83,9 +83,9 @@ case "$FRASE" in
         ORA_PREC=$(chiedi "Ora chiusura precedente" "140532" -n)
         CONTATORE=$(chiedi "Contatore AdBlue" "68624,4")
         TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
+        rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # "da segnare" e carrello rimasti da un turno vecchio
       fi
       echo "🟢 TURNO APERTO"
-      rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # vendite "da segnare" e carrello rimasti da un turno vecchio
       # "apertura turno notte": turno scelto a voce invece che dall'orario
       TIPO=$(grep -oE 'mattina|pomeriggio|notte' <<< "$FRASE" | head -1)
       # "apertura turno prova" / "test": file con TEST nel nome, contatori veri non toccati
@@ -95,9 +95,11 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_carrello ]; then
       # Prodotti letti con lo scanner e mai pagati
       echo "⚠️ NON CHIUSO: c'è il carrello dello scanner da pagare ($(python3 $CARTELLA/carrello.py riepilogo)). Tocca \"💳 Paga carrello\" o \"🗑️ Svuota\" nella tendina, poi richiudi"
+      ESITO=1
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]] && [ -s ~/.cassa_da_segnare ]; then
       # Vendite segnate con i pulsanti della tendina e mai registrate: prima vanno segnate
       echo "⚠️ NON CHIUSO: ci sono vendite da segnare ($(bash $CARTELLA/da_segnare.sh conta)). Tocca \"📝 Segna\" nella tendina, poi richiudi"
+      ESITO=1
     elif [[ "$FRASE" =~ (chiudi|chiusura|fine|finisci|termina) ]]; then
       # Orario del terminale pompe con i secondi: detto nella frase
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
@@ -239,10 +241,13 @@ except Exception:
       # Rifornimento con il carrello dello scanner in attesa: si può pagare tutto insieme
       CODICI_CARRELLO=""
       # (non se la vendita ha già dei codici a barre: è il carrello stesso che si sta pagando)
-      if [ -s ~/.cassa_carrello ] && ! [[ "$FRASE" =~ (^|[^a-z])opt([^a-z]|$) ]] && ! [[ "$FRASE" =~ [0-9]{8} ]] && \
+      if [ -s ~/.cassa_carrello ] && [ -z "$CASSA_CARRELLO_INCLUSO" ] && ! [[ "$FRASE" =~ (^|[^a-z])opt([^a-z]|$) ]] && \
          [[ "$FRASE" =~ (gasolio|diesel|benzina|verde|gpl|gas|carburante) || \
             "$FRASE" =~ ^[0-9\ .,:e]+(euro)?\ *((sul|pos|col|con\ il)\ )?(contanti|nero|bianco|petrolifere|cartissima|carta|pos)?\ *$ ]]; then
-        if chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
+        # codici sconosciuti: prima "che prodotto è?" (se annullato il carrello resta fuori da questa vendita)
+        python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && python3 $CARTELLA/carrello.py impara
+        if ! python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && \
+           chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
           CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
           # Pagamento non detto: si chiede ora, per tutto
           if ! [[ "$FRASE" =~ (contant|nero|bianco|cass|cartissim|cortissim|petrolif|pos|boss|carta|bancomat) ]]; then
@@ -271,7 +276,7 @@ except Exception:
         fi
       fi
       if [ -n "$CODICI_CARRELLO" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-        python3 $CARTELLA/carrello.py svuota      # carrello pagato insieme al carburante
+        python3 $CARTELLA/carrello.py venduti "$(wc -w <<< "$CODICI_CARRELLO")"   # pagato insieme al carburante
       fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1
@@ -441,6 +446,11 @@ case "$1" in
     conta
     ;;
   segna)
+    BLOCCO=~/.cassa_da_segnare.blocco      # tocco doppio su "Segna": un giro solo
+    if ! mkdir "$BLOCCO" 2>/dev/null; then
+      [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
+    fi
+    trap 'rmdir "$BLOCCO" 2>/dev/null' EXIT
     [ -s "$FILE" ] || { finestra "📝 Da segnare" "Nessuna vendita da segnare."; exit 0; }
     FATTE=""
     while [ -s "$FILE" ]; do
@@ -485,6 +495,14 @@ cat > ~/.termux/tasker/carrello.sh <<'FINE_FILE'
 C="python3 $HOME/.termux/tasker/carrello.py"
 NOTIFICA=~/.termux/tasker/notifica.sh
 
+# Un tocco doppio sul pulsante non deve far partire due pagamenti
+BLOCCO=~/.cassa_carrello.blocco
+if ! mkdir "$BLOCCO" 2>/dev/null; then
+  # blocco rimasto da un pagamento interrotto (più vecchio di 5 minuti): si toglie
+  [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
+fi
+trap 'rmdir "$BLOCCO" 2>/dev/null' EXIT
+
 case "$1" in
   paga)
     RIEPILOGO=$($C riepilogo)
@@ -498,16 +516,17 @@ case "$1" in
     SCELTA=$(scegli "🛒 $RIEPILOGO" "Contanti,POS cassa,POS nero,POS bianco,Petrolifere,🗑️ Togli l'ultimo letto")
     case "$SCELTA" in
       "") exit 0 ;;                                     # annullato: il carrello resta
-      🗑️*) $C togli; bash "$NOTIFICA"; exec bash "$0" paga ;;
+      🗑️*) $C togli; bash "$NOTIFICA"; rmdir "$BLOCCO"; exec bash "$0" paga ;;
       Contanti) PAGATO="contanti" ;;
       "POS cassa") PAGATO="in cassa" ;;
       "POS nero") PAGATO="sul nero" ;;
       "POS bianco") PAGATO="sul bianco" ;;
       Petrolifere) PAGATO="petrolifere" ;;
     esac
-    RISPOSTA=$(bash "$CASSA" "$($C codici) $PAGATO")
-    # Salvata: carrello vuoto. Non capita (es. codice sconosciuto): il carrello resta, si corregge
-    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C svuota; fi
+    CODICI=$($C codici)
+    RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash "$CASSA" "$CODICI $PAGATO")
+    # Salvata: tolti dal carrello i prodotti venduti. Non capita (es. codice sconosciuto): il carrello resta
+    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$(wc -w <<< "$CODICI")"; fi
     bash "$NOTIFICA"
     finestra "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
     ;;
@@ -700,7 +719,13 @@ def server():
         def log_message(self, *args):
             pass
 
-    ThreadingHTTPServer(('127.0.0.1', PORTA), Ricevitore).serve_forever()
+    try:
+        server_http = ThreadingHTTPServer(('127.0.0.1', PORTA), Ricevitore)
+    except OSError:
+        return            # un altro ricevitore è già acceso: resta quello
+    with open(os.path.expanduser('~/.cassa_carrello.pid'), 'w') as f:
+        f.write(str(os.getpid()))      # solo il ricevitore acceso davvero scrive il suo numero
+    server_http.serve_forever()
 
 
 if __name__ == '__main__':
@@ -715,6 +740,9 @@ if __name__ == '__main__':
         print(" ".join(c for c, _ in leggi()))
     elif comando == 'impara':
         impara_sconosciuti()
+    elif comando == 'venduti':
+        # Toglie solo i prodotti venduti (i primi N): uno letto mentre si pagava resta nel carrello
+        scrivi(leggi()[int(sys.argv[2]):])
     elif comando == 'togli':
         scrivi(leggi()[:-1])
     elif comando == 'svuota':
@@ -855,8 +883,7 @@ if ! python3 ~/info_turno.py aperto; then
 fi
 # Ricevitore dello scanner (Binary Eye): acceso finché il turno è aperto
 if ! { [ -f $PID_CARRELLO ] && kill -0 "$(cat $PID_CARRELLO)" 2>/dev/null; }; then
-  nohup python3 ~/.termux/tasker/carrello.py server > /dev/null 2>&1 &
-  echo $! > $PID_CARRELLO
+  nohup python3 ~/.termux/tasker/carrello.py server > /dev/null 2>&1 &   # scrive lui il pid, se si accende
 fi
 TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
 TITOLO=$(python3 ~/info_turno.py titolo)   # turno e ora di chiusura del collega
@@ -919,7 +946,7 @@ DA_CODICE = set()   # prodotti letti dal codice a barre: sono certi, niente list
 def codici_a_barre(testo):
     """Codici a barre (scanner o scritti) -> prodotti: "8002270014901 8002270014901" -> "2 red bull".
     Un codice lungo che non è nel listino: niente salvato (sennò diventerebbe un rifornimento enorme)."""
-    if not re.search(r'\d{5,}|[a-z]\d{3,}', testo):
+    if not re.search(r'\b(?=[a-z0-9]*\d)[a-z0-9]{4,20}\b', testo):     # come i codici che accetta lo scanner
         return testo
     try:
         with open(prezzi_path, encoding='utf-8') as f:
@@ -983,7 +1010,10 @@ testo_basso = re.sub(r'\bc[ao]rtissim\w*', 'cartissima', testo_basso)           
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
-testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)  # "tanica di blu"
+testo_basso = re.sub(r'\b(tanica|taniche|litri|litro)\s+di\s+blu(?:e)?\b', r'\1 di adblue', testo_basso)
+testo_basso = re.sub(r'\badblue\s+(\d+)\s+tanic\w*', r'\1 taniche di adblue', testo_basso)   # "adblue 2 taniche"
+testo_basso = re.sub(r'\b(\d+)\s*euro\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|pezzi|fogli|fax|tanic|x\b|euro))',
+                     r'\1.\2 euro', testo_basso)                                               # "45 euro 50" = 45,50  # "tanica di blu"
 
 # Parole che identificano carburanti e metodi di pagamento
 CARBURANTI = {
@@ -1358,6 +1388,9 @@ def voce_listino(nome, testo):
         importo, quantita = euro, euro / prezzo      # AdBlue sfuso: "adblue 13 euro" = 10 litri
     else:
         quantita = primo_numero(testo) or 1.0  # "red bull" da solo = 1
+        if quantita != int(quantita) and p.get('unita', 'pz') in ('pz', 'fogli'):
+            # "red bull 3 e 50" / "mars 2 e 50": un numero con i centesimi è il prezzo, non 3,5 pezzi
+            return voce_listino(nome, re.sub(NUMERO, lambda m: m.group(1) + " euro", testo, count=1))
         importo = quantita * prezzo
     return {
         "categoria": nome, "prodotto": nome,
@@ -1478,6 +1511,9 @@ NOMI_CON_E = sorted({senza_accenti(a.lower()) for n, p in listino.items() for a 
                      if ' e ' in a.lower()}, key=len, reverse=True)
 
 
+PAROLE_CARBURANTE = r'\b(?:gasolio|diesel|benzina|verde|senza piombo|gpl|gas|carburante)\b'
+
+
 def dividi_in_pezzi(testo):
     # "50 gasolio, 20 litri adblue e 2 red bull" -> 3 pezzi.
     # Centesimi: "20 e 50" / "20 virgola 50" / "20,50" -> 20.50
@@ -1490,16 +1526,34 @@ def dividi_in_pezzi(testo):
     testo = re.sub(r'\s+(?=(?:(?:mi\s+)?ha\s+)?(?:lasciat|lascia\b|abbuon|sconto\b|arrotond|eccedenz|resto\b))', ', ', testo)
     grezzi = [p.strip().replace('&e&', 'e') for p in re.split(r',(?!\d)|\s+e\s+|\s+ed\s+|\s+piu\s+|\s+poi\s+', testo)
               if p.strip()]
+    # Prodotto e carburante nello stesso pezzo senza "e" ("50 di gasolio 2 red bull", "red bull 30 di gasolio"):
+    # il rifornimento diventa un pezzo a parte (sennò 50 diventava la quantità dei red bull)
+    separati = []
+    for p in grezzi:
+        m = None
+        if carburante_detto(p):
+            m = (re.search(r'(?<![\w.,])\d+(?:[.,]\d+)?\s*(?:euro\s+)?(?:di\s+)?' + PAROLE_CARBURANTE, p)
+                 or re.search(PAROLE_CARBURANTE + r'\s+(?:di\s+)?\d+(?:[.,]\d+)?(?:\s*euro\b)?', p))
+        resto = (p[:m.start()] + ' ' + p[m.end():]).strip() if m else ''
+        if m and resto and (prodotto_o_ambiguo(resto) or re.search(r'\badblue\b', resto)):
+            separati += [m.group(0).strip(), resto]
+        else:
+            separati.append(p)
+    grezzi = separati
 
     # 1) "20 e 50 di gasolio", "gasolio 20 euro e 50" -> centesimi,
     #    ma non "gasolio 50 e 20 litri di adblue" (lì sono due voci diverse)
     uniti = []
     for p in grezzi:
         fine = re.search(r'(\d+)(\s*(?:euro|€))?$', uniti[-1]) if uniti else None
-        cent = re.match(r'(\d{2})\b(.*)$', p)
-        if fine and cent and not (ha_voce(uniti[-1]) and ha_voce(p)):
+        cent = re.match(r'(\d{1,2})\b(.*)$', p)
+        # ...ma non "50 e 10 red bull" (il 10 è la quantità dei red bull: 50 di carburante e 10 red bull)
+        prodotto_dopo = cent and prodotto_o_ambiguo(p) and not re.search(r'\badblue\b', p)
+        if fine and cent and not prodotto_dopo and not (ha_voce(uniti[-1]) and ha_voce(p)):
             prima = uniti[-1][:fine.start()]
-            uniti[-1] = f"{prima}{fine.group(1)}.{cent.group(1)}{fine.group(2) or ''}{cent.group(2)}"
+            if len(cent.group(1)) == 1:      # "venti e cinque di gasolio": 20,05 (da controllare)
+                AVVISI.append(f"\"{fine.group(1)} e {cent.group(1)}\" letto come {fine.group(1)},0{cent.group(1)} €")
+            uniti[-1] = f"{prima}{fine.group(1)}.{int(cent.group(1)):02d}{fine.group(2) or ''}{cent.group(2)}"
         else:
             uniti.append(p)
 
@@ -1904,7 +1958,7 @@ salva_voci(voci, pezzi, metodo)
 totale = sum(float(v['importo']) for v in voci)
 
 # Cose da controllare: si scrivono PRIMA della vendita, così si leggono anche nel messaggio corto a schermo
-if any(v.get('categoria') == 'Carburante' and float(v['importo']) < 5 for v in voci):
+if any(v.get('reparto') == 'Carburante' and float(v['importo']) < 5 for v in voci):
     AVVISI.append("solo un importo piccolo, senza prodotto: era carburante?")   # "2 mars" -> "2"
 if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[0]).total_seconds() < 30:
     AVVISI.append("frase uguale alla vendita di pochi secondi fa: registrata due volte?")
@@ -1919,7 +1973,7 @@ if metodo == 'Contanti' and pagamento_detto(testo_basso) is None:
         AVVISI.insert(0, f"pagamento non capito (\"{simili[0]}\"): messa in CONTANTI")
     elif any(v['reparto'] == 'Carburante' for v in voci):
         AVVISI.insert(0, "pagamento non detto: carburante messo in CONTANTI")   # "112 e 02"
-if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco'):
+if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco', 'Petrolifere'):
     AVVISI.append("solo prodotti del negozio: di solito si pagano IN CASSA (\"correggi ultima in cassa\")")
 for detto, nome in SIMILI.items():
     AVVISI.append(f'"{detto}" capito come {nome}')
@@ -1994,7 +2048,9 @@ def _migliaia(m):
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
     testo = _MIGLIAIA.sub(_migliaia, testo.lower())
-    return _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
+    testo = _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
+    # "mille e cinquecento" -> 1500 (non 1000 e 500: due vendite)
+    return re.sub(r'\b([1-9]\d?000)\s+e\s+(\d{1,3})\b(?![.,]\d)', lambda m: str(int(m.group(1)) + int(m.group(2))), testo)
 
 
 def senza_accenti(testo):
@@ -9281,7 +9337,10 @@ IMPORTO=$(numero "⛽ Carburante (€)" "45,50"); [ -z "$IMPORTO" ] && annullato
 # Carrello dello scanner in attesa: si può pagare insieme al carburante (una vendita sola)
 C="python3 $HOME/.termux/tasker/carrello.py"
 CODICI=""
-if [ -s ~/.cassa_carrello ]; then
+if [ -s ~/.cassa_carrello ] && $C riepilogo | grep -q "❓"; then
+  $C impara || true          # codici sconosciuti: prima "che prodotto è?" (annullato = restano sconosciuti)
+fi
+if [ -s ~/.cassa_carrello ] && ! $C riepilogo | grep -q "❓"; then
   CARBURANTE=$(python3 ~/info_turno.py importo "$IMPORTO")
   SOMMA=$(python3 -c "import sys; print(f'{float(sys.argv[1]) + float(sys.argv[2]):.2f}'.replace('.', ','))" "$CARBURANTE" "$($C totale)")
   if conferma "🛒 Aggiungo il carrello? Totale $SOMMA €" "$IMPORTO € carburante + $($C riepilogo)"; then
@@ -9295,9 +9354,9 @@ else
   PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante)
 fi
 [ -z "$PAGATO" ] && annullato
-RISPOSTA=$(bash $CASSA "$CODICI $IMPORTO euro $PAGATO")
+RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash $CASSA "$CODICI $IMPORTO euro $PAGATO")   # carrello già deciso qui
 if [ -n "$CODICI" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-  $C svuota; bash ~/.termux/tasker/notifica.sh
+  $C venduti "$(wc -w <<< "$CODICI")"; bash ~/.termux/tasker/notifica.sh
 fi
 esito "$RISPOSTA"
 casa
@@ -11233,4 +11292,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:26"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:37"

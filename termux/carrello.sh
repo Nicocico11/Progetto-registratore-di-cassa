@@ -6,6 +6,14 @@
 C="python3 $HOME/.termux/tasker/carrello.py"
 NOTIFICA=~/.termux/tasker/notifica.sh
 
+# Un tocco doppio sul pulsante non deve far partire due pagamenti
+BLOCCO=~/.cassa_carrello.blocco
+if ! mkdir "$BLOCCO" 2>/dev/null; then
+  # blocco rimasto da un pagamento interrotto (più vecchio di 5 minuti): si toglie
+  [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
+fi
+trap 'rmdir "$BLOCCO" 2>/dev/null' EXIT
+
 case "$1" in
   paga)
     RIEPILOGO=$($C riepilogo)
@@ -19,16 +27,17 @@ case "$1" in
     SCELTA=$(scegli "🛒 $RIEPILOGO" "Contanti,POS cassa,POS nero,POS bianco,Petrolifere,🗑️ Togli l'ultimo letto")
     case "$SCELTA" in
       "") exit 0 ;;                                     # annullato: il carrello resta
-      🗑️*) $C togli; bash "$NOTIFICA"; exec bash "$0" paga ;;
+      🗑️*) $C togli; bash "$NOTIFICA"; rmdir "$BLOCCO"; exec bash "$0" paga ;;
       Contanti) PAGATO="contanti" ;;
       "POS cassa") PAGATO="in cassa" ;;
       "POS nero") PAGATO="sul nero" ;;
       "POS bianco") PAGATO="sul bianco" ;;
       Petrolifere) PAGATO="petrolifere" ;;
     esac
-    RISPOSTA=$(bash "$CASSA" "$($C codici) $PAGATO")
-    # Salvata: carrello vuoto. Non capita (es. codice sconosciuto): il carrello resta, si corregge
-    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C svuota; fi
+    CODICI=$($C codici)
+    RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash "$CASSA" "$CODICI $PAGATO")
+    # Salvata: tolti dal carrello i prodotti venduti. Non capita (es. codice sconosciuto): il carrello resta
+    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$(wc -w <<< "$CODICI")"; fi
     bash "$NOTIFICA"
     finestra "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
     ;;

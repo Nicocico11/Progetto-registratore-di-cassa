@@ -178,7 +178,13 @@ def server():
         def log_message(self, *args):
             pass
 
-    ThreadingHTTPServer(('127.0.0.1', PORTA), Ricevitore).serve_forever()
+    try:
+        server_http = ThreadingHTTPServer(('127.0.0.1', PORTA), Ricevitore)
+    except OSError:
+        return            # un altro ricevitore è già acceso: resta quello
+    with open(os.path.expanduser('~/.cassa_carrello.pid'), 'w') as f:
+        f.write(str(os.getpid()))      # solo il ricevitore acceso davvero scrive il suo numero
+    server_http.serve_forever()
 
 
 if __name__ == '__main__':
@@ -193,6 +199,9 @@ if __name__ == '__main__':
         print(" ".join(c for c, _ in leggi()))
     elif comando == 'impara':
         impara_sconosciuti()
+    elif comando == 'venduti':
+        # Toglie solo i prodotti venduti (i primi N): uno letto mentre si pagava resta nel carrello
+        scrivi(leggi()[int(sys.argv[2]):])
     elif comando == 'togli':
         scrivi(leggi()[:-1])
     elif comando == 'svuota':
