@@ -490,7 +490,7 @@ cat > ~/.termux/tasker/carrello.sh <<'FINE_FILE'
 #!/bin/bash
 # Pulsanti del carrello nella tendina (prodotti letti con lo scanner Binary Eye):
 #   carrello.sh paga    -> pagamento, poi salva tutto come una vendita sola
-#   carrello.sh aggiungi -> carburante, fax o AdBlue nel carrello (cose che non si scansionano)
+#   carrello.sh aggiungi -> carburante, fax, AdBlue o un prodotto scritto nel carrello (cose che non si scansionano)
 #   carrello.sh svuota  -> chiede conferma e svuota
 . ~/.termux/tasker/widget_comune.sh
 C="python3 $HOME/.termux/tasker/carrello.py"
@@ -533,10 +533,11 @@ case "$1" in
     ;;
   aggiungi)
     # Cose che non si scansionano: carburante, fax, AdBlue sfuso
-    case "$(scegli "➕ Aggiungi al carrello" "⛽ Carburante (€),📠 Fax (€),🧪 AdBlue sfuso (litri)")" in
+    case "$(scegli "➕ Aggiungi al carrello" "⛽ Carburante (€),📠 Fax (copie),🧪 AdBlue sfuso (litri),🛒 Prodotto (scrivi il nome)")" in
       ⛽*) TIPO=carburante; VALORE=$(numero "⛽ Carburante (€)" "50") ;;
-      📠*) TIPO=fax; VALORE=$(numero "📠 Fax (€)" "1,50") ;;
+      📠*) TIPO=fogli; VALORE=$(numero "📠 Fax: quante copie?" "5") ;;
       🧪*) TIPO=adblue; VALORE=$(numero "🧪 AdBlue (litri)" "20") ;;
+      🛒*) $C aggiungi_prodotto; bash "$NOTIFICA"; exit 0 ;;
       *) exit 0 ;;
     esac
     VALORE=$(python3 ~/info_turno.py importo "$VALORE")
@@ -619,17 +620,34 @@ def listino_per_codice():
     return mappa
 
 
+OLIO = {'olio', 'oli', 'motore', 'lubrificante', 'lubrificanti'}
+
+
 def cerca(testo):
-    """Prodotti del listino che hanno nel nome tutte le parole scritte ("red bull" -> RED BULL)."""
-    parole = [w for w in re.findall(r'[a-z0-9]+', testo.lower()) if len(w) >= 2]
+    """Prodotti del listino con nel nome le parole scritte ("red bull" -> RED BULL, "olio 5w40" -> oli 5W-40).
+    Parole intere (o inizio parola, se lunghe); "olio"/"motore" = solo oli motore.
+    Prima quelli con tutte le parole; se nessuno, quelli con più parole in comune."""
+    parole_di = lambda t: re.findall(r'[a-z0-9]+', t.lower().replace('-', ''))
+    parole = [w for w in parole_di(testo) if len(w) >= 2]
+    listino = leggi_listino()
+    solo_oli = bool(OLIO & set(parole))
+    parole = [w for w in parole if w not in OLIO]
+    candidati = {n: v for n, v in listino.items() if not solo_oli or v.get('categoria') == 'LUBRIFICANTI'}
     if not parole:
+        return sorted(candidati, key=len) if solo_oli else []
+    uguale = lambda w, p: p == w or (len(w) >= 4 and p.startswith(w)) or (len(w) >= 5 and w.startswith(p[:-1]) and len(p) >= 5)
+    punti = {}
+    for nome, v in candidati.items():
+        migliore = max(sum(any(uguale(w, p) for p in parole_di(n)) for w in parole)
+                       for n in [nome] + v.get('alias', []))
+        if migliore:
+            punti[nome] = migliore
+    if not punti:
         return []
-    trovati = []
-    for nome, v in leggi_listino().items():
-        nomi = [nome.lower()] + [a.lower() for a in v.get('alias', [])]
-        if any(all(w in n for w in parole) for n in nomi):
-            trovati.append(nome)
-    return sorted(trovati, key=len)
+    massimo = max(punti.values())
+    if massimo < len(parole) and massimo < 2 and len(parole) > 1:
+        return []           # una parola sola in comune su tante: meglio non indovinare
+    return sorted((n for n, p in punti.items() if p == massimo), key=len)
 
 
 def dialogo(*argomenti):
@@ -677,6 +695,28 @@ def impara_sconosciuti():
             json.dump(imparati, f, ensure_ascii=False, indent=1)
 
 
+def aggiungi_prodotto():
+    """➕ Aggiungi → 🛒 Prodotto: nome scritto ("tanica adblue", "2 olio 5w40"), scelta se più prodotti."""
+    r = dialogo('text', '-t', '🛒 Prodotto da aggiungere', '-i', 'tanica adblue · 2 olio 5w40')
+    if not r or not r[0].strip():
+        sys.exit(1)
+    m = re.match(r'\s*(\d+)\s*(?:x\s*)?(.*)', r[0])
+    quanti, nome_scritto = (int(m.group(1)), m.group(2)) if m and m.group(2) else (1, r[0])
+    trovati = cerca(nome_scritto)
+    if not trovati:
+        dialogo('confirm', '-t', '❓ Prodotto non trovato', '-i', f'"{nome_scritto}" non è nel listino')
+        sys.exit(1)
+    if len(trovati) > 1:
+        listino = leggi_listino()
+        voci = [f"{n} {listino[n]['prezzo']:.2f}€".replace(',', ' ') for n in trovati[:20]]
+        r = dialogo('radio', '-t', '🛒 Quale prodotto?', '-v', ','.join(voci))
+        if not r or not isinstance(r[1], int) or not 0 <= r[1] < len(voci):
+            sys.exit(1)
+        trovati = [trovati[r[1]]]
+    with open(FILE, 'a', encoding='utf-8') as f:
+        f.write(f"+prodotto:{trovati[0]}\t{time.strftime('%H:%M:%S')}\n" * quanti)
+
+
 def riepilogo():
     righe = leggi()
     if not righe:
@@ -684,7 +724,7 @@ def riepilogo():
     mappa = listino_per_codice()
     conta, totale, sconosciuti = {}, 0.0, []
     for codice, _ in righe:
-        if codice.startswith('+'):                 # aggiunta a mano (carburante, fax, AdBlue)
+        if codice.startswith('+'):                 # aggiunta a mano (carburante, fax, AdBlue, prodotto)
             nome, importo = voce_a_mano(codice)
             conta[nome] = conta.get(nome, 0) + 1
             totale += importo
@@ -711,7 +751,14 @@ def totale():
 def voce_a_mano(codice):
     """(descrizione per la tendina, importo)."""
     tipo, valore = codice[1:].split(':', 1)
+    if tipo == 'prodotto':
+        prezzo = float(leggi_listino().get(valore, {}).get('prezzo', 0))
+        return valore, prezzo
     valore = float(valore)
+    if tipo == 'fogli':
+        fax = next((v for v in leggi_listino().values() if v.get('reparto') == 'Fax'), {})
+        importo = round(valore * float(fax.get('prezzo', 0.30)), 2)
+        return f"📠 Fax {valore:g} {'copia' if valore == 1 else 'copie'} {importo:.2f}".replace('.', ',') + " €", importo
     if tipo == 'adblue':
         prezzo = float(leggi_listino().get('AdBlue sfuso', {}).get('prezzo', 1.30))
         return f"🧪 AdBlue {valore:g} l {valore * prezzo:.2f}".replace('.', ',') + " €", round(valore * prezzo, 2)
@@ -722,8 +769,10 @@ def voce_a_mano(codice):
 def frase_a_mano(codice):
     """Il pezzo di frase per la vendita: "50.00 euro di carburante", "fax 1.50 euro", "adblue 20 litri"."""
     tipo, valore = codice[1:].split(':', 1)
+    if tipo == 'prodotto':
+        return "§" + valore.lower().replace(' ', '_') + "§"   # prodotto esatto del listino (niente lista)
     return {'carburante': f"{valore} euro di carburante", 'fax': f"fax {valore} euro",
-            'adblue': f"adblue {valore} litri"}[tipo]
+            'fogli': f"{float(valore):g} fax", 'adblue': f"adblue {valore} litri"}[tipo]
 
 
 def aggiorna_notifica():
@@ -776,15 +825,20 @@ if __name__ == '__main__':
     elif comando == 'codici':
         # codici a barre, poi le voci aggiunte a mano ("... e 50.00 euro di carburante e fax 1.50 euro")
         righe = leggi()
-        print(" ".join([c for c, _ in righe if not c.startswith('+')]
-                       + [f"e {frase_a_mano(c)}" for c, _ in righe if c.startswith('+')]).removeprefix('e ').strip())
+        prodotti = [c if not c.startswith('+') else frase_a_mano(c) for c, _ in righe
+                    if not c.startswith('+') or c.startswith('+prodotto:')]
+        altre = [f"e {frase_a_mano(c)}" for c, _ in righe if c.startswith('+') and not c.startswith('+prodotto:')]
+        print(" ".join(prodotti + altre).removeprefix('e ').strip())
     elif comando == 'quanti':
         print(len(leggi()))
     elif comando == 'aggiungi':
         # carrello.py aggiungi carburante 50  -> riga "+carburante:50.00"
-        tipo, valore = sys.argv[2], float(sys.argv[3].replace(',', '.'))
+        tipo = sys.argv[2]
+        valore = f"{float(sys.argv[3].replace(',', '.')):.2f}" if tipo != 'fogli' else sys.argv[3]
         with open(FILE, 'a', encoding='utf-8') as f:
-            f.write(f"+{tipo}:{valore:.2f}\t{time.strftime('%H:%M:%S')}\n")
+            f.write(f"+{tipo}:{valore}\t{time.strftime('%H:%M:%S')}\n")
+    elif comando == 'aggiungi_prodotto':
+        aggiungi_prodotto()
     elif comando == 'impara':
         impara_sconosciuti()
     elif comando == 'venduti':
@@ -996,7 +1050,7 @@ DA_CODICE = set()   # prodotti letti dal codice a barre: sono certi, niente list
 def codici_a_barre(testo):
     """Codici a barre (scanner o scritti) -> prodotti: "8002270014901 8002270014901" -> "2 red bull".
     Un codice lungo che non è nel listino: niente salvato (sennò diventerebbe un rifornimento enorme)."""
-    if not re.search(r'\b(?=[a-z0-9]*\d)[a-z0-9]{4,20}\b', testo):     # come i codici che accetta lo scanner
+    if not re.search(r'\b(?=[a-z0-9]*\d)[a-z0-9]{4,20}\b', testo) and '§' not in testo:   # come i codici dello scanner
         return testo
     try:
         with open(prezzi_path, encoding='utf-8') as f:
@@ -1014,10 +1068,14 @@ def codici_a_barre(testo):
                     nuovi[codice.lower()] = d
     except Exception:
         pass
+    per_nome = {n.lower().replace(' ', '_'): n for n in listino_codici}   # "§adblue_tanica§": aggiunto a mano dal carrello
     conta, resto, danea = {}, [], []
     for parola in testo.split():
         pulita = parola.strip('.,;:')
-        if pulita in nuovi:
+        if pulita.startswith('§') and pulita.endswith('§') and pulita.strip('§') in per_nome:
+            nome = per_nome[pulita.strip('§')]
+            conta[nome] = conta.get(nome, 0) + 1
+        elif pulita in nuovi:
             danea.append(f"danea {nuovi[pulita]['nome'].lower()} {nuovi[pulita]['prezzo']:.2f} euro")
         elif pulita in mappa:
             conta[mappa[pulita]] = conta.get(mappa[pulita], 0) + 1
@@ -11279,7 +11337,8 @@ Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso
 due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
 c'è anche "Togli l'ultimo letto"), "🗑️ Svuota" e "➕ Aggiungi" (per quello che non si scansiona:
-⛽ carburante, 📠 fax, 🧪 AdBlue sfuso; finisce nel carrello con il suo importo).
+⛽ carburante (€), 📠 fax (numero di copie), 🧪 AdBlue sfuso (litri) o 🛒 un prodotto scritto,
+es. "2 taniche adblue", "olio 5w40": se vale per più prodotti compare la lista con i prezzi).
 CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento ("50 gasolio",
 "50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
 sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
@@ -11343,4 +11402,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:54"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:59"

@@ -65,17 +65,34 @@ def listino_per_codice():
     return mappa
 
 
+OLIO = {'olio', 'oli', 'motore', 'lubrificante', 'lubrificanti'}
+
+
 def cerca(testo):
-    """Prodotti del listino che hanno nel nome tutte le parole scritte ("red bull" -> RED BULL)."""
-    parole = [w for w in re.findall(r'[a-z0-9]+', testo.lower()) if len(w) >= 2]
+    """Prodotti del listino con nel nome le parole scritte ("red bull" -> RED BULL, "olio 5w40" -> oli 5W-40).
+    Parole intere (o inizio parola, se lunghe); "olio"/"motore" = solo oli motore.
+    Prima quelli con tutte le parole; se nessuno, quelli con più parole in comune."""
+    parole_di = lambda t: re.findall(r'[a-z0-9]+', t.lower().replace('-', ''))
+    parole = [w for w in parole_di(testo) if len(w) >= 2]
+    listino = leggi_listino()
+    solo_oli = bool(OLIO & set(parole))
+    parole = [w for w in parole if w not in OLIO]
+    candidati = {n: v for n, v in listino.items() if not solo_oli or v.get('categoria') == 'LUBRIFICANTI'}
     if not parole:
+        return sorted(candidati, key=len) if solo_oli else []
+    uguale = lambda w, p: p == w or (len(w) >= 4 and p.startswith(w)) or (len(w) >= 5 and w.startswith(p[:-1]) and len(p) >= 5)
+    punti = {}
+    for nome, v in candidati.items():
+        migliore = max(sum(any(uguale(w, p) for p in parole_di(n)) for w in parole)
+                       for n in [nome] + v.get('alias', []))
+        if migliore:
+            punti[nome] = migliore
+    if not punti:
         return []
-    trovati = []
-    for nome, v in leggi_listino().items():
-        nomi = [nome.lower()] + [a.lower() for a in v.get('alias', [])]
-        if any(all(w in n for w in parole) for n in nomi):
-            trovati.append(nome)
-    return sorted(trovati, key=len)
+    massimo = max(punti.values())
+    if massimo < len(parole) and massimo < 2 and len(parole) > 1:
+        return []           # una parola sola in comune su tante: meglio non indovinare
+    return sorted((n for n, p in punti.items() if p == massimo), key=len)
 
 
 def dialogo(*argomenti):
@@ -123,6 +140,28 @@ def impara_sconosciuti():
             json.dump(imparati, f, ensure_ascii=False, indent=1)
 
 
+def aggiungi_prodotto():
+    """➕ Aggiungi → 🛒 Prodotto: nome scritto ("tanica adblue", "2 olio 5w40"), scelta se più prodotti."""
+    r = dialogo('text', '-t', '🛒 Prodotto da aggiungere', '-i', 'tanica adblue · 2 olio 5w40')
+    if not r or not r[0].strip():
+        sys.exit(1)
+    m = re.match(r'\s*(\d+)\s*(?:x\s*)?(.*)', r[0])
+    quanti, nome_scritto = (int(m.group(1)), m.group(2)) if m and m.group(2) else (1, r[0])
+    trovati = cerca(nome_scritto)
+    if not trovati:
+        dialogo('confirm', '-t', '❓ Prodotto non trovato', '-i', f'"{nome_scritto}" non è nel listino')
+        sys.exit(1)
+    if len(trovati) > 1:
+        listino = leggi_listino()
+        voci = [f"{n} {listino[n]['prezzo']:.2f}€".replace(',', ' ') for n in trovati[:20]]
+        r = dialogo('radio', '-t', '🛒 Quale prodotto?', '-v', ','.join(voci))
+        if not r or not isinstance(r[1], int) or not 0 <= r[1] < len(voci):
+            sys.exit(1)
+        trovati = [trovati[r[1]]]
+    with open(FILE, 'a', encoding='utf-8') as f:
+        f.write(f"+prodotto:{trovati[0]}\t{time.strftime('%H:%M:%S')}\n" * quanti)
+
+
 def riepilogo():
     righe = leggi()
     if not righe:
@@ -130,7 +169,7 @@ def riepilogo():
     mappa = listino_per_codice()
     conta, totale, sconosciuti = {}, 0.0, []
     for codice, _ in righe:
-        if codice.startswith('+'):                 # aggiunta a mano (carburante, fax, AdBlue)
+        if codice.startswith('+'):                 # aggiunta a mano (carburante, fax, AdBlue, prodotto)
             nome, importo = voce_a_mano(codice)
             conta[nome] = conta.get(nome, 0) + 1
             totale += importo
@@ -157,7 +196,14 @@ def totale():
 def voce_a_mano(codice):
     """(descrizione per la tendina, importo)."""
     tipo, valore = codice[1:].split(':', 1)
+    if tipo == 'prodotto':
+        prezzo = float(leggi_listino().get(valore, {}).get('prezzo', 0))
+        return valore, prezzo
     valore = float(valore)
+    if tipo == 'fogli':
+        fax = next((v for v in leggi_listino().values() if v.get('reparto') == 'Fax'), {})
+        importo = round(valore * float(fax.get('prezzo', 0.30)), 2)
+        return f"📠 Fax {valore:g} {'copia' if valore == 1 else 'copie'} {importo:.2f}".replace('.', ',') + " €", importo
     if tipo == 'adblue':
         prezzo = float(leggi_listino().get('AdBlue sfuso', {}).get('prezzo', 1.30))
         return f"🧪 AdBlue {valore:g} l {valore * prezzo:.2f}".replace('.', ',') + " €", round(valore * prezzo, 2)
@@ -168,8 +214,10 @@ def voce_a_mano(codice):
 def frase_a_mano(codice):
     """Il pezzo di frase per la vendita: "50.00 euro di carburante", "fax 1.50 euro", "adblue 20 litri"."""
     tipo, valore = codice[1:].split(':', 1)
+    if tipo == 'prodotto':
+        return "§" + valore.lower().replace(' ', '_') + "§"   # prodotto esatto del listino (niente lista)
     return {'carburante': f"{valore} euro di carburante", 'fax': f"fax {valore} euro",
-            'adblue': f"adblue {valore} litri"}[tipo]
+            'fogli': f"{float(valore):g} fax", 'adblue': f"adblue {valore} litri"}[tipo]
 
 
 def aggiorna_notifica():
@@ -222,15 +270,20 @@ if __name__ == '__main__':
     elif comando == 'codici':
         # codici a barre, poi le voci aggiunte a mano ("... e 50.00 euro di carburante e fax 1.50 euro")
         righe = leggi()
-        print(" ".join([c for c, _ in righe if not c.startswith('+')]
-                       + [f"e {frase_a_mano(c)}" for c, _ in righe if c.startswith('+')]).removeprefix('e ').strip())
+        prodotti = [c if not c.startswith('+') else frase_a_mano(c) for c, _ in righe
+                    if not c.startswith('+') or c.startswith('+prodotto:')]
+        altre = [f"e {frase_a_mano(c)}" for c, _ in righe if c.startswith('+') and not c.startswith('+prodotto:')]
+        print(" ".join(prodotti + altre).removeprefix('e ').strip())
     elif comando == 'quanti':
         print(len(leggi()))
     elif comando == 'aggiungi':
         # carrello.py aggiungi carburante 50  -> riga "+carburante:50.00"
-        tipo, valore = sys.argv[2], float(sys.argv[3].replace(',', '.'))
+        tipo = sys.argv[2]
+        valore = f"{float(sys.argv[3].replace(',', '.')):.2f}" if tipo != 'fogli' else sys.argv[3]
         with open(FILE, 'a', encoding='utf-8') as f:
-            f.write(f"+{tipo}:{valore:.2f}\t{time.strftime('%H:%M:%S')}\n")
+            f.write(f"+{tipo}:{valore}\t{time.strftime('%H:%M:%S')}\n")
+    elif comando == 'aggiungi_prodotto':
+        aggiungi_prodotto()
     elif comando == 'impara':
         impara_sconosciuti()
     elif comando == 'venduti':

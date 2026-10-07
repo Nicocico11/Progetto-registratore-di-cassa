@@ -315,7 +315,8 @@ Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso
 due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
 c'è anche "Togli l'ultimo letto"), "🗑️ Svuota" e "➕ Aggiungi" (per quello che non si scansiona:
-⛽ carburante, 📠 fax, 🧪 AdBlue sfuso; finisce nel carrello con il suo importo).
+⛽ carburante (€), 📠 fax (numero di copie), 🧪 AdBlue sfuso (litri) o 🛒 un prodotto scritto,
+es. "2 taniche adblue", "olio 5w40": se vale per più prodotti compare la lista con i prezzi).
 CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento ("50 gasolio",
 "50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
 sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.

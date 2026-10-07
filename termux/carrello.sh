@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pulsanti del carrello nella tendina (prodotti letti con lo scanner Binary Eye):
 #   carrello.sh paga    -> pagamento, poi salva tutto come una vendita sola
-#   carrello.sh aggiungi -> carburante, fax o AdBlue nel carrello (cose che non si scansionano)
+#   carrello.sh aggiungi -> carburante, fax, AdBlue o un prodotto scritto nel carrello (cose che non si scansionano)
 #   carrello.sh svuota  -> chiede conferma e svuota
 . ~/.termux/tasker/widget_comune.sh
 C="python3 $HOME/.termux/tasker/carrello.py"
@@ -44,10 +44,11 @@ case "$1" in
     ;;
   aggiungi)
     # Cose che non si scansionano: carburante, fax, AdBlue sfuso
-    case "$(scegli "➕ Aggiungi al carrello" "⛽ Carburante (€),📠 Fax (€),🧪 AdBlue sfuso (litri)")" in
+    case "$(scegli "➕ Aggiungi al carrello" "⛽ Carburante (€),📠 Fax (copie),🧪 AdBlue sfuso (litri),🛒 Prodotto (scrivi il nome)")" in
       ⛽*) TIPO=carburante; VALORE=$(numero "⛽ Carburante (€)" "50") ;;
-      📠*) TIPO=fax; VALORE=$(numero "📠 Fax (€)" "1,50") ;;
+      📠*) TIPO=fogli; VALORE=$(numero "📠 Fax: quante copie?" "5") ;;
       🧪*) TIPO=adblue; VALORE=$(numero "🧪 AdBlue (litri)" "20") ;;
+      🛒*) $C aggiungi_prodotto; bash "$NOTIFICA"; exit 0 ;;
       *) exit 0 ;;
     esac
     VALORE=$(python3 ~/info_turno.py importo "$VALORE")

@@ -45,7 +45,8 @@ case "$*" in
   *"Codice 87654321"*) echo '{"code": -1, "text": "caricabatterie 15"}' ;;   # codice sconosciuto: prodotto nuovo
   *"Aggiungo il carrello"*) echo '{"code": 0, "text": "yes"}' ;;           # carburante + carrello
   *"Pagamento (carburante + carrello)"*) echo '{"code": -1, "text": "POS bianco", "index": 2}' ;;
-  *"📠 Fax (€)"*) echo '{"code": -1, "text": "1,50"}' ;;
+  *"Fax: quante copie"*) echo '{"code": -1, "text": "5"}' ;;
+  *"Prodotto da aggiungere"*) echo '{"code": -1, "text": "2 tanica adblue"}' ;;
   *"Togli l'ultimo letto"*) echo '{"code": -1, "text": "POS nero", "index": 2}' ;;   # paga carrello
   *"Svuoto il carrello"*) echo '{"code": 0, "text": "yes"}' ;;
   *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
@@ -235,11 +236,13 @@ controlla "cancella"                  "cancella ultima"                         
 curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null; sleep 1
 python3 $HOME/.termux/tasker/carrello.py aggiungi carburante 50
 bash $HOME/.termux/tasker/carrello.sh aggiungi > /dev/null 2>&1
-[ "$(python3 $HOME/.termux/tasker/carrello.py riepilogo)" = "1× Red Bull, ⛽ Carburante 50,00 €, 📠 Fax 1,50 € · 54,50 €" ] && tail -1 $HOME/notifiche.log | grep -q "➕ Aggiungi" \
-  && echo "  ok   carrello: aggiunti carburante e fax" || { echo "  ERRORE aggiungi al carrello: $(python3 $HOME/.termux/tasker/carrello.py riepilogo)"; ERRORI=$((ERRORI+1)); }
+python3 $HOME/.termux/tasker/carrello.py aggiungi_prodotto
+[ "$(python3 $HOME/.termux/tasker/carrello.py riepilogo)" = "1× Red Bull, ⛽ Carburante 50,00 €, 📠 Fax 5 copie 1,50 €, 2× AdBlue tanica · 106,50 €" ] && tail -1 $HOME/notifiche.log | grep -q "➕ Aggiungi" \
+  && echo "  ok   carrello: aggiunti carburante, fax e taniche" || { echo "  ERRORE aggiungi al carrello: $(python3 $HOME/.termux/tasker/carrello.py riepilogo)"; ERRORI=$((ERRORI+1)); }
 bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
-[ ! -f $HOME/.cassa_carrello ] && tail -3 $HOME/transazioni_turno.csv | grep -q "Red Bull" && tail -3 $HOME/transazioni_turno.csv | grep -q '50.00' \
-  && tail -3 $HOME/transazioni_turno.csv | grep -q "Fax" && [ "$(tail -3 $HOME/transazioni_turno.csv | grep -c 'POS nero')" = 3 ] \
+[ ! -f $HOME/.cassa_carrello ] && tail -4 $HOME/transazioni_turno.csv | grep -q "Red Bull" && tail -4 $HOME/transazioni_turno.csv | grep -q '50.00' \
+  && tail -4 $HOME/transazioni_turno.csv | grep -q "Fax.*1.50" && tail -4 $HOME/transazioni_turno.csv | grep -q "AdBlue tanica.*52.00" \
+  && [ "$(tail -4 $HOME/transazioni_turno.csv | grep -c 'POS nero')" = 4 ] \
   && echo "  ok   carrello con carburante e fax pagato (una vendita)" || { echo "  ERRORE paga carrello misto"; tail -3 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "cancella fax tendina"       "cancella ultima"                              "Cancellata"

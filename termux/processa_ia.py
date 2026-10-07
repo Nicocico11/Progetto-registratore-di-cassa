@@ -30,7 +30,7 @@ DA_CODICE = set()   # prodotti letti dal codice a barre: sono certi, niente list
 def codici_a_barre(testo):
     """Codici a barre (scanner o scritti) -> prodotti: "8002270014901 8002270014901" -> "2 red bull".
     Un codice lungo che non è nel listino: niente salvato (sennò diventerebbe un rifornimento enorme)."""
-    if not re.search(r'\b(?=[a-z0-9]*\d)[a-z0-9]{4,20}\b', testo):     # come i codici che accetta lo scanner
+    if not re.search(r'\b(?=[a-z0-9]*\d)[a-z0-9]{4,20}\b', testo) and '§' not in testo:   # come i codici dello scanner
         return testo
     try:
         with open(prezzi_path, encoding='utf-8') as f:
@@ -48,10 +48,14 @@ def codici_a_barre(testo):
                     nuovi[codice.lower()] = d
     except Exception:
         pass
+    per_nome = {n.lower().replace(' ', '_'): n for n in listino_codici}   # "§adblue_tanica§": aggiunto a mano dal carrello
     conta, resto, danea = {}, [], []
     for parola in testo.split():
         pulita = parola.strip('.,;:')
-        if pulita in nuovi:
+        if pulita.startswith('§') and pulita.endswith('§') and pulita.strip('§') in per_nome:
+            nome = per_nome[pulita.strip('§')]
+            conta[nome] = conta.get(nome, 0) + 1
+        elif pulita in nuovi:
             danea.append(f"danea {nuovi[pulita]['nome'].lower()} {nuovi[pulita]['prezzo']:.2f} euro")
         elif pulita in mappa:
             conta[mappa[pulita]] = conta.get(mappa[pulita], 0) + 1
