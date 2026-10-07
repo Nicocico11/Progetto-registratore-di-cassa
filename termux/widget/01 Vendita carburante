@@ -2,6 +2,26 @@
 # Pulsante: vendita carburante con i riquadri (importo e pagamento)
 . ~/.termux/tasker/widget_comune.sh
 IMPORTO=$(numero "⛽ Carburante (€)" "45,50"); [ -z "$IMPORTO" ] && annullato
-PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante); [ -z "$PAGATO" ] && annullato
-esito "$(bash $CASSA "$IMPORTO euro $PAGATO")"
+# Carrello dello scanner in attesa: si può pagare insieme al carburante (una vendita sola)
+C="python3 $HOME/.termux/tasker/carrello.py"
+CODICI=""
+if [ -s ~/.cassa_carrello ]; then
+  CARBURANTE=$(python3 ~/info_turno.py importo "$IMPORTO")
+  SOMMA=$(python3 -c "import sys; print(f'{float(sys.argv[1]) + float(sys.argv[2]):.2f}'.replace('.', ','))" "$CARBURANTE" "$($C totale)")
+  if conferma "🛒 Aggiungo il carrello? Totale $SOMMA €" "$IMPORTO € carburante + $($C riepilogo)"; then
+    CODICI=$($C codici)
+    IMPORTO_TITOLO="$SOMMA € (carburante + carrello)"
+  fi
+fi
+if [ -n "$CODICI" ]; then
+  PAGATO=$(pagamento "💳 Pagamento di $IMPORTO_TITOLO" senza_cassa)   # niente OPT: c'è anche il negozio
+else
+  PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante)
+fi
+[ -z "$PAGATO" ] && annullato
+RISPOSTA=$(bash $CASSA "$CODICI $IMPORTO euro $PAGATO")
+if [ -n "$CODICI" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
+  $C svuota; bash ~/.termux/tasker/notifica.sh
+fi
+esito "$RISPOSTA"
 casa

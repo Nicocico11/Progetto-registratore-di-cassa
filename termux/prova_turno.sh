@@ -41,6 +41,8 @@ case "$*" in
   *"Fax delle"*) echo '{"code": -1, "text": "1,50"}' ;;
   *"Codice 12345678"*) echo '{"code": -1, "text": "red bull"}' ;;           # codice sconosciuto: prodotto del listino
   *"Codice 87654321"*) echo '{"code": -1, "text": "caricabatterie 15"}' ;;   # codice sconosciuto: prodotto nuovo
+  *"Aggiungo il carrello"*) echo '{"code": 0, "text": "yes"}' ;;           # carburante + carrello
+  *"Pagamento (carburante + carrello)"*) echo '{"code": -1, "text": "POS bianco", "index": 2}' ;;
   *"Togli l'ultimo letto"*) echo '{"code": -1, "text": "POS nero", "index": 2}' ;;   # paga carrello
   *"Svuoto il carrello"*) echo '{"code": 0, "text": "yes"}' ;;
   *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
@@ -201,6 +203,18 @@ curl -s "http://127.0.0.1:8765/?c=12345678" > /dev/null; sleep 1.2; curl -s "htt
 [ "$(python3 $HOME/.termux/tasker/carrello.py riepilogo)" = "1× Red Bull, 1× CARICABATTERIE · 18,00 €" ] && echo "  ok   scanner: codici ricordati la volta dopo" || { echo "  ERRORE codici non ricordati: $(python3 $HOME/.termux/tasker/carrello.py riepilogo)"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/.termux/tasker/carrello.py svuota
 controlla "cancella codici insegnati" "cancella ultima"                              "Cancellata"
+# Carburante con il carrello in attesa: tutto insieme (a voce e con il pulsante 01)
+curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null; sleep 1
+controlla "carburante + carrello (voce)" "30 gasolio"                                 "Vendita salvata (2 voci, POS bianco): 1 × Red Bull 3.00 € + Gasolio 30.00 € = 33.00 €"
+[ ! -f $HOME/.cassa_carrello ] && echo "  ok   carrello svuotato dopo il pagamento" || { echo "  ERRORE carrello non svuotato"; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null; sleep 1
+controlla "solo prodotti: niente domanda" "2 mars contanti"                          "Mars 4.00 € - Contanti"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+: > $HOME/toast.log; bash "$QUI/widget/01 Vendita carburante" > /dev/null 2>&1
+grep -q "(2 voci, POS nero): 1 × Red Bull 3.00 € + Carburante 45.50 € = 48.50 €" $HOME/toast.log && [ ! -f $HOME/.cassa_carrello ] \
+  && echo "  ok   carburante + carrello (pulsante 01)" || { echo "  ERRORE pulsante 01 con carrello"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "cancella fax tendina"       "cancella ultima"                              "Cancellata"
 controlla "cancella danea tendina"     "cancella ultima"                              "Cancellata"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

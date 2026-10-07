@@ -315,6 +315,10 @@ Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso
 due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
 c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
+CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento ("50 gasolio",
+"50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
+sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
+No = solo il carburante, il carrello resta.
 Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
 Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
 "❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,

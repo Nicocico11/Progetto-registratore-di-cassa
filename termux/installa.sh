@@ -38,6 +38,16 @@ except Exception:
     pass'
 }
 
+# Popup Sì/No: vero se la risposta è "sì"
+chiedi_si() {
+  termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    sys.exit(0 if str(json.load(sys.stdin).get("text", "")).strip().lower() in ("yes", "si", "sì") else 1)
+except Exception:
+    sys.exit(1)'
+}
+
 # Vero se il turno è aperto; altrimenti avvisa e segna l'errore
 turno_aperto() {
   if python3 ~/info_turno.py aperto; then
@@ -225,6 +235,27 @@ except Exception:
   *)
     # Una vendita: solo a turno aperto
     if turno_aperto; then
+      # Rifornimento con il carrello dello scanner in attesa: si può pagare tutto insieme
+      CODICI_CARRELLO=""
+      # (non se la vendita ha già dei codici a barre: è il carrello stesso che si sta pagando)
+      if [ -s ~/.cassa_carrello ] && ! [[ "$FRASE" =~ (^|[^a-z])opt([^a-z]|$) ]] && ! [[ "$FRASE" =~ [0-9]{8} ]] && \
+         [[ "$FRASE" =~ (gasolio|diesel|benzina|verde|gpl|gas|carburante) || \
+            "$FRASE" =~ ^[0-9\ .,:e]+(euro)?\ *((sul|pos|col|con\ il)\ )?(contanti|nero|bianco|petrolifere|cartissima|carta|pos)?\ *$ ]]; then
+        if chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
+          CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
+          # Pagamento non detto: si chiede ora, per tutto
+          if ! [[ "$FRASE" =~ (contant|nero|bianco|cass|cartissim|cortissim|petrolif|pos|boss|carta|bancomat) ]]; then
+            PAGA_TUTTO=$(termux-dialog radio -t "💳 Pagamento (carburante + carrello)" -v "Contanti,POS nero,POS bianco,Petrolifere" 2>/dev/null \
+                         | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("text","") if d.get("code")==-1 else "")' 2>/dev/null)
+            case "$PAGA_TUTTO" in
+              Contanti) TESTO="$TESTO contanti" ;; "POS nero") TESTO="$TESTO sul nero" ;;
+              "POS bianco") TESTO="$TESTO sul bianco" ;; Petrolifere) TESTO="$TESTO petrolifere" ;;
+              *) CODICI_CARRELLO="" ;;     # annullato: solo il carburante, il carrello resta
+            esac
+          fi
+        fi
+      fi
+      [ -n "$CODICI_CARRELLO" ] && TESTO="$CODICI_CARRELLO $TESTO"
       RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$TESTO")
       ESITO=$?
       echo "$RISPOSTA"
@@ -237,6 +268,9 @@ except Exception:
           python3 $CARTELLA/processa_ia.py "$CORRETTA"
           ESITO=$?
         fi
+      fi
+      if [ -n "$CODICI_CARRELLO" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
+        python3 $CARTELLA/carrello.py svuota      # carrello pagato insieme al carburante
       fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1
@@ -630,6 +664,11 @@ def riepilogo():
     return ", ".join(parti) + f" · {totale:.2f} €".replace(".", ",")
 
 
+def totale():
+    mappa = listino_per_codice()
+    return round(sum(mappa[c.lower()][1] for c, _ in leggi() if c.lower() in mappa), 2)
+
+
 def aggiorna_notifica():
     subprocess.Popen(['bash', NOTIFICA], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
@@ -669,6 +708,8 @@ if __name__ == '__main__':
         server()
     elif comando == 'riepilogo':
         print(riepilogo())
+    elif comando == 'totale':
+        print(f"{totale():.2f}")
     elif comando == 'codici':
         print(" ".join(c for c, _ in leggi()))
     elif comando == 'impara':
@@ -9231,8 +9272,28 @@ cat > ~/.shortcuts/"01 Vendita carburante" <<'FINE_FILE'
 # Pulsante: vendita carburante con i riquadri (importo e pagamento)
 . ~/.termux/tasker/widget_comune.sh
 IMPORTO=$(numero "⛽ Carburante (€)" "45,50"); [ -z "$IMPORTO" ] && annullato
-PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante); [ -z "$PAGATO" ] && annullato
-esito "$(bash $CASSA "$IMPORTO euro $PAGATO")"
+# Carrello dello scanner in attesa: si può pagare insieme al carburante (una vendita sola)
+C="python3 $HOME/.termux/tasker/carrello.py"
+CODICI=""
+if [ -s ~/.cassa_carrello ]; then
+  CARBURANTE=$(python3 ~/info_turno.py importo "$IMPORTO")
+  SOMMA=$(python3 -c "import sys; print(f'{float(sys.argv[1]) + float(sys.argv[2]):.2f}'.replace('.', ','))" "$CARBURANTE" "$($C totale)")
+  if conferma "🛒 Aggiungo il carrello? Totale $SOMMA €" "$IMPORTO € carburante + $($C riepilogo)"; then
+    CODICI=$($C codici)
+    IMPORTO_TITOLO="$SOMMA € (carburante + carrello)"
+  fi
+fi
+if [ -n "$CODICI" ]; then
+  PAGATO=$(pagamento "💳 Pagamento di $IMPORTO_TITOLO" senza_cassa)   # niente OPT: c'è anche il negozio
+else
+  PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante)
+fi
+[ -z "$PAGATO" ] && annullato
+RISPOSTA=$(bash $CASSA "$CODICI $IMPORTO euro $PAGATO")
+if [ -n "$CODICI" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
+  $C svuota; bash ~/.termux/tasker/notifica.sh
+fi
+esito "$RISPOSTA"
 casa
 FINE_FILE
 cat > ~/.shortcuts/"02 Vendita Danea" <<'FINE_FILE'
@@ -11103,6 +11164,10 @@ Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso
 due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
 c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
+CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento ("50 gasolio",
+"50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
+sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
+No = solo il carburante, il carrello resta.
 Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
 Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
 "❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,
@@ -11162,4 +11227,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 00:58"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:15"

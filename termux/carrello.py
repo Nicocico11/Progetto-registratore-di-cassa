@@ -143,6 +143,11 @@ def riepilogo():
     return ", ".join(parti) + f" · {totale:.2f} €".replace(".", ",")
 
 
+def totale():
+    mappa = listino_per_codice()
+    return round(sum(mappa[c.lower()][1] for c, _ in leggi() if c.lower() in mappa), 2)
+
+
 def aggiorna_notifica():
     subprocess.Popen(['bash', NOTIFICA], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
@@ -182,6 +187,8 @@ if __name__ == '__main__':
         server()
     elif comando == 'riepilogo':
         print(riepilogo())
+    elif comando == 'totale':
+        print(f"{totale():.2f}")
     elif comando == 'codici':
         print(" ".join(c for c, _ in leggi()))
     elif comando == 'impara':

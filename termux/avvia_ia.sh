@@ -33,6 +33,16 @@ except Exception:
     pass'
 }
 
+# Popup Sì/No: vero se la risposta è "sì"
+chiedi_si() {
+  termux-dialog confirm -t "$1" -i "$2" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    sys.exit(0 if str(json.load(sys.stdin).get("text", "")).strip().lower() in ("yes", "si", "sì") else 1)
+except Exception:
+    sys.exit(1)'
+}
+
 # Vero se il turno è aperto; altrimenti avvisa e segna l'errore
 turno_aperto() {
   if python3 ~/info_turno.py aperto; then
@@ -220,6 +230,27 @@ except Exception:
   *)
     # Una vendita: solo a turno aperto
     if turno_aperto; then
+      # Rifornimento con il carrello dello scanner in attesa: si può pagare tutto insieme
+      CODICI_CARRELLO=""
+      # (non se la vendita ha già dei codici a barre: è il carrello stesso che si sta pagando)
+      if [ -s ~/.cassa_carrello ] && ! [[ "$FRASE" =~ (^|[^a-z])opt([^a-z]|$) ]] && ! [[ "$FRASE" =~ [0-9]{8} ]] && \
+         [[ "$FRASE" =~ (gasolio|diesel|benzina|verde|gpl|gas|carburante) || \
+            "$FRASE" =~ ^[0-9\ .,:e]+(euro)?\ *((sul|pos|col|con\ il)\ )?(contanti|nero|bianco|petrolifere|cartissima|carta|pos)?\ *$ ]]; then
+        if chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
+          CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
+          # Pagamento non detto: si chiede ora, per tutto
+          if ! [[ "$FRASE" =~ (contant|nero|bianco|cass|cartissim|cortissim|petrolif|pos|boss|carta|bancomat) ]]; then
+            PAGA_TUTTO=$(termux-dialog radio -t "💳 Pagamento (carburante + carrello)" -v "Contanti,POS nero,POS bianco,Petrolifere" 2>/dev/null \
+                         | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("text","") if d.get("code")==-1 else "")' 2>/dev/null)
+            case "$PAGA_TUTTO" in
+              Contanti) TESTO="$TESTO contanti" ;; "POS nero") TESTO="$TESTO sul nero" ;;
+              "POS bianco") TESTO="$TESTO sul bianco" ;; Petrolifere) TESTO="$TESTO petrolifere" ;;
+              *) CODICI_CARRELLO="" ;;     # annullato: solo il carburante, il carrello resta
+            esac
+          fi
+        fi
+      fi
+      [ -n "$CODICI_CARRELLO" ] && TESTO="$CODICI_CARRELLO $TESTO"
       RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$TESTO")
       ESITO=$?
       echo "$RISPOSTA"
@@ -232,6 +263,9 @@ except Exception:
           python3 $CARTELLA/processa_ia.py "$CORRETTA"
           ESITO=$?
         fi
+      fi
+      if [ -n "$CODICI_CARRELLO" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
+        python3 $CARTELLA/carrello.py svuota      # carrello pagato insieme al carburante
       fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1
