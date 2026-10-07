@@ -734,8 +734,12 @@ def riga_vendita(gruppo):
     if not g:
         return None
     metodi = "/".join(dict.fromkeys(sigla(v["metodo"]) for v in g))
-    cosa = " + ".join(voce_breve(v) for v in g)
-    return f"• {g[0]['ora']} | {sum(v['importo'] for v in g):.2f}€ ({metodi}) {cosa}"
+    # Resti e abbuoni a parte: l'importo è quello della vendita (es. 18,90 di carburante), non 20,00
+    vendita_vera = [v for v in g if v["reparto"] not in ("Sconto", "Resto lasciato")] or g
+    centesimi = [v for v in g if v["reparto"] in ("Sconto", "Resto lasciato")] if vendita_vera is not g else []
+    cosa = " + ".join(voce_breve(v) for v in vendita_vera)
+    cosa += "".join(f" · {'resto' if v['reparto'] == 'Resto lasciato' else 'abbuono'} {v['importo']:+.2f}€" for v in centesimi)
+    return f"• {g[0]['ora']} | {sum(v['importo'] for v in vendita_vera):.2f}€ ({metodi}) {cosa}"
 
 
 def elenco_vendite(righe):
