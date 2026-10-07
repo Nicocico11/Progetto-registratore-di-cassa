@@ -128,17 +128,18 @@ def riepilogo():
     if not righe:
         return ""
     mappa = listino_per_codice()
-    conta, totale, sconosciuti = {}, 0.0, 0
+    conta, totale, sconosciuti = {}, 0.0, []
     for codice, _ in righe:
         if codice.lower() in mappa:
             nome, prezzo = mappa[codice.lower()]
             conta[nome] = conta.get(nome, 0) + 1
             totale += prezzo
         else:
-            sconosciuti += 1
+            sconosciuti.append(codice)
     parti = [f"{n}× {nome}" for nome, n in conta.items()]
     if sconosciuti:
-        parti.append(f"❓ {sconosciuti} {'codice sconosciuto' if sconosciuti == 1 else 'codici sconosciuti'}")
+        parti.append(f"❓ {len(sconosciuti)} {'codice sconosciuto' if len(sconosciuti) == 1 else 'codici sconosciuti'} "
+                     f"({', '.join(dict.fromkeys(sconosciuti))})")
     return ", ".join(parti) + f" · {totale:.2f} €".replace(".", ",")
 
 

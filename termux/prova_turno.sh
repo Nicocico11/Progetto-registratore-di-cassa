@@ -193,7 +193,7 @@ bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
   && echo "  ok   scanner: carrello pagato (una vendita)" || { echo "  ERRORE paga carrello"; tail -1 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
 controlla "cancella carrello pagato"  "cancella ultima"                              "Cancellata"
 curl -s "http://127.0.0.1:8765/?c=12345678" > /dev/null; curl -s "http://127.0.0.1:8765/?c=87654321" > /dev/null; sleep 1
-python3 $HOME/.termux/tasker/carrello.py riepilogo | grep -q "❓ 2 codici sconosciuti" && echo "  ok   scanner: codici sconosciuti nel carrello" || { echo "  ERRORE codici sconosciuti"; ERRORI=$((ERRORI+1)); }
+python3 $HOME/.termux/tasker/carrello.py riepilogo | grep -q "❓ 2 codici sconosciuti (12345678, 87654321)" && echo "  ok   scanner: codici sconosciuti nel carrello" || { echo "  ERRORE codici sconosciuti"; ERRORI=$((ERRORI+1)); }
 bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
 tail -2 $HOME/transazioni_turno.csv | grep -q "Red Bull" && tail -2 $HOME/transazioni_turno.csv | grep -q "CARICABATTERIE" && [ ! -f $HOME/.cassa_carrello ] \
   && echo "  ok   scanner: codici sconosciuti insegnati e venduti" || { echo "  ERRORE insegna codici"; tail -2 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
