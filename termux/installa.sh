@@ -248,7 +248,7 @@ except Exception:
         python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && python3 $CARTELLA/carrello.py impara
         if ! python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && \
            chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
-          CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
+          N_CARRELLO=$(python3 $CARTELLA/carrello.py quanti); CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
           # Pagamento non detto: si chiede ora, per tutto
           if ! [[ "$FRASE" =~ (contant|nero|bianco|cass|cartissim|cortissim|petrolif|pos|boss|carta|bancomat) ]]; then
             PAGA_TUTTO=$(termux-dialog radio -t "💳 Pagamento (carburante + carrello)" -v "Contanti,POS nero,POS bianco,Petrolifere" 2>/dev/null \
@@ -261,7 +261,7 @@ except Exception:
           fi
         fi
       fi
-      [ -n "$CODICI_CARRELLO" ] && TESTO="$CODICI_CARRELLO $TESTO"
+      [ -n "$CODICI_CARRELLO" ] && TESTO="$CODICI_CARRELLO e $TESTO"
       RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$TESTO")
       ESITO=$?
       echo "$RISPOSTA"
@@ -276,7 +276,7 @@ except Exception:
         fi
       fi
       if [ -n "$CODICI_CARRELLO" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-        python3 $CARTELLA/carrello.py venduti "$(wc -w <<< "$CODICI_CARRELLO")"   # pagato insieme al carburante
+        python3 $CARTELLA/carrello.py venduti "$N_CARRELLO"   # pagato insieme al carburante
       fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1
@@ -490,6 +490,7 @@ cat > ~/.termux/tasker/carrello.sh <<'FINE_FILE'
 #!/bin/bash
 # Pulsanti del carrello nella tendina (prodotti letti con lo scanner Binary Eye):
 #   carrello.sh paga    -> pagamento, poi salva tutto come una vendita sola
+#   carrello.sh aggiungi -> carburante, fax o AdBlue nel carrello (cose che non si scansionano)
 #   carrello.sh svuota  -> chiede conferma e svuota
 . ~/.termux/tasker/widget_comune.sh
 C="python3 $HOME/.termux/tasker/carrello.py"
@@ -523,12 +524,24 @@ case "$1" in
       "POS bianco") PAGATO="sul bianco" ;;
       Petrolifere) PAGATO="petrolifere" ;;
     esac
-    CODICI=$($C codici)
+    N=$($C quanti); CODICI=$($C codici)
     RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash "$CASSA" "$CODICI $PAGATO")
     # Salvata: tolti dal carrello i prodotti venduti. Non capita (es. codice sconosciuto): il carrello resta
-    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$(wc -w <<< "$CODICI")"; fi
+    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$N"; fi
     bash "$NOTIFICA"
     finestra "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
+    ;;
+  aggiungi)
+    # Cose che non si scansionano: carburante, fax, AdBlue sfuso
+    case "$(scegli "➕ Aggiungi al carrello" "⛽ Carburante (€),📠 Fax (€),🧪 AdBlue sfuso (litri)")" in
+      ⛽*) TIPO=carburante; VALORE=$(numero "⛽ Carburante (€)" "50") ;;
+      📠*) TIPO=fax; VALORE=$(numero "📠 Fax (€)" "1,50") ;;
+      🧪*) TIPO=adblue; VALORE=$(numero "🧪 AdBlue (litri)" "20") ;;
+      *) exit 0 ;;
+    esac
+    VALORE=$(python3 ~/info_turno.py importo "$VALORE")
+    [ -n "$VALORE" ] && [ "$VALORE" != 0 ] && $C aggiungi "$TIPO" "$VALORE"
+    bash "$NOTIFICA"
     ;;
   svuota)
     if conferma "🗑️ Svuoto il carrello?" "$($C riepilogo)"; then
@@ -671,13 +684,17 @@ def riepilogo():
     mappa = listino_per_codice()
     conta, totale, sconosciuti = {}, 0.0, []
     for codice, _ in righe:
-        if codice.lower() in mappa:
+        if codice.startswith('+'):                 # aggiunta a mano (carburante, fax, AdBlue)
+            nome, importo = voce_a_mano(codice)
+            conta[nome] = conta.get(nome, 0) + 1
+            totale += importo
+        elif codice.lower() in mappa:
             nome, prezzo = mappa[codice.lower()]
             conta[nome] = conta.get(nome, 0) + 1
             totale += prezzo
         else:
             sconosciuti.append(codice)
-    parti = [f"{n}× {nome}" for nome, n in conta.items()]
+    parti = [nome if nome.startswith(('⛽', '📠', '🧪')) else f"{n}× {nome}" for nome, n in conta.items()]
     if sconosciuti:
         parti.append(f"❓ {len(sconosciuti)} {'codice sconosciuto' if len(sconosciuti) == 1 else 'codici sconosciuti'} "
                      f"({', '.join(dict.fromkeys(sconosciuti))})")
@@ -686,7 +703,27 @@ def riepilogo():
 
 def totale():
     mappa = listino_per_codice()
-    return round(sum(mappa[c.lower()][1] for c, _ in leggi() if c.lower() in mappa), 2)
+    return round(sum(voce_a_mano(c)[1] if c.startswith('+') else mappa[c.lower()][1]
+                     for c, _ in leggi() if c.startswith('+') or c.lower() in mappa), 2)
+
+
+# Voci aggiunte a mano al carrello ("➕ Aggiungi"): "+carburante:50.00", "+fax:1.50", "+adblue:20"
+def voce_a_mano(codice):
+    """(descrizione per la tendina, importo)."""
+    tipo, valore = codice[1:].split(':', 1)
+    valore = float(valore)
+    if tipo == 'adblue':
+        prezzo = float(leggi_listino().get('AdBlue sfuso', {}).get('prezzo', 1.30))
+        return f"🧪 AdBlue {valore:g} l {valore * prezzo:.2f}".replace('.', ',') + " €", round(valore * prezzo, 2)
+    nome = {'carburante': '⛽ Carburante', 'fax': '📠 Fax'}[tipo]
+    return f"{nome} {valore:.2f}".replace('.', ',') + " €", valore
+
+
+def frase_a_mano(codice):
+    """Il pezzo di frase per la vendita: "50.00 euro di carburante", "fax 1.50 euro", "adblue 20 litri"."""
+    tipo, valore = codice[1:].split(':', 1)
+    return {'carburante': f"{valore} euro di carburante", 'fax': f"fax {valore} euro",
+            'adblue': f"adblue {valore} litri"}[tipo]
 
 
 def aggiorna_notifica():
@@ -737,7 +774,17 @@ if __name__ == '__main__':
     elif comando == 'totale':
         print(f"{totale():.2f}")
     elif comando == 'codici':
-        print(" ".join(c for c, _ in leggi()))
+        # codici a barre, poi le voci aggiunte a mano ("... e 50.00 euro di carburante e fax 1.50 euro")
+        righe = leggi()
+        print(" ".join([c for c, _ in righe if not c.startswith('+')]
+                       + [f"e {frase_a_mano(c)}" for c, _ in righe if c.startswith('+')]).removeprefix('e ').strip())
+    elif comando == 'quanti':
+        print(len(leggi()))
+    elif comando == 'aggiungi':
+        # carrello.py aggiungi carburante 50  -> riga "+carburante:50.00"
+        tipo, valore = sys.argv[2], float(sys.argv[3].replace(',', '.'))
+        with open(FILE, 'a', encoding='utf-8') as f:
+            f.write(f"+{tipo}:{valore:.2f}\t{time.strftime('%H:%M:%S')}\n")
     elif comando == 'impara':
         impara_sconosciuti()
     elif comando == 'venduti':
@@ -901,8 +948,11 @@ fi
 if [ -n "$DA_SEGNARE" ]; then
   TESTO_NOTIFICA="📝 DA SEGNARE: $DA_SEGNARE"$'\n'"$TESTO_NOTIFICA"
   PULSANTI+=(--button3 "📝 Segna ($(grep -c . ~/.cassa_da_segnare))" --button3-action "bash $SEGNARE segna")
-elif [ -n "$CARRELLO" ]; then
-  PULSANTI+=(--button3 "🛒 + Danea" --button3-action "bash $SEGNARE danea")
+fi
+if [ -n "$CARRELLO" ]; then
+  # Carrello: il terzo pulsante aggiunge quello che non si scansiona (carburante, fax, AdBlue);
+  # "Segna" torna appena il carrello è pagato
+  PULSANTI=("${PULSANTI[@]:0:8}" --button3 "➕ Aggiungi" --button3-action "bash ~/.termux/tasker/carrello.sh aggiungi")
 fi
 termux-notification \
   --id "distributore_turno" \
@@ -9344,7 +9394,7 @@ if [ -s ~/.cassa_carrello ] && ! $C riepilogo | grep -q "❓"; then
   CARBURANTE=$(python3 ~/info_turno.py importo "$IMPORTO")
   SOMMA=$(python3 -c "import sys; print(f'{float(sys.argv[1]) + float(sys.argv[2]):.2f}'.replace('.', ','))" "$CARBURANTE" "$($C totale)")
   if conferma "🛒 Aggiungo il carrello? Totale $SOMMA €" "$IMPORTO € carburante + $($C riepilogo)"; then
-    CODICI=$($C codici)
+    N_CARRELLO=$($C quanti); CODICI=$($C codici)
     IMPORTO_TITOLO="$SOMMA € (carburante + carrello)"
   fi
 fi
@@ -9354,9 +9404,9 @@ else
   PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante)
 fi
 [ -z "$PAGATO" ] && annullato
-RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash $CASSA "$CODICI $IMPORTO euro $PAGATO")   # carrello già deciso qui
+RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash $CASSA "${CODICI:+$CODICI e }$IMPORTO euro $PAGATO")   # carrello già deciso qui
 if [ -n "$CODICI" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-  $C venduti "$(wc -w <<< "$CODICI")"; bash ~/.termux/tasker/notifica.sh
+  $C venduti "$N_CARRELLO"; bash ~/.termux/tasker/notifica.sh
 fi
 esito "$RISPOSTA"
 casa
@@ -11228,7 +11278,8 @@ Impostazioni di Binary Eye (una volta sola):
 Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso prodotto
 due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
 con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
-c'è anche "Togli l'ultimo letto") e "🗑️ Svuota".
+c'è anche "Togli l'ultimo letto"), "🗑️ Svuota" e "➕ Aggiungi" (per quello che non si scansiona:
+⛽ carburante, 📠 fax, 🧪 AdBlue sfuso; finisce nel carrello con il suo importo).
 CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento ("50 gasolio",
 "50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
 sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
@@ -11292,4 +11343,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:37"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:54"

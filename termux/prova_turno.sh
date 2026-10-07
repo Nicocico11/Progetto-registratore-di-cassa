@@ -21,6 +21,7 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 #!/bin/bash
 # Popup finto: risponde in base al titolo
 case "$*" in
+  *"Aggiungi al carrello"*) echo '{"code": -1, "text": "📠 Fax (€)", "index": 1}' ;;   # ➕ Aggiungi
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
@@ -44,6 +45,7 @@ case "$*" in
   *"Codice 87654321"*) echo '{"code": -1, "text": "caricabatterie 15"}' ;;   # codice sconosciuto: prodotto nuovo
   *"Aggiungo il carrello"*) echo '{"code": 0, "text": "yes"}' ;;           # carburante + carrello
   *"Pagamento (carburante + carrello)"*) echo '{"code": -1, "text": "POS bianco", "index": 2}' ;;
+  *"📠 Fax (€)"*) echo '{"code": -1, "text": "1,50"}' ;;
   *"Togli l'ultimo letto"*) echo '{"code": -1, "text": "POS nero", "index": 2}' ;;   # paga carrello
   *"Svuoto il carrello"*) echo '{"code": 0, "text": "yes"}' ;;
   *"Scarto questa"*) echo '{"code": 0, "text": "yes"}' ;;
@@ -228,6 +230,17 @@ controlla "cancella"                  "cancella ultima"                         
 : > $HOME/toast.log; bash "$QUI/widget/01 Vendita carburante" > /dev/null 2>&1
 grep -q "(2 voci, POS nero): 1 × Red Bull 3.00 € + Carburante 45.50 € = 48.50 €" $HOME/toast.log && [ ! -f $HOME/.cassa_carrello ] \
   && echo "  ok   carburante + carrello (pulsante 01)" || { echo "  ERRORE pulsante 01 con carrello"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+# ➕ Aggiungi: carburante e fax nel carrello insieme ai prodotti scansionati
+curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null; sleep 1
+python3 $HOME/.termux/tasker/carrello.py aggiungi carburante 50
+bash $HOME/.termux/tasker/carrello.sh aggiungi > /dev/null 2>&1
+[ "$(python3 $HOME/.termux/tasker/carrello.py riepilogo)" = "1× Red Bull, ⛽ Carburante 50,00 €, 📠 Fax 1,50 € · 54,50 €" ] && tail -1 $HOME/notifiche.log | grep -q "➕ Aggiungi" \
+  && echo "  ok   carrello: aggiunti carburante e fax" || { echo "  ERRORE aggiungi al carrello: $(python3 $HOME/.termux/tasker/carrello.py riepilogo)"; ERRORI=$((ERRORI+1)); }
+bash $HOME/.termux/tasker/carrello.sh paga > /dev/null 2>&1
+[ ! -f $HOME/.cassa_carrello ] && tail -3 $HOME/transazioni_turno.csv | grep -q "Red Bull" && tail -3 $HOME/transazioni_turno.csv | grep -q '50.00' \
+  && tail -3 $HOME/transazioni_turno.csv | grep -q "Fax" && [ "$(tail -3 $HOME/transazioni_turno.csv | grep -c 'POS nero')" = 3 ] \
+  && echo "  ok   carrello con carburante e fax pagato (una vendita)" || { echo "  ERRORE paga carrello misto"; tail -3 $HOME/transazioni_turno.csv; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "cancella fax tendina"       "cancella ultima"                              "Cancellata"
 controlla "cancella danea tendina"     "cancella ultima"                              "Cancellata"

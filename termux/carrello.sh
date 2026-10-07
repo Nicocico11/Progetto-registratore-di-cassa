@@ -1,6 +1,7 @@
 #!/bin/bash
 # Pulsanti del carrello nella tendina (prodotti letti con lo scanner Binary Eye):
 #   carrello.sh paga    -> pagamento, poi salva tutto come una vendita sola
+#   carrello.sh aggiungi -> carburante, fax o AdBlue nel carrello (cose che non si scansionano)
 #   carrello.sh svuota  -> chiede conferma e svuota
 . ~/.termux/tasker/widget_comune.sh
 C="python3 $HOME/.termux/tasker/carrello.py"
@@ -34,12 +35,24 @@ case "$1" in
       "POS bianco") PAGATO="sul bianco" ;;
       Petrolifere) PAGATO="petrolifere" ;;
     esac
-    CODICI=$($C codici)
+    N=$($C quanti); CODICI=$($C codici)
     RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash "$CASSA" "$CODICI $PAGATO")
     # Salvata: tolti dal carrello i prodotti venduti. Non capita (es. codice sconosciuto): il carrello resta
-    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$(wc -w <<< "$CODICI")"; fi
+    if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$N"; fi
     bash "$NOTIFICA"
     finestra "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
+    ;;
+  aggiungi)
+    # Cose che non si scansionano: carburante, fax, AdBlue sfuso
+    case "$(scegli "➕ Aggiungi al carrello" "⛽ Carburante (€),📠 Fax (€),🧪 AdBlue sfuso (litri)")" in
+      ⛽*) TIPO=carburante; VALORE=$(numero "⛽ Carburante (€)" "50") ;;
+      📠*) TIPO=fax; VALORE=$(numero "📠 Fax (€)" "1,50") ;;
+      🧪*) TIPO=adblue; VALORE=$(numero "🧪 AdBlue (litri)" "20") ;;
+      *) exit 0 ;;
+    esac
+    VALORE=$(python3 ~/info_turno.py importo "$VALORE")
+    [ -n "$VALORE" ] && [ "$VALORE" != 0 ] && $C aggiungi "$TIPO" "$VALORE"
+    bash "$NOTIFICA"
     ;;
   svuota)
     if conferma "🗑️ Svuoto il carrello?" "$($C riepilogo)"; then

@@ -12,7 +12,7 @@ if [ -s ~/.cassa_carrello ] && ! $C riepilogo | grep -q "❓"; then
   CARBURANTE=$(python3 ~/info_turno.py importo "$IMPORTO")
   SOMMA=$(python3 -c "import sys; print(f'{float(sys.argv[1]) + float(sys.argv[2]):.2f}'.replace('.', ','))" "$CARBURANTE" "$($C totale)")
   if conferma "🛒 Aggiungo il carrello? Totale $SOMMA €" "$IMPORTO € carburante + $($C riepilogo)"; then
-    CODICI=$($C codici)
+    N_CARRELLO=$($C quanti); CODICI=$($C codici)
     IMPORTO_TITOLO="$SOMMA € (carburante + carrello)"
   fi
 fi
@@ -22,9 +22,9 @@ else
   PAGATO=$(pagamento "💳 Pagamento di $IMPORTO €" carburante)
 fi
 [ -z "$PAGATO" ] && annullato
-RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash $CASSA "$CODICI $IMPORTO euro $PAGATO")   # carrello già deciso qui
+RISPOSTA=$(CASSA_CARRELLO_INCLUSO=1 bash $CASSA "${CODICI:+$CODICI e }$IMPORTO euro $PAGATO")   # carrello già deciso qui
 if [ -n "$CODICI" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-  $C venduti "$(wc -w <<< "$CODICI")"; bash ~/.termux/tasker/notifica.sh
+  $C venduti "$N_CARRELLO"; bash ~/.termux/tasker/notifica.sh
 fi
 esito "$RISPOSTA"
 casa

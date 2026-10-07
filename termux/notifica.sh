@@ -30,8 +30,11 @@ fi
 if [ -n "$DA_SEGNARE" ]; then
   TESTO_NOTIFICA="📝 DA SEGNARE: $DA_SEGNARE"$'\n'"$TESTO_NOTIFICA"
   PULSANTI+=(--button3 "📝 Segna ($(grep -c . ~/.cassa_da_segnare))" --button3-action "bash $SEGNARE segna")
-elif [ -n "$CARRELLO" ]; then
-  PULSANTI+=(--button3 "🛒 + Danea" --button3-action "bash $SEGNARE danea")
+fi
+if [ -n "$CARRELLO" ]; then
+  # Carrello: il terzo pulsante aggiunge quello che non si scansiona (carburante, fax, AdBlue);
+  # "Segna" torna appena il carrello è pagato
+  PULSANTI=("${PULSANTI[@]:0:8}" --button3 "➕ Aggiungi" --button3-action "bash ~/.termux/tasker/carrello.sh aggiungi")
 fi
 termux-notification \
   --id "distributore_turno" \

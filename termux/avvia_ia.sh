@@ -243,7 +243,7 @@ except Exception:
         python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && python3 $CARTELLA/carrello.py impara
         if ! python3 $CARTELLA/carrello.py riepilogo | grep -q "❓" && \
            chiedi_si "🛒 Aggiungo il carrello a questa vendita?" "$(python3 $CARTELLA/carrello.py riepilogo)"; then
-          CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
+          N_CARRELLO=$(python3 $CARTELLA/carrello.py quanti); CODICI_CARRELLO=$(python3 $CARTELLA/carrello.py codici)
           # Pagamento non detto: si chiede ora, per tutto
           if ! [[ "$FRASE" =~ (contant|nero|bianco|cass|cartissim|cortissim|petrolif|pos|boss|carta|bancomat) ]]; then
             PAGA_TUTTO=$(termux-dialog radio -t "💳 Pagamento (carburante + carrello)" -v "Contanti,POS nero,POS bianco,Petrolifere" 2>/dev/null \
@@ -256,7 +256,7 @@ except Exception:
           fi
         fi
       fi
-      [ -n "$CODICI_CARRELLO" ] && TESTO="$CODICI_CARRELLO $TESTO"
+      [ -n "$CODICI_CARRELLO" ] && TESTO="$CODICI_CARRELLO e $TESTO"
       RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$TESTO")
       ESITO=$?
       echo "$RISPOSTA"
@@ -271,7 +271,7 @@ except Exception:
         fi
       fi
       if [ -n "$CODICI_CARRELLO" ] && grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
-        python3 $CARTELLA/carrello.py venduti "$(wc -w <<< "$CODICI_CARRELLO")"   # pagato insieme al carburante
+        python3 $CARTELLA/carrello.py venduti "$N_CARRELLO"   # pagato insieme al carburante
       fi
       # Copia di sicurezza del turno in Download, aggiornata a ogni vendita
       python3 ~/info_turno.py salva > /dev/null 2>&1

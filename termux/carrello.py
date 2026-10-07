@@ -130,13 +130,17 @@ def riepilogo():
     mappa = listino_per_codice()
     conta, totale, sconosciuti = {}, 0.0, []
     for codice, _ in righe:
-        if codice.lower() in mappa:
+        if codice.startswith('+'):                 # aggiunta a mano (carburante, fax, AdBlue)
+            nome, importo = voce_a_mano(codice)
+            conta[nome] = conta.get(nome, 0) + 1
+            totale += importo
+        elif codice.lower() in mappa:
             nome, prezzo = mappa[codice.lower()]
             conta[nome] = conta.get(nome, 0) + 1
             totale += prezzo
         else:
             sconosciuti.append(codice)
-    parti = [f"{n}× {nome}" for nome, n in conta.items()]
+    parti = [nome if nome.startswith(('⛽', '📠', '🧪')) else f"{n}× {nome}" for nome, n in conta.items()]
     if sconosciuti:
         parti.append(f"❓ {len(sconosciuti)} {'codice sconosciuto' if len(sconosciuti) == 1 else 'codici sconosciuti'} "
                      f"({', '.join(dict.fromkeys(sconosciuti))})")
@@ -145,7 +149,27 @@ def riepilogo():
 
 def totale():
     mappa = listino_per_codice()
-    return round(sum(mappa[c.lower()][1] for c, _ in leggi() if c.lower() in mappa), 2)
+    return round(sum(voce_a_mano(c)[1] if c.startswith('+') else mappa[c.lower()][1]
+                     for c, _ in leggi() if c.startswith('+') or c.lower() in mappa), 2)
+
+
+# Voci aggiunte a mano al carrello ("➕ Aggiungi"): "+carburante:50.00", "+fax:1.50", "+adblue:20"
+def voce_a_mano(codice):
+    """(descrizione per la tendina, importo)."""
+    tipo, valore = codice[1:].split(':', 1)
+    valore = float(valore)
+    if tipo == 'adblue':
+        prezzo = float(leggi_listino().get('AdBlue sfuso', {}).get('prezzo', 1.30))
+        return f"🧪 AdBlue {valore:g} l {valore * prezzo:.2f}".replace('.', ',') + " €", round(valore * prezzo, 2)
+    nome = {'carburante': '⛽ Carburante', 'fax': '📠 Fax'}[tipo]
+    return f"{nome} {valore:.2f}".replace('.', ',') + " €", valore
+
+
+def frase_a_mano(codice):
+    """Il pezzo di frase per la vendita: "50.00 euro di carburante", "fax 1.50 euro", "adblue 20 litri"."""
+    tipo, valore = codice[1:].split(':', 1)
+    return {'carburante': f"{valore} euro di carburante", 'fax': f"fax {valore} euro",
+            'adblue': f"adblue {valore} litri"}[tipo]
 
 
 def aggiorna_notifica():
@@ -196,7 +220,17 @@ if __name__ == '__main__':
     elif comando == 'totale':
         print(f"{totale():.2f}")
     elif comando == 'codici':
-        print(" ".join(c for c, _ in leggi()))
+        # codici a barre, poi le voci aggiunte a mano ("... e 50.00 euro di carburante e fax 1.50 euro")
+        righe = leggi()
+        print(" ".join([c for c, _ in righe if not c.startswith('+')]
+                       + [f"e {frase_a_mano(c)}" for c, _ in righe if c.startswith('+')]).removeprefix('e ').strip())
+    elif comando == 'quanti':
+        print(len(leggi()))
+    elif comando == 'aggiungi':
+        # carrello.py aggiungi carburante 50  -> riga "+carburante:50.00"
+        tipo, valore = sys.argv[2], float(sys.argv[3].replace(',', '.'))
+        with open(FILE, 'a', encoding='utf-8') as f:
+            f.write(f"+{tipo}:{valore:.2f}\t{time.strftime('%H:%M:%S')}\n")
     elif comando == 'impara':
         impara_sconosciuti()
     elif comando == 'venduti':
