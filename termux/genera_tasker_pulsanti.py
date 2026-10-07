@@ -86,7 +86,7 @@ pulsanti = sorted(os.path.basename(f) for f in glob.glob(os.path.join(QUI, 'widg
 CORTI = {'Vendita carburante': 'Carburante', 'Vendita Danea': 'Danea', 'AdBlue litri': 'AdBlue',
          'Totali': 'Totali', 'Ultime vendite': 'Ultime', 'Cancella ultima': 'Cancella',
          'Abbuono o resto': 'Centesimi', 'Credito cliente': 'Credito', 'Credito riscosso': 'Riscosso',
-         'Anticipo Cartissima': 'Anticipo', 'Versamento': 'Versamento', 'Prodotti venduti': 'Venduti', 'Erogazioni AdBlue': 'Erogazioni',
+         'Anticipo Cartissima': 'Anticipo', 'Versamento': 'Versamento', 'Conta cassa': 'Conta', 'Prodotti venduti': 'Venduti', 'Erogazioni AdBlue': 'Erogazioni',
          'Apertura turno': 'Apertura', 'Chiusura turno': 'Chiusura', 'Stato IA': 'IA'}
 # Ogni task chiama il pulsante per NOME (non per numero): se l'ordine cambia, le icone funzionano lo stesso
 voci = [("Cassa", "menu")] + [(CORTI.get(p[3:], p[3:]), p[3:]) for p in pulsanti]

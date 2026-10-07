@@ -1,0 +1,5 @@
+#!/bin/bash
+# Pulsante: conta la cassa (banconote e spiccioli) e mostra la DIFFERENZA che uscirà nell'Excel
+. ~/.termux/tasker/widget_comune.sh
+esito "$(bash $CASSA "conta cassa")"
+casa

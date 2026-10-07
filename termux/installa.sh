@@ -194,6 +194,21 @@ except Exception:
       python3 ~/info_turno.py "cancella ultima" "$TIPO_C"
     fi
     ESITO=$? ;;
+  *"conta cassa"*|*"conto cassa"*|*"conta la cassa"*|*"contare la cassa"*|*"conteggio cassa"*|*"conta il cassetto"*)
+    # Come il riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel: banconote e spiccioli contati
+    if turno_aperto; then
+      BANCONOTE=$(chiedi "🧮 Banconote nel cassetto" "2x50 2x20 7x10 13x5")
+      CASSETTO=$(chiedi "🪙 Spiccioli cassetto (€)" "54,62")
+      BORSA=$(chiedi "👜 Spiccioli borsa (€)" "vuoto = niente")
+      if [ -z "$BANCONOTE$CASSETTO$BORSA" ]; then
+        echo "Niente contato"
+      else
+        CONTO=$(python3 ~/info_turno.py contacassa "$BANCONOTE" "$CASSETTO" "$BORSA")
+        ESITO=$?
+        nohup termux-dialog confirm -t "🧮 Conta cassa" -i "$CONTO" > /dev/null 2>&1 &
+        grep -E "🎯|✅|⚠️" <<< "$CONTO"
+      fi
+    fi ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
     # il riepilogo completo è nel pulsante 04 Totali
@@ -293,7 +308,7 @@ messaggio() {
 # Esito di un comando: solo le righe importanti (✅ ⚠️ ❌ ❓ 🧾 ...), o la prima riga
 esito() {
   local corto
-  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪' <<< "$1")
+  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪|🎯' <<< "$1")
   messaggio "${corto:-$(head -1 <<< "$1")}"
 }
 
@@ -2232,7 +2247,18 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     cassaforte = turno.get('cassaforte') or 0
     if cassaforte:
         ws['I28'] = cassaforte
-    ws['D34'] = round(totale_cassa - cassaforte, 2)
+    conteggio = turno.get('conteggio') if turno.get('conteggio_valido') else None
+    if conteggio:
+        # Cassa contata col telefono: banconote per taglio (C27 = da 500 ... C33 = da 5) e spiccioli veri,
+        # così AVANZO CASSA ATTUALE e DIFFERENZA sono quelli reali, come compilati a mano
+        for taglio, n in conteggio.get('banconote', {}).items():
+            riga = {500: 27, 200: 28, 100: 29, 50: 30, 20: 31, 10: 32, 5: 33}.get(int(taglio))
+            if riga and n:
+                ws[f'C{riga}'] = n
+        ws['D34'] = conteggio.get('cassetto') or None
+        ws['D35'] = conteggio.get('borsa') or None
+    else:
+        ws['D34'] = round(totale_cassa - cassaforte, 2)
 
     os.makedirs(cartella, exist_ok=True)
     path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova') or turno.get('nomi_test')))
@@ -2573,6 +2599,46 @@ def leggi_banconote(testo):
         if int(taglio) in TAGLI:
             conta[int(taglio)] = conta.get(int(taglio), 0) + 1
     return conta
+
+
+def firma_vendite(righe):
+    """Cambia se si aggiunge, cancella o corregge una vendita (per sapere se un conteggio è ancora valido)."""
+    return f"{len(righe)}|{round(sum(v['importo'] for v in vendite(righe)), 2)}|{righe[-1][0] if righe else ''}"
+
+
+def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
+    """Conteggio della cassa come nel riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel:
+    confronta i contanti contati con quelli attesi e mostra la DIFFERENZA che uscirà nell'Excel."""
+    righe = leggi_csv()
+    t = turno_attuale(righe)
+    banconote = leggi_banconote(banconote_testo)
+    cassetto = importo_da_testo(cassetto_testo) or 0.0
+    borsa = importo_da_testo(borsa_testo) or 0.0
+    in_banconote = sum(taglio * n for taglio, n in banconote.items())
+    contati = round(in_banconote + cassetto + borsa, 2)
+    vv = vendite(righe)
+    contanti = totali_per(vv, "metodo").get("Contanti", 0.0)
+    attesi = round((t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0) - (t.get("cassaforte") or 0.0), 2)
+    # Resti e abbuoni segnati: l'Excel non li conosce, finiscono nella sua DIFFERENZA
+    centesimi = round(sum(v["importo"] for v in vv if v["reparto"] in ("Sconto", "Resto lasciato")), 2)
+    non_spiegati = round(contati - attesi, 2)
+    differenza_excel = round(non_spiegati + centesimi, 2)
+    t["conteggio"] = {"banconote": {str(k): n for k, n in banconote.items()}, "cassetto": cassetto, "borsa": borsa,
+                      "totale": contati, "ora": datetime.now().strftime("%H:%M"), "firma": firma_vendite(righe)}
+    salva_turno(t)
+    segno = lambda x: f"{'+' if x > 0 else ''}{x:.2f} €".replace(".", ",")
+    out = [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
+           f"💶 Attesi:  {euro(attesi)}",
+           f"🎯 DIFFERENZA Excel: {segno(differenza_excel)}"]
+    if non_spiegati == 0:
+        out.append("✅ La cassa torna" + (f": la differenza sono i resti e gli abbuoni segnati ({segno(centesimi)})"
+                                          if centesimi else ""))
+    else:
+        out.append(f"⚠️ CONTROLLA: {'ci sono' if non_spiegati > 0 else 'mancano'} {euro(abs(non_spiegati))} "
+                   f"{'in più' if non_spiegati > 0 else ''} rispetto alle vendite segnate".replace("  ", " "))
+    out.append("📋 Se chiudi senza altre vendite, questo conteggio va nell'Excel (banconote e spiccioli)")
+    print("\n".join(out))
+    sys.exit(0 if non_spiegati == 0 else 2)
 
 
 def cancella_versamento():
@@ -3102,6 +3168,16 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
+    # Cassa contata ("conta cassa") e nessuna vendita dopo: nell'Excel vanno le banconote e gli spiccioli veri
+    conteggio = t.get("conteggio")
+    if conteggio and t["contati"] is None:
+        if conteggio.get("firma") == firma_vendite(righe):
+            t["contati"] = conteggio["totale"]
+            t["conteggio_valido"] = True
+            print(f"🧮 Nell'Excel la cassa contata alle {conteggio['ora']}: {euro(conteggio['totale'])}")
+        else:
+            print(f"⚠️ Cassa contata alle {conteggio['ora']} ma poi ci sono state altre vendite: "
+                  "nell'Excel restano i contanti attesi")
     if t["contati"] is not None and not t.get("prova"):
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")
@@ -3148,7 +3224,10 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
 def main():
     comando = " ".join(sys.argv[1:]).lower() if len(sys.argv) > 1 else "notifica"
 
-    if "cancella ultima" in comando or "elimina ultima" in comando:
+    if sys.argv[1:2] == ["contacassa"]:
+        argomenti = sys.argv[2:] + ["", "", ""]
+        conta_cassa(*argomenti[:3])
+    elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
     elif "penultima" in comando:
         cancella_penultima()
@@ -8425,7 +8504,14 @@ IMPORTO=$(numero "🏦 Versamento (€)" "350"); [ -z "$IMPORTO" ] && annullato
 esito "$(bash $CASSA "versamento $IMPORTO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"10 Credito cliente" <<'FINE_FILE'
+cat > ~/.shortcuts/"10 Conta cassa" <<'FINE_FILE'
+#!/bin/bash
+# Pulsante: conta la cassa (banconote e spiccioli) e mostra la DIFFERENZA che uscirà nell'Excel
+. ~/.termux/tasker/widget_comune.sh
+esito "$(bash $CASSA "conta cassa")"
+casa
+FINE_FILE
+cat > ~/.shortcuts/"11 Credito cliente" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito cliente (il cliente prende ora e paga più avanti)
 . ~/.termux/tasker/widget_comune.sh
@@ -8434,7 +8520,7 @@ IMPORTO=$(numero "📒 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
 esito "$(bash $CASSA "credito cliente $NOME $IMPORTO euro")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"11 Credito riscosso" <<'FINE_FILE'
+cat > ~/.shortcuts/"12 Credito riscosso" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: credito riscosso (il cliente paga un vecchio credito)
 . ~/.termux/tasker/widget_comune.sh
@@ -8444,7 +8530,7 @@ PAGATO=$(pagamento "💳 Come paga $NOME?"); [ -z "$PAGATO" ] && annullato
 esito "$(bash $CASSA "credito riscosso $NOME $IMPORTO euro $PAGATO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"12 Anticipo Cartissima" <<'FINE_FILE'
+cat > ~/.shortcuts/"13 Anticipo Cartissima" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: paga con Cartissima (come gasolio, senza rifornimento) e riceve i contanti
 . ~/.termux/tasker/widget_comune.sh
@@ -8452,14 +8538,14 @@ IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "100"); [ -z "$IMPORTO" ] && a
 esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"13 Erogazioni AdBlue" <<'FINE_FILE'
+cat > ~/.shortcuts/"14 Erogazioni AdBlue" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: AdBlue erogato nel turno
 . ~/.termux/tasker/widget_comune.sh
 finestra "🧪 Erogazioni AdBlue" "$(python3 ~/info_turno.py adblue)"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"14 Apertura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"15 Apertura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: apertura turno (vero o di prova); poi i 4 riquadri dei valori del collega
 . ~/.termux/tasker/widget_comune.sh
@@ -8472,7 +8558,7 @@ esac
 esito "$(bash $CASSA "$FRASE")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"15 Chiusura turno" <<'FINE_FILE'
+cat > ~/.shortcuts/"16 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
 . ~/.termux/tasker/widget_comune.sh
@@ -8483,7 +8569,7 @@ RISULTATO=$(bash $CASSA "chiusura turno")
 messaggio "$(grep -m3 -E '🔴|📧|⚠️' <<< "$RISULTATO")"
 casa
 FINE_FILE
-cat > ~/.shortcuts/"16 Stato IA" <<'FINE_FILE'
+cat > ~/.shortcuts/"17 Stato IA" <<'FINE_FILE'
 #!/bin/bash
 # Pulsante: stato dell'IA, accensione e spegnimento a mano
 . ~/.termux/tasker/widget_comune.sh
@@ -8796,7 +8882,7 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<name>Cassa Pulsanti</name>
 		<pid>31</pid>
-		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317</tids>
+		<tids>301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318</tids>
 	</Project>
 	<Task sr="task301">
 		<cdate>1791000000000</cdate>
@@ -9412,6 +9498,67 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
 		<id>311</id>
+		<nme>Conta</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1256900802</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<com.termux.execute.arguments>"Conta cassa"</com.termux.execute.arguments>
+					<com.termux.execute.arguments-type>java.lang.String</com.termux.execute.arguments-type>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>&lt;null&gt;</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL>
+					<com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>java.lang.String</com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL-type>
+					<com.termux.tasker.extra.EXECUTABLE>pulsante.sh</com.termux.tasker.extra.EXECUTABLE>
+					<com.termux.tasker.extra.EXECUTABLE-type>java.lang.String</com.termux.tasker.extra.EXECUTABLE-type>
+					<com.termux.tasker.extra.SESSION_ACTION>&lt;null&gt;</com.termux.tasker.extra.SESSION_ACTION>
+					<com.termux.tasker.extra.SESSION_ACTION-type>java.lang.String</com.termux.tasker.extra.SESSION_ACTION-type>
+					<com.termux.tasker.extra.STDIN></com.termux.tasker.extra.STDIN>
+					<com.termux.tasker.extra.STDIN-type>java.lang.String</com.termux.tasker.extra.STDIN-type>
+					<com.termux.tasker.extra.TERMINAL>false</com.termux.tasker.extra.TERMINAL>
+					<com.termux.tasker.extra.TERMINAL-type>java.lang.Boolean</com.termux.tasker.extra.TERMINAL-type>
+					<com.termux.tasker.extra.VERSION_CODE>1002</com.termux.tasker.extra.VERSION_CODE>
+					<com.termux.tasker.extra.VERSION_CODE-type>java.lang.Integer</com.termux.tasker.extra.VERSION_CODE-type>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT>true</com.termux.tasker.extra.WAIT_FOR_RESULT>
+					<com.termux.tasker.extra.WAIT_FOR_RESULT-type>java.lang.Boolean</com.termux.tasker.extra.WAIT_FOR_RESULT-type>
+					<com.termux.tasker.extra.WORKDIR>&lt;null&gt;</com.termux.tasker.extra.WORKDIR>
+					<com.termux.tasker.extra.WORKDIR-type>java.lang.String</com.termux.tasker.extra.WORKDIR-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>pulsante.sh Conta cassa</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>com.termux.tasker.extra.EXECUTABLE com.termux.execute.arguments com.termux.tasker.extra.WORKDIR com.termux.tasker.extra.STDIN com.termux.tasker.extra.SESSION_ACTION com.termux.tasker.extra.BACKGROUND_CUSTOM_LOG_LEVEL</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.termux.tasker</Str>
+			<Str sr="arg2" ve="3">com.termux.tasker.EditConfigurationActivity</Str>
+			<Int sr="arg3" val="600"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+		<Action sr="act1" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">%stdout</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+	</Task>
+	<Task sr="task312">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>312</id>
 		<nme>Credito</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9469,10 +9616,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task312">
+	<Task sr="task313">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>312</id>
+		<id>313</id>
 		<nme>Riscosso</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9530,10 +9677,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task313">
+	<Task sr="task314">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>313</id>
+		<id>314</id>
 		<nme>Anticipo</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9591,10 +9738,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task314">
+	<Task sr="task315">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>314</id>
+		<id>315</id>
 		<nme>Erogazioni</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9652,10 +9799,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task315">
+	<Task sr="task316">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>315</id>
+		<id>316</id>
 		<nme>Apertura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9713,10 +9860,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task316">
+	<Task sr="task317">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>316</id>
+		<id>317</id>
 		<nme>Chiusura</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -9774,10 +9921,10 @@ cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 			<Int sr="arg9" val="1"/>
 		</Action>
 	</Task>
-	<Task sr="task317">
+	<Task sr="task318">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
-		<id>317</id>
+		<id>318</id>
 		<nme>IA</nme>
 		<pri>6</pri>
 		<Action sr="act0" ve="7">
@@ -10048,6 +10195,14 @@ VERSAMENTI
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
 • "archivio": i turni passati.
+• "CONTA CASSA" (o pulsante 10): come il riquadro CALCOLO AVANZO CASSA dell'Excel.
+  Scrivi le banconote del cassetto ("2x50 2x20 7x10 13x5"), gli spiccioli del cassetto
+  e quelli della borsa. Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
+  ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
+  ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (niente viene cambiato).
+  Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno le banconote
+  e gli spiccioli contati (AVANZO CASSA ATTUALE e DIFFERENZA veri, come a mano).
+  Se ci sono soldi in cassaforte durante il turno, contali negli spiccioli della borsa.
 Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -10118,11 +10273,12 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 07 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
 08 Abbuono o resto: scegli quale e quanti centesimi
 09 Versamento: importo, poi le banconote (come a voce)
-10 Credito cliente · 11 Credito riscosso · 12 Anticipo Cartissima
-13 Erogazioni AdBlue (finestra)
-14 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-15 Chiusura turno: chiede conferma, poi orario e cassaforte
-16 Stato IA
+10 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
+11 Credito cliente · 12 Credito riscosso · 13 Anticipo Cartissima
+14 Erogazioni AdBlue (finestra)
+15 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+16 Chiusura turno: chiede conferma, poi orario e cassaforte
+17 Stato IA
 
 PULSANTI NELLA TENDINA (quando c'è tanta gente)
 Nella notifica del turno ci sono "🛒 + Danea" e "📠 + Fax": ogni tocco segna UNA vendita
@@ -10185,4 +10341,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 06/10 21:33"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 07/10 17:56"

@@ -39,7 +39,7 @@ messaggio() {
 # Esito di un comando: solo le righe importanti (✅ ⚠️ ❌ ❓ 🧾 ...), o la prima riga
 esito() {
   local corto
-  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪' <<< "$1")
+  corto=$(grep -m3 -E '✅|⚠️|❌|❓|🧾|🗑️|🏦|💶|📅|🔴|🟢|📧|🧪|🎯' <<< "$1")
   messaggio "${corto:-$(head -1 <<< "$1")}"
 }
 
