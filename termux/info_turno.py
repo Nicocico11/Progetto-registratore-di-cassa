@@ -298,14 +298,9 @@ def leggi_banconote(testo):
     return conta
 
 
-def firma_vendite(righe):
-    """Cambia se si aggiunge, cancella o corregge una vendita (per sapere se un conteggio è ancora valido)."""
-    return f"{len(righe)}|{round(sum(v['importo'] for v in vendite(righe)), 2)}|{righe[-1][0] if righe else ''}"
-
-
 def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
-    """Conteggio della cassa come nel riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel:
-    confronta i contanti contati con quelli attesi e mostra la DIFFERENZA che uscirà nell'Excel."""
+    """Controllo facoltativo, come il riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel: confronta i contanti
+    contati con quelli attesi e mostra la DIFFERENZA. Non salva niente: l'Excel usa sempre i contanti attesi."""
     righe = leggi_csv()
     t = turno_attuale(righe)
     banconote = leggi_banconote(banconote_testo)
@@ -320,9 +315,6 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
     centesimi = round(sum(v["importo"] for v in vv if v["reparto"] in ("Sconto", "Resto lasciato")), 2)
     non_spiegati = round(contati - attesi, 2)
     differenza_excel = round(non_spiegati + centesimi, 2)
-    t["conteggio"] = {"banconote": {str(k): n for k, n in banconote.items()}, "cassetto": cassetto, "borsa": borsa,
-                      "totale": contati, "ora": datetime.now().strftime("%H:%M"), "firma": firma_vendite(righe)}
-    salva_turno(t)
     segno = lambda x: f"{'+' if x > 0 else ''}{x:.2f} €".replace(".", ",")
     out = [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
            f"💶 Attesi:  {euro(attesi)}",
@@ -333,7 +325,6 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo=""):
     else:
         out.append(f"⚠️ CONTROLLA: {'ci sono' if non_spiegati > 0 else 'mancano'} {euro(abs(non_spiegati))} "
                    f"{'in più' if non_spiegati > 0 else ''} rispetto alle vendite segnate".replace("  ", " "))
-    out.append("📋 Se chiudi senza altre vendite, questo conteggio va nell'Excel (banconote e spiccioli)")
     print("\n".join(out))
     sys.exit(0 if non_spiegati == 0 else 2)
 
@@ -865,16 +856,6 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
-    # Cassa contata ("conta cassa") e nessuna vendita dopo: nell'Excel vanno le banconote e gli spiccioli veri
-    conteggio = t.get("conteggio")
-    if conteggio and t["contati"] is None:
-        if conteggio.get("firma") == firma_vendite(righe):
-            t["contati"] = conteggio["totale"]
-            t["conteggio_valido"] = True
-            print(f"🧮 Nell'Excel la cassa contata alle {conteggio['ora']}: {euro(conteggio['totale'])}")
-        else:
-            print(f"⚠️ Cassa contata alle {conteggio['ora']} ma poi ci sono state altre vendite: "
-                  "nell'Excel restano i contanti attesi")
     if t["contati"] is not None and not t.get("prova"):
         with open(PATH_ULTIMO_CONTEGGIO, 'w') as f:  # suggerimento per l'avanzo del turno dopo
             f.write(f"{t['contati']:.2f}")

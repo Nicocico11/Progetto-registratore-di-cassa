@@ -211,9 +211,9 @@ VERSAMENTI
   Scrivi le banconote del cassetto ("2x50 2x20 7x10 13x5"), gli spiccioli del cassetto
   e quelli della borsa. Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
   ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
-  ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (niente viene cambiato).
-  Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno le banconote
-  e gli spiccioli contati (AVANZO CASSA ATTUALE e DIFFERENZA veri, come a mano).
+  ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate.
+  È solo un controllo FACOLTATIVO: non salva e non cambia niente. L'Excel usa sempre
+  i contanti calcolati dal telefono (non serve contare i soldi a fine turno).
   Se ci sono soldi in cassaforte durante il turno, contali negli spiccioli della borsa.
 Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 
