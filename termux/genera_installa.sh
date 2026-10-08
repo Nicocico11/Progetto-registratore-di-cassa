@@ -37,7 +37,8 @@ echo '# File di Tasker da importare: li mettiamo nella cartella Download'
 echo 'if [ -d ~/storage/downloads ]; then'
 echo "cat > ~/storage/downloads/Cassa_Vocale.tsk.xml <<'FINE_FILE'"; incolla Cassa_Vocale.tsk.xml; echo "FINE_FILE"
 echo "cat > ~/storage/downloads/Continuazione.prf.xml <<'FINE_FILE'"; incolla Continuazione.prf.xml; echo "FINE_FILE"
-echo "cat > ~/storage/downloads/Flash_Cassa.prf.xml <<'FINE_FILE'"; incolla Flash_Cassa.prf.xml; echo "FINE_FILE"
+echo "rm -f ~/storage/downloads/Flash_Cassa.prf.xml"
+echo "cat > ~/storage/downloads/Flash_Cassa.prj.xml <<'FINE_FILE'"; incolla Flash_Cassa.prj.xml; echo "FINE_FILE"
 python3 genera_tasker_pulsanti.py > /dev/null
 echo "cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'"; incolla Cassa_Pulsanti.prj.xml; echo "FINE_FILE"
 echo '# Manuale d'"'"'uso, sempre aggiornato'

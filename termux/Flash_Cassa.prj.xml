@@ -1,4 +1,11 @@
 <TaskerData sr="" dvi="1" tv="6.6.20">
+	<Project sr="proj0" ve="2">
+		<cdate>1791000000000</cdate>
+		<name>Flash Cassa</name>
+		<pid>32</pid>
+		<pids>12</pids>
+		<tids>95</tids>
+	</Project>
 	<Profile sr="prof12" ve="2">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>

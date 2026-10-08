@@ -331,8 +331,9 @@ I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.
 MESSAGGI ARROTONDATI ANCHE DALLA TENDINA (una volta sola)
 I messaggi dei pulsanti della tendina (⏳ Danea, Paga carrello, Segna...) di base sono quelli
 rettangolari di Android. Per avere il flash arrotondato di Tasker:
-1) in Tasker importa il profilo Download → Flash_Cassa.prf.xml (tieni premuto sulla scheda
-   PROFILI → Importa profilo) e lascialo attivo
+1) in Tasker importa il progetto Download → Flash_Cassa.prj.xml, come Cassa Pulsanti
+   (tieni premuto sulla barra in basso dei progetti → Importa progetto);
+   compare il progetto "Flash Cassa" con il profilo acceso: lascialo così
 2) in Termux scrivi:  touch ~/.cassa_flash_tasker
 Per tornare ai messaggi di Android:  rm ~/.cassa_flash_tasker
 

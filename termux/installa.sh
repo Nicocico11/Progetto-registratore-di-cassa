@@ -9912,8 +9912,16 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 	</Task>
 </TaskerData>
 FINE_FILE
-cat > ~/storage/downloads/Flash_Cassa.prf.xml <<'FINE_FILE'
+rm -f ~/storage/downloads/Flash_Cassa.prf.xml
+cat > ~/storage/downloads/Flash_Cassa.prj.xml <<'FINE_FILE'
 <TaskerData sr="" dvi="1" tv="6.6.20">
+	<Project sr="proj0" ve="2">
+		<cdate>1791000000000</cdate>
+		<name>Flash Cassa</name>
+		<pid>32</pid>
+		<pids>12</pids>
+		<tids>95</tids>
+	</Project>
 	<Profile sr="prof12" ve="2">
 		<cdate>1791000000000</cdate>
 		<edate>1791000000000</edate>
@@ -11036,8 +11044,9 @@ I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.
 MESSAGGI ARROTONDATI ANCHE DALLA TENDINA (una volta sola)
 I messaggi dei pulsanti della tendina (⏳ Danea, Paga carrello, Segna...) di base sono quelli
 rettangolari di Android. Per avere il flash arrotondato di Tasker:
-1) in Tasker importa il profilo Download → Flash_Cassa.prf.xml (tieni premuto sulla scheda
-   PROFILI → Importa profilo) e lascialo attivo
+1) in Tasker importa il progetto Download → Flash_Cassa.prj.xml, come Cassa Pulsanti
+   (tieni premuto sulla barra in basso dei progetti → Importa progetto);
+   compare il progetto "Flash Cassa" con il profilo acceso: lascialo così
 2) in Termux scrivi:  touch ~/.cassa_flash_tasker
 Per tornare ai messaggi di Android:  rm ~/.cassa_flash_tasker
 
@@ -11095,4 +11104,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:49"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:56"
