@@ -38,7 +38,9 @@ case "$*" in
   *"AdBlue (litri)"*) echo '{"code": -1, "text": "20"}' ;;          # widget 03 AdBlue litri
   *"di 70 €"*) echo '{"code": -1, "text": "50"}' ;;            # non tornano: 3 tentativi, niente salvato
   *"Banconote nella borsa"*) echo '{"code": -1, "text": "1x100 1x50"}' ;;   # conta cassa
-  *"Spiccioli cassetto"*) echo '{"code": -1, "text": "0,50"}' ;;
+  *"Monete nella borsa"*) echo '{"code": -1, "text": ""}' ;;          # conta cassa: OK con riquadro vuoto
+  *"Riquadro chiuso senza OK"*) [ -f ~/riapri ] && echo '{"code": 0, "text": "yes"}' || echo '{"code": 0, "text": "no"}' ;;
+  *"Spiccioli cassetto"*) if [ -f ~/fuori ]; then rm ~/fuori; echo '{"code": -2, "text": ""}'; else echo '{"code": -1, "text": "0,50"}'; fi ;;
   *"Versamento (€)"*) echo '{"code": -1, "text": "100"}' ;;            # widget 09 Versamento
   *"Banconote di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
   *"Banconote di"*) echo '{"code": -1, "text": "1 da 50"}' ;;
@@ -461,6 +463,11 @@ controlla "punto delle migliaia"      "1.250 di gasolio petrolifere"            
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "conta cassa: torna"        "conta cassa"                                  "La cassa torna"
 python3 $HOME/info_turno.py contacassa "1x100" "0,50" | grep -q "Mancano 50.00 €" && echo "  ok   conta cassa: mancano 50" || { echo "  ERRORE conta cassa mancano"; ERRORI=$((ERRORI+1)); }
+touch $HOME/fuori   # riquadro chiuso toccando fuori, poi annullato: niente contato
+controlla "conta cassa: tocco fuori"  "conta cassa"                                  "Conta cassa annullato"
+touch $HOME/fuori $HOME/riapri   # riquadro chiuso toccando fuori, poi riaperto: conteggio normale
+controlla "conta cassa: riaperto"     "conta cassa"                                  "DIFFERENZA Excel"
+rm -f $HOME/riapri
 controlla "conta cassa di nuovo"      "conta cassa"                                  "DIFFERENZA Excel: 0,00 €"
 DETT=$(python3 $HOME/info_turno.py contacassa "1x100 50x1" "0,50" "25x2"); echo "$DETT" > /tmp/claude-0/esempio_conta.txt 2>/dev/null
 [[ "$DETT" == *"DETTAGLIO DEL CALCOLO"* && "$DETT" == *"1 × 100 €"* && "$DETT" == *"= ATTESI"* && "$DETT" == *"contati − attesi"* ]] && echo "  ok   conta cassa: dettaglio del calcolo" || { echo "  ERRORE dettaglio conta cassa"; echo "$DETT"; ERRORI=$((ERRORI+1)); }

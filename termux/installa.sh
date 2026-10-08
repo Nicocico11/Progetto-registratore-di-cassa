@@ -34,8 +34,20 @@ try:
     d = json.load(sys.stdin)
     if d.get("code") == -1:
         print(d.get("text", ""))
+        sys.exit(0)
 except Exception:
-    pass'
+    pass
+sys.exit(1)'
+}
+
+# Come chiedi, ma se il riquadro si chiude senza OK (Annulla o tocco fuori) chiede se riaprirlo:
+# un campo lasciato vuoto per sbaglio non passa in silenzio. Falso se non si vuole riaprire.
+chiedi_ok() {
+  local risposta
+  while true; do
+    if risposta=$(chiedi "$@"); then echo "$risposta"; return 0; fi
+    chiedi_si "↩️ Riquadro chiuso senza OK" "Riapro \"$1\"?" || return 1
+  done
 }
 
 # Popup Sì/No: vero se la risposta è "sì"
@@ -79,10 +91,10 @@ case "$FRASE" in
       if ! python3 ~/info_turno.py aperto; then
         # Valori del turno PRECEDENTE (di un altro operatore): si scrivono sempre a mano,
         # vuoto = non inserito (nell'Excel restano da scrivere)
-        AVANZO=$(chiedi "Avanzo (€)" "150,50")
-        ORA_PREC=$(chiedi "Ora chiusura precedente" "140532" -n)
-        CONTATORE=$(chiedi "Contatore AdBlue" "68624,4")
-        TANICHE=$(chiedi "Taniche AdBlue" "59" -n)
+        AVANZO=$(chiedi_ok "Avanzo (€)" "150,50")
+        ORA_PREC=$(chiedi_ok "Ora chiusura precedente" "140532" -n)
+        CONTATORE=$(chiedi_ok "Contatore AdBlue" "68624,4")
+        TANICHE=$(chiedi_ok "Taniche AdBlue" "59" -n)
         rm -f ~/.cassa_da_segnare ~/.cassa_carrello   # "da segnare" e carrello rimasti da un turno vecchio
       fi
       echo "🟢 TURNO APERTO"
@@ -105,12 +117,12 @@ case "$FRASE" in
       # ("chiusura turno 14 05 32") oppure scritto nel popup (es. 140532)
       ORARIO=$(grep -oE '[0-9]+' <<< "$FRASE" | tr '\n' ' ')
       if [ -z "$ORARIO" ]; then
-        ORARIO=$(chiedi "Orario terminale" "140532" -n)
+        ORARIO=$(chiedi_ok "Orario terminale" "140532" -n)
       fi
       # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
-      CASSAFORTE=$(chiedi "Cassaforte (€)" "vuoto = niente")
+      CASSAFORTE=$(chiedi_ok "Cassaforte (€)" "vuoto = niente")
       # Totale della colonnina: nell'Excel (TOTALE CARBURANTI) e per la differenza; vuoto = lo scrivi sul computer
-      CARBURANTI_COLONNINA=$(chiedi "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
+      CARBURANTI_COLONNINA=$(chiedi_ok "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
       echo "🔴 TURNO CHIUSO - IA spenta"
       python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
       spegni_ia
@@ -261,11 +273,14 @@ except Exception:
   *"conta cassa"*|*"conto cassa"*|*"conta la cassa"*|*"contare la cassa"*|*"conteggio cassa"*|*"conta il cassetto"*)
     # Come il riquadro CALCOLO AVANZO CASSA ATTUALE dell'Excel: banconote e spiccioli contati
     if turno_aperto; then
-      BANCONOTE=$(chiedi "🧮 Banconote nella borsa" "50x2 20x2 10x7 5x13")
-      CASSETTO=$(chiedi "🪙 Spiccioli cassetto (€)" "54,62")
-      BORSA=$(chiedi "👜 Monete nella borsa (pezzi)" "2x3 1x5 0,50x4")
-      CASSAFORTE_C=$(chiedi "🔒 Cassaforte (€)" "vuoto = niente")
-      if [ -z "$BANCONOTE$CASSETTO$BORSA" ]; then
+      # Un riquadro chiuso senza OK e non riaperto: conteggio annullato (mai un campo a zero per sbaglio)
+      if ! { BANCONOTE=$(chiedi_ok "🧮 Banconote nella borsa" "50x2 20x2 10x7 5x13") &&
+             CASSETTO=$(chiedi_ok "🪙 Spiccioli cassetto (€)" "54,62") &&
+             BORSA=$(chiedi_ok "👜 Monete nella borsa (pezzi)" "2x3 1x5 0,50x4") &&
+             CASSAFORTE_C=$(chiedi_ok "🔒 Cassaforte (€)" "vuoto = niente"); }; then
+        echo "❌ Conta cassa annullato: niente contato (rifallo quando vuoi)"
+        ESITO=1
+      elif [ -z "$BANCONOTE$CASSETTO$BORSA" ]; then
         echo "Niente contato"
       else
         CONTO=$(python3 ~/info_turno.py contacassa "$BANCONOTE" "$CASSETTO" "$BORSA" "$CASSAFORTE_C")
@@ -11075,6 +11090,9 @@ VERSAMENTI
   spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
   Se non conti, l'Excel usa i contanti calcolati dal telefono.
   4) cassaforte, in euro (vuoto = niente): non va contata nel cassetto.
+  Se un riquadro si chiude senza OK (Annulla o tocco fuori), compare "↩️ Riquadro chiuso
+  senza OK: riapro?". Sì = si riapre; No = conta cassa annullato (niente a zero per sbaglio).
+  Lo stesso vale per i riquadri di apertura e chiusura turno (No = campo vuoto, come prima).
 Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -11252,4 +11270,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:37"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:54"

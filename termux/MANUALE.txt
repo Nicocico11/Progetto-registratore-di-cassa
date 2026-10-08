@@ -225,6 +225,9 @@ VERSAMENTI
   spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
   Se non conti, l'Excel usa i contanti calcolati dal telefono.
   4) cassaforte, in euro (vuoto = niente): non va contata nel cassetto.
+  Se un riquadro si chiude senza OK (Annulla o tocco fuori), compare "↩️ Riquadro chiuso
+  senza OK: riapro?". Sì = si riapre; No = conta cassa annullato (niente a zero per sbaglio).
+  Lo stesso vale per i riquadri di apertura e chiusura turno (No = campo vuoto, come prima).
 Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
