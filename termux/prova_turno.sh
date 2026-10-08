@@ -462,6 +462,8 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "conta cassa: torna"        "conta cassa"                                  "La cassa torna"
 python3 $HOME/info_turno.py contacassa "1x100" "0,50" | grep -q "Mancano 50.00 €" && echo "  ok   conta cassa: mancano 50" || { echo "  ERRORE conta cassa mancano"; ERRORI=$((ERRORI+1)); }
 controlla "conta cassa di nuovo"      "conta cassa"                                  "DIFFERENZA Excel: 0,00 €"
+DETT=$(python3 $HOME/info_turno.py contacassa "1x100 50x1" "0,50" "25x2"); echo "$DETT" > /tmp/claude-0/esempio_conta.txt 2>/dev/null
+[[ "$DETT" == *"DETTAGLIO DEL CALCOLO"* && "$DETT" == *"1 × 100 €"* && "$DETT" == *"= ATTESI"* && "$DETT" == *"contati − attesi"* ]] && echo "  ok   conta cassa: dettaglio del calcolo" || { echo "  ERRORE dettaglio conta cassa"; echo "$DETT"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py contacassa "100" "0,50" "25x2" | grep -q "La cassa torna" && echo "  ok   conta cassa: monete della borsa a pezzi" || { echo "  ERRORE monete borsa"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py versamento "versamento 600" "50x12" | grep -q "12×50" && echo "  ok   versamento 50x12 = 12 da 50" || { echo "  ERRORE versamento 50x12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella versamento 600"   "cancella versamento"                          "cancellato"

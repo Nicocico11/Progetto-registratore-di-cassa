@@ -218,6 +218,9 @@ VERSAMENTI
   Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
   ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
   ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (le vendite non cambiano).
+  Nella finestra, sotto, c'è il DETTAGLIO DEL CALCOLO: banconote taglio per taglio,
+  spiccioli e monete (= contati); avanzo, vendite in contanti, versamento e cassaforte
+  (= attesi); contati − attesi e resti/abbuoni (= differenza).
   Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno banconote e
   spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
   Se non conti, l'Excel usa i contanti calcolati dal telefono.

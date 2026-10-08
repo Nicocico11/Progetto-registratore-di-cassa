@@ -3267,7 +3267,31 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
         out.append(f"⚠️ {'Ci sono' if non_spiegati > 0 else 'Mancano'} {euro(abs(non_spiegati))}"
                    f"{' in più' if non_spiegati > 0 else ''} rispetto alle vendite segnate")
     out.append("📋 Se chiudi senza altre vendite, questo conteggio va nell'Excel (banconote e spiccioli)")
-    print("\n".join(out))
+
+    # Dettaglio del calcolo (nella finestra): da dove vengono contati, attesi e differenza
+    r = lambda nome, x, piu="": f"  {nome}: {x:{piu}.2f} €"   # niente colonne: nel riquadro le lettere non sono larghe uguali
+    det = ["", "━━━━ DETTAGLIO DEL CALCOLO ━━━━", "CONTATI"]
+    for taglio in sorted(banconote, reverse=True):
+        det.append(f"  {banconote[taglio]} × {taglio} € = {banconote[taglio] * taglio:.2f} €")
+    det.append(r("= banconote", in_banconote))
+    det.append(r("+ spiccioli cassetto", cassetto))
+    det.append(r("+ monete borsa", borsa) + (f"  ({borsa_testo.strip()})" if borsa else ""))
+    det.append(r("= CONTATI", contati))
+    det.append("ATTESI")
+    det.append(r("avanzo inizio turno", t.get("avanzo") or 0.0))
+    n_contanti = sum(1 for v in vv if v["metodo"] == "Contanti" and v["reparto"] not in ("Sconto", "Resto lasciato"))
+    det.append(r(f"+ vendite contanti ({n_contanti})", contanti))
+    if t.get("versamento"):
+        det.append(r("− versamento", t["versamento"]))
+    if t.get("cassaforte"):
+        det.append(r("− in cassaforte", t["cassaforte"]))
+    det.append(r("= ATTESI", attesi))
+    det.append("DIFFERENZA")
+    det.append(r("contati − attesi", non_spiegati, "+"))
+    if centesimi:
+        det.append(r("+ resti/abbuoni segnati", centesimi, "+"))
+    det.append(r("= DIFFERENZA Excel", differenza_excel, "+"))
+    print("\n".join(out + [d.replace(".", ",") for d in det]))
     sys.exit(0 if non_spiegati == 0 else 2)
 
 
@@ -11043,6 +11067,9 @@ VERSAMENTI
   Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
   ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
   ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (le vendite non cambiano).
+  Nella finestra, sotto, c'è il DETTAGLIO DEL CALCOLO: banconote taglio per taglio,
+  spiccioli e monete (= contati); avanzo, vendite in contanti, versamento e cassaforte
+  (= attesi); contati − attesi e resti/abbuoni (= differenza).
   Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno banconote e
   spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
   Se non conti, l'Excel usa i contanti calcolati dal telefono.
@@ -11224,4 +11251,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:05"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:25"
