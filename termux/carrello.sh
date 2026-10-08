@@ -7,6 +7,8 @@
 C="python3 $HOME/.termux/tasker/carrello.py"
 NOTIFICA=~/.termux/tasker/notifica.sh
 
+termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso: si sente subito, anche se il pulsante si vede poco
+
 # Un tocco doppio sul pulsante non deve far partire due pagamenti
 BLOCCO=~/.cassa_carrello.blocco
 if ! mkdir "$BLOCCO" 2>/dev/null; then

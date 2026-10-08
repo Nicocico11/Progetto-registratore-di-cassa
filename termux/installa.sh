@@ -443,13 +443,16 @@ conta() {
 case "$1" in
   danea|fax)
     echo "$1 $(date +%H:%M)" >> "$FILE"
-    termux-vibrate -d 60 > /dev/null 2>&1    # vibrazione corta: tocco preso
+    termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso: vibrazione decisa (anche in silenzioso)
+    NOME=$([ "$1" = fax ] && echo "📠 Fax" || echo "🛒 Danea")
+    termux-toast -s -g bottom "⏳ $NOME segnato · da segnare: $(conta)" 2>/dev/null
     bash "$NOTIFICA"
     ;;
   conta)
     conta
     ;;
   segna)
+    termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso
     BLOCCO=~/.cassa_da_segnare.blocco      # tocco doppio su "Segna": un giro solo
     if ! mkdir "$BLOCCO" 2>/dev/null; then
       [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
@@ -499,6 +502,8 @@ cat > ~/.termux/tasker/carrello.sh <<'FINE_FILE'
 . ~/.termux/tasker/widget_comune.sh
 C="python3 $HOME/.termux/tasker/carrello.py"
 NOTIFICA=~/.termux/tasker/notifica.sh
+
+termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso: si sente subito, anche se il pulsante si vede poco
 
 # Un tocco doppio sul pulsante non deve far partire due pagamenti
 BLOCCO=~/.cassa_carrello.blocco
@@ -11025,4 +11030,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:34"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:40"

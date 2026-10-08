@@ -20,13 +20,16 @@ conta() {
 case "$1" in
   danea|fax)
     echo "$1 $(date +%H:%M)" >> "$FILE"
-    termux-vibrate -d 60 > /dev/null 2>&1    # vibrazione corta: tocco preso
+    termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso: vibrazione decisa (anche in silenzioso)
+    NOME=$([ "$1" = fax ] && echo "📠 Fax" || echo "🛒 Danea")
+    termux-toast -s -g bottom "⏳ $NOME segnato · da segnare: $(conta)" 2>/dev/null
     bash "$NOTIFICA"
     ;;
   conta)
     conta
     ;;
   segna)
+    termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso
     BLOCCO=~/.cassa_da_segnare.blocco      # tocco doppio su "Segna": un giro solo
     if ! mkdir "$BLOCCO" 2>/dev/null; then
       [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
