@@ -3212,6 +3212,7 @@ def leggi_banconote(testo):
         testo = in_cifre(testo or "")
     except ImportError:
         testo = (testo or "").lower()
+    testo = testo.replace("×", "x")   # "×" della tastiera = "x"
     conta = {}
     for a, segno, b in re.findall(r'(\d+)\s*(x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', testo):
         a, b = int(a), int(b)
@@ -3298,7 +3299,7 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
 def leggi_monete(testo):
     """Monete contate a pezzi: "3x2 5x1 4x0,50" / "2 2 1 0,50" -> totale in euro.
     (A x B dà lo stesso totale in qualunque ordine: 3 da 2 € = 2 da 3... per l'Excel conta solo il totale)"""
-    testo = (testo or "").lower().replace(",", ".")
+    testo = (testo or "").lower().replace(",", ".").replace("×", "x")   # "×" della tastiera = "x"
     totale = 0.0
     for a, b in re.findall(r'(\d+(?:\.\d+)?)\s*(?:x|\*|da|per)\s*(\d+(?:\.\d+)?)', testo):
         totale += float(a) * float(b)
@@ -11251,4 +11252,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:25"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:37"

@@ -464,6 +464,11 @@ python3 $HOME/info_turno.py contacassa "1x100" "0,50" | grep -q "Mancano 50.00 �
 controlla "conta cassa di nuovo"      "conta cassa"                                  "DIFFERENZA Excel: 0,00 €"
 DETT=$(python3 $HOME/info_turno.py contacassa "1x100 50x1" "0,50" "25x2"); echo "$DETT" > /tmp/claude-0/esempio_conta.txt 2>/dev/null
 [[ "$DETT" == *"DETTAGLIO DEL CALCOLO"* && "$DETT" == *"1 × 100 €"* && "$DETT" == *"= ATTESI"* && "$DETT" == *"contati − attesi"* ]] && echo "  ok   conta cassa: dettaglio del calcolo" || { echo "  ERRORE dettaglio conta cassa"; echo "$DETT"; ERRORI=$((ERRORI+1)); }
+PYTHONPATH=$HOME python3 -c "
+import info_turno as i
+assert i.leggi_monete('0,2×9 0,05×8') == 2.2 and i.leggi_monete('0,2x9 0,05x8') == 2.2
+assert i.leggi_banconote('50×3 20x8') == {50: 3, 20: 8}, i.leggi_banconote('50×3 20x8')
+" && echo "  ok   conta cassa: × come x" || { echo "  ERRORE conta cassa ×"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py contacassa "100" "0,50" "25x2" | grep -q "La cassa torna" && echo "  ok   conta cassa: monete della borsa a pezzi" || { echo "  ERRORE monete borsa"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py versamento "versamento 600" "50x12" | grep -q "12×50" && echo "  ok   versamento 50x12 = 12 da 50" || { echo "  ERRORE versamento 50x12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella versamento 600"   "cancella versamento"                          "cancellato"
