@@ -35,7 +35,7 @@ def numeri_in_lettere():
 
 _NUMERI = numeri_in_lettere()
 _NUMERI.update({'un': 1, 'una': 1})   # "un centesimo", "una ichnusa"
-_REGEX = re.compile(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b')
+_REGEX = re.compile(r'\b[a-zàèéìòù]+\b')     # ogni parola; si cambia solo se è un numero (più veloce di 2000 alternative)
 
 
 # Migliaia: "mille", "milleduecento", "duemilacinquecento" (rifornimenti dei camion, versamenti)
@@ -53,7 +53,7 @@ def _migliaia(m):
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
     testo = _MIGLIAIA.sub(_migliaia, testo.lower())
-    testo = _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
+    testo = _REGEX.sub(lambda m: str(_NUMERI[m.group(0)]) if m.group(0) in _NUMERI else m.group(0), testo)
     # "mille e cinquecento" -> 1500 (non 1000 e 500: due vendite)
     return re.sub(r'\b([1-9]\d?000)\s+e\s+(\d{1,3})\b(?![.,]\d)', lambda m: str(int(m.group(1)) + int(m.group(2))), testo)
 

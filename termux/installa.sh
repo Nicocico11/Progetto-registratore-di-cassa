@@ -1170,7 +1170,8 @@ if os.path.exists(prezzi_path):
 # ---------- riconoscimento (su un pezzo di frase) ----------
 
 def contiene(parola, testo):
-    return re.search(r'\b' + re.escape(parola) + r'\b', testo) is not None
+    # prima il controllo veloce (quasi sempre basta): la ricerca a parola intera solo se la parola c'è
+    return parola in testo and re.search(r'\b' + re.escape(parola) + r'\b', testo) is not None
 
 
 def radice(parola):
@@ -1335,6 +1336,11 @@ SCELTI = set(DA_CODICE)  # prodotti scelti dalla lista "Quale prodotto?" (o lett
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
+# Nomi e alias già in minuscolo e senza accenti: si preparano una volta sola
+TUTTI_GLI_ALIAS = [(nome, a, radici(a), a.replace(' ', '')) for nome, p in listino.items()
+                   for a in (senza_accenti(x.lower()) for x in [nome] + p.get('alias', []))]
+
+
 def trova_prodotto_listino(testo):
     # Vince il nome/alias più lungo trovato nella frase
     # ("acqua grande" batte "acqua", "lampadina h7" batte "lampadina").
@@ -1350,17 +1356,14 @@ def trova_prodotto_listino(testo):
         AMBIGUI[:] = nel_gruppo
         return None
     trovati, lunghezza, vincente = [], 0, ""
-    for nome, p in listino.items():
-        for alias in [nome] + p.get('alias', []):
-            alias = senza_accenti(alias.lower())
-            # Plurali e parole attaccate solo per i nomi lunghi: "ore" non deve diventare "oreo"
-            if (contiene(alias, testo)
-                    or (len(alias) >= 5 and (radici(alias) in testo_radici
-                                             or alias.replace(' ', '') in testo_unito))):
-                if len(alias) > lunghezza:
-                    trovati, lunghezza, vincente = [nome], len(alias), alias
-                elif len(alias) == lunghezza and nome not in trovati:
-                    trovati.append(nome)
+    for nome, alias, alias_radici, alias_unito in TUTTI_GLI_ALIAS:
+        # Plurali e parole attaccate solo per i nomi lunghi: "ore" non deve diventare "oreo"
+        if (contiene(alias, testo)
+                or (len(alias) >= 5 and (alias_radici in testo_radici or alias_unito in testo_unito))):
+            if len(alias) > lunghezza:
+                trovati, lunghezza, vincente = [nome], len(alias), alias
+            elif len(alias) == lunghezza and nome not in trovati:
+                trovati.append(nome)
     if trovati and all(listino[n].get('reparto', 'Market') == 'Market' for n in trovati):
         # Lo stesso nome in altri prodotti ("deodorante luxury" -> 150 ml e 300 ml;
         # "miele di acacia" -> 400 gr e 1 kg): si sceglie dalla lista
@@ -2142,7 +2145,7 @@ def numeri_in_lettere():
 
 _NUMERI = numeri_in_lettere()
 _NUMERI.update({'un': 1, 'una': 1})   # "un centesimo", "una ichnusa"
-_REGEX = re.compile(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b')
+_REGEX = re.compile(r'\b[a-zàèéìòù]+\b')     # ogni parola; si cambia solo se è un numero (più veloce di 2000 alternative)
 
 
 # Migliaia: "mille", "milleduecento", "duemilacinquecento" (rifornimenti dei camion, versamenti)
@@ -2160,7 +2163,7 @@ def _migliaia(m):
 def in_cifre(testo):
     """"versamento cinquanta" -> "versamento 50"."""
     testo = _MIGLIAIA.sub(_migliaia, testo.lower())
-    testo = _REGEX.sub(lambda m: str(_NUMERI[m.group(1)]), testo)
+    testo = _REGEX.sub(lambda m: str(_NUMERI[m.group(0)]) if m.group(0) in _NUMERI else m.group(0), testo)
     # "mille e cinquecento" -> 1500 (non 1000 e 500: due vendite)
     return re.sub(r'\b([1-9]\d?000)\s+e\s+(\d{1,3})\b(?![.,]\d)', lambda m: str(int(m.group(1)) + int(m.group(2))), testo)
 
@@ -11408,4 +11411,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:00"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:14"

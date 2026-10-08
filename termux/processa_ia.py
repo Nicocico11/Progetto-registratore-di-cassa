@@ -146,7 +146,8 @@ if os.path.exists(prezzi_path):
 # ---------- riconoscimento (su un pezzo di frase) ----------
 
 def contiene(parola, testo):
-    return re.search(r'\b' + re.escape(parola) + r'\b', testo) is not None
+    # prima il controllo veloce (quasi sempre basta): la ricerca a parola intera solo se la parola c'è
+    return parola in testo and re.search(r'\b' + re.escape(parola) + r'\b', testo) is not None
 
 
 def radice(parola):
@@ -311,6 +312,11 @@ SCELTI = set(DA_CODICE)  # prodotti scelti dalla lista "Quale prodotto?" (o lett
 AMBIGUI = []  # prodotti diversi con lo stesso nome detto (es. "lampadina" -> H7, H4...)
 
 
+# Nomi e alias già in minuscolo e senza accenti: si preparano una volta sola
+TUTTI_GLI_ALIAS = [(nome, a, radici(a), a.replace(' ', '')) for nome, p in listino.items()
+                   for a in (senza_accenti(x.lower()) for x in [nome] + p.get('alias', []))]
+
+
 def trova_prodotto_listino(testo):
     # Vince il nome/alias più lungo trovato nella frase
     # ("acqua grande" batte "acqua", "lampadina h7" batte "lampadina").
@@ -326,17 +332,14 @@ def trova_prodotto_listino(testo):
         AMBIGUI[:] = nel_gruppo
         return None
     trovati, lunghezza, vincente = [], 0, ""
-    for nome, p in listino.items():
-        for alias in [nome] + p.get('alias', []):
-            alias = senza_accenti(alias.lower())
-            # Plurali e parole attaccate solo per i nomi lunghi: "ore" non deve diventare "oreo"
-            if (contiene(alias, testo)
-                    or (len(alias) >= 5 and (radici(alias) in testo_radici
-                                             or alias.replace(' ', '') in testo_unito))):
-                if len(alias) > lunghezza:
-                    trovati, lunghezza, vincente = [nome], len(alias), alias
-                elif len(alias) == lunghezza and nome not in trovati:
-                    trovati.append(nome)
+    for nome, alias, alias_radici, alias_unito in TUTTI_GLI_ALIAS:
+        # Plurali e parole attaccate solo per i nomi lunghi: "ore" non deve diventare "oreo"
+        if (contiene(alias, testo)
+                or (len(alias) >= 5 and (alias_radici in testo_radici or alias_unito in testo_unito))):
+            if len(alias) > lunghezza:
+                trovati, lunghezza, vincente = [nome], len(alias), alias
+            elif len(alias) == lunghezza and nome not in trovati:
+                trovati.append(nome)
     if trovati and all(listino[n].get('reparto', 'Market') == 'Market' for n in trovati):
         # Lo stesso nome in altri prodotti ("deodorante luxury" -> 150 ml e 300 ml;
         # "miele di acacia" -> 400 gr e 1 kg): si sceglie dalla lista
