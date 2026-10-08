@@ -1,4 +1,4 @@
-import json, os
+import json, os, re
 from datetime import datetime, date, time, timedelta
 
 # Compila il modello Excel del distributore ("TURNO NUOVO") con i dati del turno appena chiuso
@@ -79,6 +79,21 @@ def ora_da_testo(testo):
         return time(h, m, s)
     except Exception:
         return None
+
+
+def valore_cella(ws, cella, visti=()):
+    """Valore di una casella del foglio, calcolando le formule del modello
+    (solo somme, sottrazioni e prodotti di caselle e numeri), come fa Excel all'apertura."""
+    if cella in visti:
+        raise ValueError(f"formula circolare in {cella}")
+    v = ws[cella].value
+    if isinstance(v, str) and v.startswith('='):
+        espressione = re.sub(r'\$?([A-Z]{1,2})\$?(\d+)',
+                             lambda m: repr(valore_cella(ws, m.group(1) + m.group(2), visti + (cella,))), v[1:])
+        if not re.fullmatch(r'[\d.+\-*/() e]*', espressione):
+            raise ValueError(f"formula non gestita in {cella}: {v}")
+        return float(eval(espressione, {"__builtins__": {}}))
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else 0.0
 
 
 def crea_excel(righe, turno, orario_terminale, cartella):
@@ -213,6 +228,10 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     else:
         ws['D34'] = round(totale_cassa - cassaforte, 2)
 
+    # Totale carburanti letto sulla colonnina (popup alla chiusura): senza, D2 resta da scrivere a mano
+    if turno.get('totale_carburanti') is not None:
+        ws['D2'] = turno['totale_carburanti']
+
     os.makedirs(cartella, exist_ok=True)
     path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova') or turno.get('nomi_test')))
     wb.save(path_turno)
@@ -251,4 +270,11 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     breve = lambda p: "Download/" + os.path.relpath(p, os.path.expanduser('~/storage/downloads'))
     messaggi = [f"📗 Excel: {breve(path_turno)}",
                 f"📘 Turno dopo: {breve(path_dopo)}"]
+    if turno.get('totale_carburanti') is not None:
+        try:
+            diff = round(valore_cella(ws, 'D19'), 2) + 0.0   # niente "-0,00"
+            messaggi.insert(0, f"🎯 DIFFERENZA Excel: {diff:+.2f} €".replace('.', ',')
+                            + " (ricariche Star escluse, se ne hai fatte)")
+        except Exception:
+            pass
     return messaggi + [f"⚠️ {a}" for a in avvisi], stato

@@ -109,8 +109,10 @@ case "$FRASE" in
       fi
       # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
       CASSAFORTE=$(chiedi "Cassaforte (€)" "vuoto = niente")
+      # Totale della colonnina: nell'Excel (TOTALE CARBURANTI) e per la differenza; vuoto = lo scrivi sul computer
+      CARBURANTI_COLONNINA=$(chiedi "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
@@ -2592,7 +2594,7 @@ if __name__ == '__main__':
         print(f"⚠️ Saltati {len(saltati)} prodotti senza prezzo o senza nome utilizzabile: {', '.join(saltati[:10])}")
 FINE_FILE
 cat > ~/.termux/tasker/excel_turno.py <<'FINE_FILE'
-import json, os
+import json, os, re
 from datetime import datetime, date, time, timedelta
 
 # Compila il modello Excel del distributore ("TURNO NUOVO") con i dati del turno appena chiuso
@@ -2673,6 +2675,21 @@ def ora_da_testo(testo):
         return time(h, m, s)
     except Exception:
         return None
+
+
+def valore_cella(ws, cella, visti=()):
+    """Valore di una casella del foglio, calcolando le formule del modello
+    (solo somme, sottrazioni e prodotti di caselle e numeri), come fa Excel all'apertura."""
+    if cella in visti:
+        raise ValueError(f"formula circolare in {cella}")
+    v = ws[cella].value
+    if isinstance(v, str) and v.startswith('='):
+        espressione = re.sub(r'\$?([A-Z]{1,2})\$?(\d+)',
+                             lambda m: repr(valore_cella(ws, m.group(1) + m.group(2), visti + (cella,))), v[1:])
+        if not re.fullmatch(r'[\d.+\-*/() e]*', espressione):
+            raise ValueError(f"formula non gestita in {cella}: {v}")
+        return float(eval(espressione, {"__builtins__": {}}))
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else 0.0
 
 
 def crea_excel(righe, turno, orario_terminale, cartella):
@@ -2807,6 +2824,10 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     else:
         ws['D34'] = round(totale_cassa - cassaforte, 2)
 
+    # Totale carburanti letto sulla colonnina (popup alla chiusura): senza, D2 resta da scrivere a mano
+    if turno.get('totale_carburanti') is not None:
+        ws['D2'] = turno['totale_carburanti']
+
     os.makedirs(cartella, exist_ok=True)
     path_turno = os.path.join(cartella, nome_file(giorno, turno['tipo'], turno.get('prova') or turno.get('nomi_test')))
     wb.save(path_turno)
@@ -2845,6 +2866,13 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     breve = lambda p: "Download/" + os.path.relpath(p, os.path.expanduser('~/storage/downloads'))
     messaggi = [f"📗 Excel: {breve(path_turno)}",
                 f"📘 Turno dopo: {breve(path_dopo)}"]
+    if turno.get('totale_carburanti') is not None:
+        try:
+            diff = round(valore_cella(ws, 'D19'), 2) + 0.0   # niente "-0,00"
+            messaggi.insert(0, f"🎯 DIFFERENZA Excel: {diff:+.2f} €".replace('.', ',')
+                            + " (ricariche Star escluse, se ne hai fatte)")
+        except Exception:
+            pass
     return messaggi + [f"⚠️ {a}" for a in avvisi], stato
 FINE_FILE
 cat > ~/info_turno.py <<'FINE_FILE'
@@ -3732,7 +3760,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
+def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo="", carburanti_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe and not os.path.exists(PATH_TURNO):
@@ -3743,6 +3771,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
+    t["totale_carburanti"] = importo_da_testo(carburanti_testo)   # dalla colonnina: va in D2 dell'Excel
     # Cassa contata ("conta cassa") e nessuna vendita dopo: nell'Excel vanno le banconote e gli spiccioli veri
     conteggio = t.get("conteggio")
     if conteggio and t["contati"] is None:
@@ -3842,8 +3871,8 @@ def main():
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        argomenti = sys.argv[2:] + ["", "", ""]
-        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
+        argomenti = sys.argv[2:] + ["", "", "", ""]
+        chiudi_turno(*argomenti[:4])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:
@@ -9607,13 +9636,13 @@ casa
 FINE_FILE
 cat > ~/.shortcuts/"11 Chiusura turno" <<'FINE_FILE'
 #!/bin/bash
-# Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
+# Pulsante: chiusura turno con conferma; poi i riquadri orario, cassaforte e totale carburanti colonnina
 . ~/.termux/tasker/widget_comune.sh
 if ! conferma "🔴 Chiudere il turno?" ""; then
   messaggio "Turno NON chiuso"; casa
 fi
 RISULTATO=$(bash $CASSA "chiusura turno")
-messaggio "$(grep -m3 -E '🔴|📧|⚠️' <<< "$RISULTATO")"
+messaggio "$(grep -m4 -E '🔴|🎯|📧|⚠️' <<< "$RISULTATO")"
 casa
 FINE_FILE
 rmdir ~/.shortcuts/tasks 2>/dev/null; chmod +x ~/.shortcuts/*
@@ -10936,10 +10965,13 @@ Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 ━━━━━━━━━━━━━━━━━━━━━━━━
 6. FINE TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "CHIUSURA TURNO". Compaiono due riquadri:
+Di': "CHIUSURA TURNO". Compaiono tre riquadri:
 1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
    140532 = 14:05:32
 2) IN CASSAFORTE (vuoto se non c'è niente)
+3) ⛽ TOTALE CARBURANTI COLONNINA: il totale letto sulla colonnina.
+   Va nell'Excel (TOTALE CARBURANTI) e nel messaggio di chiusura compare
+   subito la DIFFERENZA dell'Excel. Vuoto = lo scrivi tu sul computer.
 I contanti non si contano: li calcola il telefono dalle vendite
 (avanzo + vendite in contanti - versamenti).
 
@@ -10964,8 +10996,7 @@ Nella sottocartella Excel vengono creati i due file del distributore:
   si ricomincia dalla prima casella sommando: il totale resta giusto e
   nel messaggio di chiusura compare un avviso.
   Gli OPT e il versamento segnati si compilano da soli.
-  Sul computer restano da scrivere: totale carburanti (dalla colonnina),
-  ricariche, operatore (e i totali dei POS se vuoi correggerli).
+  Sul computer restano da scrivere: ricariche, operatore (e i totali dei POS se vuoi correggerli).
 
 📧 MAIL AUTOMATICA (se configurata): alla chiusura parte da sola una mail con i
 due Excel e il riepilogo. Nel messaggio di chiusura compare "📧 Mail inviata a …".
@@ -11004,7 +11035,7 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 08 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
 09 Crediti e anticipi: Credito cliente, Credito riscosso o Anticipo Cartissima
 10 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-11 Chiusura turno: chiede conferma, poi orario e cassaforte
+11 Chiusura turno: chiede conferma, poi orario, cassaforte e totale carburanti colonnina
 Le icone di Tasker con i nomi di prima (Totali, Credito cliente...) funzionano ancora.
 
 PULSANTI NELLA TENDINA (quando c'è tanta gente)
@@ -11105,4 +11136,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 04:33"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 04:36"

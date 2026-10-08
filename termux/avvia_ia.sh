@@ -104,8 +104,10 @@ case "$FRASE" in
       fi
       # I contanti attesi li calcola da solo dalle vendite: serve solo la cassaforte
       CASSAFORTE=$(chiedi "Cassaforte (€)" "vuoto = niente")
+      # Totale della colonnina: nell'Excel (TOTALE CARBURANTI) e per la differenza; vuoto = lo scrivi sul computer
+      CARBURANTI_COLONNINA=$(chiedi "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
       echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE"
+      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
       spegni_ia
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"

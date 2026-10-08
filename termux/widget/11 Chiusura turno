@@ -1,9 +1,9 @@
 #!/bin/bash
-# Pulsante: chiusura turno con conferma; poi i riquadri orario e cassaforte
+# Pulsante: chiusura turno con conferma; poi i riquadri orario, cassaforte e totale carburanti colonnina
 . ~/.termux/tasker/widget_comune.sh
 if ! conferma "🔴 Chiudere il turno?" ""; then
   messaggio "Turno NON chiuso"; casa
 fi
 RISULTATO=$(bash $CASSA "chiusura turno")
-messaggio "$(grep -m3 -E '🔴|📧|⚠️' <<< "$RISULTATO")"
+messaggio "$(grep -m4 -E '🔴|🎯|📧|⚠️' <<< "$RISULTATO")"
 casa

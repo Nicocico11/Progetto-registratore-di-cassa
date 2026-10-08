@@ -223,10 +223,13 @@ Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 ━━━━━━━━━━━━━━━━━━━━━━━━
 6. FINE TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "CHIUSURA TURNO". Compaiono due riquadri:
+Di': "CHIUSURA TURNO". Compaiono tre riquadri:
 1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
    140532 = 14:05:32
 2) IN CASSAFORTE (vuoto se non c'è niente)
+3) ⛽ TOTALE CARBURANTI COLONNINA: il totale letto sulla colonnina.
+   Va nell'Excel (TOTALE CARBURANTI) e nel messaggio di chiusura compare
+   subito la DIFFERENZA dell'Excel. Vuoto = lo scrivi tu sul computer.
 I contanti non si contano: li calcola il telefono dalle vendite
 (avanzo + vendite in contanti - versamenti).
 
@@ -251,8 +254,7 @@ Nella sottocartella Excel vengono creati i due file del distributore:
   si ricomincia dalla prima casella sommando: il totale resta giusto e
   nel messaggio di chiusura compare un avviso.
   Gli OPT e il versamento segnati si compilano da soli.
-  Sul computer restano da scrivere: totale carburanti (dalla colonnina),
-  ricariche, operatore (e i totali dei POS se vuoi correggerli).
+  Sul computer restano da scrivere: ricariche, operatore (e i totali dei POS se vuoi correggerli).
 
 📧 MAIL AUTOMATICA (se configurata): alla chiusura parte da sola una mail con i
 due Excel e il riepilogo. Nel messaggio di chiusura compare "📧 Mail inviata a …".
@@ -291,7 +293,7 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 08 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
 09 Crediti e anticipi: Credito cliente, Credito riscosso o Anticipo Cartissima
 10 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-11 Chiusura turno: chiede conferma, poi orario e cassaforte
+11 Chiusura turno: chiede conferma, poi orario, cassaforte e totale carburanti colonnina
 Le icone di Tasker con i nomi di prima (Totali, Credito cliente...) funzionano ancora.
 
 PULSANTI NELLA TENDINA (quando c'è tanta gente)

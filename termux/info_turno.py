@@ -882,7 +882,7 @@ def normalizza_orario(grezzo):
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
+def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo="", carburanti_testo=""):
     orario_terminale = normalizza_orario(orario_terminale)
     righe = leggi_csv()
     if not righe and not os.path.exists(PATH_TURNO):
@@ -893,6 +893,7 @@ def chiudi_turno(orario_terminale="", contati_testo="", cassaforte_testo=""):
     t = turno_attuale(righe)
     t["contati"] = importo_da_testo(contati_testo)
     t["cassaforte"] = importo_da_testo(cassaforte_testo)
+    t["totale_carburanti"] = importo_da_testo(carburanti_testo)   # dalla colonnina: va in D2 dell'Excel
     # Cassa contata ("conta cassa") e nessuna vendita dopo: nell'Excel vanno le banconote e gli spiccioli veri
     conteggio = t.get("conteggio")
     if conteggio and t["contati"] is None:
@@ -992,8 +993,8 @@ def main():
     elif comando.startswith("avanzo"):
         imposta_avanzo(" ".join(sys.argv[2:]))
     elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
-        argomenti = sys.argv[2:] + ["", "", ""]
-        chiudi_turno(argomenti[0], argomenti[1], argomenti[2])
+        argomenti = sys.argv[2:] + ["", "", "", ""]
+        chiudi_turno(*argomenti[:4])
     elif comando == "salva":
         salva_copia()
     elif "ripristin" in comando:

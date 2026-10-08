@@ -25,6 +25,7 @@ case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
+  *"Totale carburanti colonnina"*) [ -f ~/colonnina ] && echo '{"code": -1, "text": "20"}' || echo '{"code": -2, "text": ""}' ;;
   *"🔒 Cassaforte"*) echo '{"code": -1, "text": ""}' ;;                  # conta cassa: niente in cassaforte
   *assaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
@@ -425,7 +426,15 @@ cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di pr
 # Secondo turno di prova con lo stesso nome (cartella …_TEST_HHMM): la mail NON deve andare al lavoro
 controlla "secondo turno di prova"    "apertura turno prova notte"                   "TURNO DI PROVA"
 controlla "vendita"                   "20 gasolio"                                   "Gasolio 20.00"
-controlla "chiusura secondo prova"    "chiusura turno"                               "Mail inviata a prova@gmail.com"
+touch $HOME/colonnina   # totale carburanti della colonnina scritto nel popup: 20
+CHIUSURA=$(bash $S "chiusura turno" 2>&1)
+rm -f $HOME/colonnina
+[[ "$CHIUSURA" == *"Mail inviata a prova@gmail.com"* ]] && echo "  ok   chiusura secondo prova" || { echo "  ERRORE chiusura secondo prova"; echo "$CHIUSURA" | sed 's/^/         /'; ERRORI=$((ERRORI+1)); }
+python3 -c "
+import openpyxl, glob, sys
+f = [x for x in glob.glob(sys.argv[1] + '/*_Notte_TEST*/Excel/*notte_TEST.xlsx')]
+assert any(openpyxl.load_workbook(x).active['D2'].value == 20 for x in f), f
+" $D && [[ "$CHIUSURA" == *"DIFFERENZA Excel: +0,00 €"* ]] && echo "  ok   totale carburanti colonnina in D2 e differenza" || { echo "  ERRORE totale carburanti colonnina"; ERRORI=$((ERRORI+1)); }
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 
 # Turno senza vendite (solo avanzo): la chiusura fa lo stesso l'Excel; punto delle migliaia
