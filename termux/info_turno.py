@@ -339,8 +339,8 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
         out.append("✅ La cassa torna" + (f": la differenza sono i resti e gli abbuoni segnati ({segno(centesimi)})"
                                           if centesimi else ""))
     else:
-        out.append(f"⚠️ CONTROLLA: {'ci sono' if non_spiegati > 0 else 'mancano'} {euro(abs(non_spiegati))} "
-                   f"{'in più' if non_spiegati > 0 else ''} rispetto alle vendite segnate".replace("  ", " "))
+        out.append(f"⚠️ {'Ci sono' if non_spiegati > 0 else 'Mancano'} {euro(abs(non_spiegati))}"
+                   f"{' in più' if non_spiegati > 0 else ''} rispetto alle vendite segnate")
     out.append("📋 Se chiudi senza altre vendite, questo conteggio va nell'Excel (banconote e spiccioli)")
     print("\n".join(out))
     sys.exit(0 if non_spiegati == 0 else 2)

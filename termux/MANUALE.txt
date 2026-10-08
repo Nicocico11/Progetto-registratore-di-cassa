@@ -124,7 +124,7 @@ PAGAMENTI (si dicono in fondo alla frase)
                                        (una casella per ogni vendita)
 Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
 va da sola IN CASSA; se dici "nero" o "bianco" si salva con 2 vibrazioni e
-"⚠️ CONTROLLA: di solito si pagano in cassa".
+"⚠️ negozio: di solito IN CASSA".
 Se dici solo "carta", "pos" o "bancomat" compare il riquadro
 "Pagato con carta: su quale POS?": tocca quello giusto e premi OK.
 Se lo annulli la vendita NON viene salvata.
@@ -351,13 +351,15 @@ Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 10. SE QUALCOSA NON VA
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
-• "⚠️ CONTROLLA" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa
-  di strano (2 vibrazioni + notifica "⚠️ Controlla" con suono nella tendina):
-  - "solo un importo piccolo, senza prodotto": hai detto "2 mars" ma è arrivato solo "2"?
-  - "frase uguale alla vendita di pochi secondi fa": registrata due volte?
-  - "prezzo detto … invece di …": prezzo diverso dal listino.
-  - "pagamento non capito" / "pagamento non detto": salvata in CONTANTI, controlla.
-  Se è sbagliata: "cancella ultima".
+• "⚠️ …" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa da controllare
+  (2 vibrazioni + notifica "⚠️ Controlla" con suono nella tendina):
+  - "importo piccolo: era carburante?": hai detto "2 mars" ma è arrivato solo "2"?
+  - "uguale a poco fa": registrata due volte?
+  - "prezzo 3,50 € (listino 3,00)": prezzo diverso dal listino.
+  - "pagamento non detto → CONTANTI" / "\"…\" non capito → CONTANTI": salvata in contanti, controlla.
+  - "negozio: di solito IN CASSA": prodotti del negozio pagati sul nero/bianco/cartissima.
+  - 🔎 "icnusa" = ICHNUSA: parola sentita storta, preso il prodotto più simile.
+  Se è sbagliata: "cancella ultima" o "correggi ultima …".
 • Frase non capita (parola sentita male): compare il riquadro
   "✏️ Non capito, riscrivi", con la frase sentita scritta in grigio.
   Scrivi la frase corretta (es. "20 pos bianco") e premi OK: viene registrata.

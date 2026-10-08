@@ -474,7 +474,7 @@ def voce_listino(nome, testo):
         importo = euro
         prezzo_detto = round(euro / quantita, 2)
         if abs(prezzo_detto - prezzo) >= 0.01:
-            AVVISI.append(f"prezzo detto {prezzo_detto:.2f} € invece di {prezzo:.2f} € del listino")
+            AVVISI.append(f"prezzo {prezzo_detto:.2f} € (listino {prezzo:.2f})")
     elif euro is not None:
         importo, quantita = euro, euro / prezzo      # AdBlue sfuso: "adblue 13 euro" = 10 litri
     else:
@@ -643,7 +643,7 @@ def dividi_in_pezzi(testo):
         if fine and cent and not prodotto_dopo and not (ha_voce(uniti[-1]) and ha_voce(p)):
             prima = uniti[-1][:fine.start()]
             if len(cent.group(1)) == 1:      # "venti e cinque di gasolio": 20,05 (da controllare)
-                AVVISI.append(f"\"{fine.group(1)} e {cent.group(1)}\" letto come {fine.group(1)},0{cent.group(1)} €")
+                AVVISI.append(f"\"{fine.group(1)} e {cent.group(1)}\" = {fine.group(1)},0{cent.group(1)} €")
             uniti[-1] = f"{prima}{fine.group(1)}.{int(cent.group(1)):02d}{fine.group(2) or ''}{cent.group(2)}"
         else:
             uniti.append(p)
@@ -1050,26 +1050,26 @@ totale = sum(float(v['importo']) for v in voci)
 
 # Cose da controllare: si scrivono PRIMA della vendita, così si leggono anche nel messaggio corto a schermo
 if any(v.get('reparto') == 'Carburante' and float(v['importo']) < 5 for v in voci):
-    AVVISI.append("solo un importo piccolo, senza prodotto: era carburante?")   # "2 mars" -> "2"
+    AVVISI.append("importo piccolo: era carburante?")   # "2 mars" -> "2"
 if PRECEDENTE and PRECEDENTE[1] == testo_originale and (adesso_ora - PRECEDENTE[0]).total_seconds() < 30:
-    AVVISI.append("frase uguale alla vendita di pochi secondi fa: registrata due volte?")
+    AVVISI.append("uguale a poco fa: registrata due volte?")
 IMPORTO_MASSIMO_CARBURANTE = 1200   # camion ~1000 €: oltre, forse "19 90" capito come 1990
 if any(v['reparto'] == 'Carburante' and float(v['importo']) > IMPORTO_MASSIMO_CARBURANTE for v in voci):
-    AVVISI.insert(0, "IMPORTO MOLTO ALTO")
+    AVVISI.insert(0, "importo molto alto")
 # Pagamento non capito ("cartissimi", "bianchi"...): la vendita va in contanti, ma va controllata
 if metodo == 'Contanti' and pagamento_detto(testo_basso) is None:
     simili = [w for w in re.findall(r'\b(?:cart|cort|cass|petrol|bianc|ner|pos|bos)\w*', senza_prodotti(testo_basso))
               if w not in PAROLE_PRODOTTI and w != 'cassaforte']
     if simili:
-        AVVISI.insert(0, f"pagamento non capito (\"{simili[0]}\"): messa in CONTANTI")
+        AVVISI.insert(0, f"pagamento \"{simili[0]}\" non capito → CONTANTI")
     elif any(v['reparto'] == 'Carburante' for v in voci):
-        AVVISI.insert(0, "pagamento non detto: carburante messo in CONTANTI")   # "112 e 02"
+        AVVISI.insert(0, "pagamento non detto → CONTANTI")   # "112 e 02"
 if SOLO_NEGOZIO and metodo in ('POS nero', 'POS bianco', 'Petrolifere'):
-    AVVISI.append("solo prodotti del negozio: di solito si pagano IN CASSA (\"correggi ultima in cassa\")")
+    AVVISI.append("negozio: di solito IN CASSA")
 for detto, nome in SIMILI.items():
-    AVVISI.append(f'"{detto}" capito come {nome}')
+    AVVISI.append(f'🔎 "{detto}" = {nome}')
 if AVVISI:
-    print("⚠️ CONTROLLA: " + "; ".join(dict.fromkeys(AVVISI)) + " — se è sbagliata: \"cancella ultima\"")
+    print("⚠️ " + " · ".join(dict.fromkeys(AVVISI)))
 
 simbolo = '⚠️' if origine == 'emergenza' or AVVISI else '✅'
 if len(voci) == 1:
