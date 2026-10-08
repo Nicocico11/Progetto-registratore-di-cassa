@@ -10963,7 +10963,8 @@ Nella sottocartella Excel vengono creati i due file del distributore:
   Se le caselle di un riquadro finiscono (es. più di 20 telefax o 24 scontrini),
   si ricomincia dalla prima casella sommando: il totale resta giusto e
   nel messaggio di chiusura compare un avviso.
-  Sul computer restano da scrivere: totale carburanti, OPT,
+  Gli OPT segnati si compilano da soli (una casella per vendita).
+  Sul computer restano da scrivere: totale carburanti (dalla colonnina),
   ricariche, versamento, operatore (e i totali dei POS se vuoi correggerli).
 
 📧 MAIL AUTOMATICA (se configurata): alla chiusura parte da sola una mail con i
@@ -11104,4 +11105,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:56"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 04:33"
