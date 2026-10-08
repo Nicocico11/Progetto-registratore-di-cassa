@@ -321,6 +321,8 @@ CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento 
 "50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
 sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
 No = solo il carburante, il carrello resta.
+Senza carrello, il terzo pulsante della tendina è "🧺 Apri carrello": si comincia un carrello
+aggiungendo a mano carburante, fax, AdBlue o un prodotto (poi si può anche scansionare).
 Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
 Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
 "❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,

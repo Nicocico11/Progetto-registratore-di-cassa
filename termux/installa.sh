@@ -1003,6 +1003,10 @@ if [ -n "$DA_SEGNARE" ]; then
   TESTO_NOTIFICA="📝 DA SEGNARE: $DA_SEGNARE"$'\n'"$TESTO_NOTIFICA"
   PULSANTI+=(--button3 "📝 Segna ($(grep -c . ~/.cassa_da_segnare))" --button3-action "bash $SEGNARE segna")
 fi
+if [ -z "$CARRELLO" ] && [ -z "$DA_SEGNARE" ]; then
+  # Terzo posto libero: si apre un carrello con quello che non si scansiona (carburante, fax, prodotto...)
+  PULSANTI+=(--button3 "🧺 Apri carrello" --button3-action "bash ~/.termux/tasker/carrello.sh aggiungi")
+fi
 if [ -n "$CARRELLO" ]; then
   # Carrello: il terzo pulsante aggiunge quello che non si scansiona (carburante, fax, AdBlue);
   # "Segna" torna appena il carrello è pagato
@@ -11343,6 +11347,8 @@ CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento 
 "50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
 sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
 No = solo il carburante, il carrello resta.
+Senza carrello, il terzo pulsante della tendina è "🧺 Apri carrello": si comincia un carrello
+aggiungendo a mano carburante, fax, AdBlue o un prodotto (poi si può anche scansionare).
 Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
 Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
 "❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,
@@ -11402,4 +11408,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 01:59"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:00"

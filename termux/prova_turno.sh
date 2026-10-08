@@ -201,6 +201,7 @@ bash $SEG danea; touch $HOME/annulla; bash $SEG segna > /dev/null 2>&1; rm -f $H
 [ ! -f $HOME/.cassa_da_segnare ] && [ $(wc -l < $HOME/transazioni_turno.csv) -eq $((RIGHE_PRIMA+2)) ] && echo "  ok   tendina: tocco sbagliato scartato" || { echo "  ERRORE tendina scarto"; ERRORI=$((ERRORI+1)); }
 # Scanner (Binary Eye) -> ricevitore -> carrello nella tendina -> "💳 Paga"
 bash $HOME/.termux/tasker/notifica.sh; sleep 1
+tail -1 $HOME/notifiche.log | grep -q "🧺 Apri carrello" && echo "  ok   tendina: Apri carrello" || { echo "  ERRORE manca Apri carrello"; ERRORI=$((ERRORI+1)); }
 curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null; sleep 1.2; curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null
 curl -s "http://127.0.0.1:8765/?c=90435874" > /dev/null    # letto due volte di fila: non conta
 sleep 1
