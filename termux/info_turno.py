@@ -845,6 +845,38 @@ def cancella_ultima(tipo=""):
     notifica_breve(righe_aggiornate)
 
 
+def elenco_scelta():
+    """Per il riquadro "Quale vendita?": "posizione<TAB>etichetta", dalla più recente.
+    Senza virgole: nel riquadro separano le voci."""
+    gruppi = transazioni(leggi_csv())
+    for pos in range(len(gruppi) - 1, -1, -1):
+        riga = riga_vendita(gruppi[pos])
+        if riga:
+            print(f"{pos}\t{riga.lstrip('• ').replace(' | ', ' · ').replace(',', ' ')}")
+
+
+def cancella_scelta(pos_testo, etichetta):
+    """Cancella la vendita scelta dall'elenco (tutta: anche resto o abbuono attaccati).
+    L'etichetta deve essere ancora quella: se nel frattempo è cambiato qualcosa, niente cancellato."""
+    righe = leggi_csv()
+    gruppi = transazioni(righe)
+    try:
+        pos = int(pos_testo)
+        gruppo = gruppi[pos]
+    except (ValueError, IndexError):
+        print("❌ Vendita non trovata: niente cancellato.")
+        sys.exit(1)
+    riga = (riga_vendita(gruppo) or "").lstrip('• ').replace(' | ', ' · ').replace(',', ' ')
+    if riga != etichetta:
+        print("❌ Le vendite sono cambiate nel frattempo: niente cancellato, riprova.")
+        sys.exit(1)
+    righe_aggiornate = [r for i, g in enumerate(gruppi) if i != pos for r in g]
+    scrivi_csv(righe_aggiornate)
+    salva_copia()
+    print(f"🗑️ Cancellata la vendita delle {riga}")
+    notifica_breve(righe_aggiornate)
+
+
 def cancella_penultima():
     gruppi = transazioni(leggi_csv())
     if len(gruppi) < 2:
@@ -955,6 +987,10 @@ def main():
         conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
+    elif comando == "elenco scelta":
+        elenco_scelta()
+    elif sys.argv[1:2] == ["cancellascelta"]:
+        cancella_scelta(*(sys.argv[2:4] + ["", ""])[:2])
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):

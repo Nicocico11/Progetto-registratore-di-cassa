@@ -192,19 +192,66 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (operazione|qualsiasi|tutto|vendita) ]]; then TIPO_C=tutto
     else
       SCELTA_C=$(termux-dialog radio -t "🗑️ Cosa cancello?" \
-        -v "Ultima operazione (qualsiasi),Ultimo Danea (anche taniche AdBlue),Ultimo carburante,Ultimo AdBlue sfuso,Ultimo fax" 2>/dev/null \
+        -v "Ultima operazione (qualsiasi),Ultimo Danea (anche taniche AdBlue),Ultimo carburante,Ultimo AdBlue sfuso,Ultimo fax,📋 Scegli dall'elenco (cancella o correggi)" 2>/dev/null \
         | python3 -c 'import sys, json
 try:
     d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
 except Exception:
     pass')
       case "$SCELTA_C" in
+        📋*) TIPO_C=elenco ;;
         Ultima*) TIPO_C=tutto ;; *Danea*) TIPO_C=danea ;; *carburante*) TIPO_C=carburante ;;
         *AdBlue*) TIPO_C=adblue ;; *fax*) TIPO_C=fax ;; *) TIPO_C="" ;;
       esac
     fi
     if [ -z "$TIPO_C" ]; then
       echo "Niente cancellato."
+    elif [ "$TIPO_C" = elenco ]; then
+      # Una vendita qualsiasi del turno (anche vecchia): si sceglie dalla lista, poi cancella o correggi
+      ELENCO=$(python3 ~/info_turno.py "elenco scelta")
+      if [ -z "$ELENCO" ]; then
+        echo "Nessuna vendita da cancellare."
+      else
+        N_SCELTA=$(termux-dialog radio -t "📋 Quale vendita? (la più recente in alto)" -v "$(cut -f2 <<< "$ELENCO" | paste -sd,)" 2>/dev/null \
+          | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("index", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+        RIGA=""; [ -n "$N_SCELTA" ] && RIGA=$(sed -n "$((N_SCELTA + 1))p" <<< "$ELENCO")
+        POS=$(cut -f1 <<< "$RIGA"); ETICHETTA=$(cut -f2 <<< "$RIGA")
+        AZIONE=""; [ -n "$RIGA" ] && AZIONE=$(termux-dialog radio -t "$ETICHETTA" -v "🗑️ Cancella,✏️ Correggi (riscrivila giusta)" 2>/dev/null \
+          | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+        case "$AZIONE" in
+          🗑️*)
+            python3 ~/info_turno.py cancellascelta "$POS" "$ETICHETTA"; ESITO=$? ;;
+          ✏️*)
+            # Prima si salva quella giusta (in fondo al turno); solo se è stata capita si toglie quella sbagliata
+            NUOVA=$(chiedi "✏️ Vendita giusta al posto di: $ETICHETTA" "50 gasolio sul nero")
+            if [ -z "$NUOVA" ]; then
+              echo "Niente cambiato."
+            else
+              RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$NUOVA")
+              ESITO_NUOVA=$?
+              echo "$RISPOSTA"
+              if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
+                TOLTA=$(python3 ~/info_turno.py cancellascelta "$POS" "$ETICHETTA")
+                grep -m1 -E "🗑️|❌" <<< "$TOLTA"
+                [ $ESITO_NUOVA = 2 ] && ESITO=2
+              else
+                echo "❌ Vendita giusta non capita: quella vecchia resta. Niente cambiato."
+                ESITO=1
+              fi
+            fi ;;
+          *) echo "Niente cancellato." ;;
+        esac
+      fi
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+      (exit $ESITO)   # l'esito lo prende la riga "ESITO=$?" qui sotto
     elif [ "$TIPO_C" = tutto ]; then
       python3 ~/info_turno.py "cancella ultima"
     else
@@ -3723,6 +3770,38 @@ def cancella_ultima(tipo=""):
     notifica_breve(righe_aggiornate)
 
 
+def elenco_scelta():
+    """Per il riquadro "Quale vendita?": "posizione<TAB>etichetta", dalla più recente.
+    Senza virgole: nel riquadro separano le voci."""
+    gruppi = transazioni(leggi_csv())
+    for pos in range(len(gruppi) - 1, -1, -1):
+        riga = riga_vendita(gruppi[pos])
+        if riga:
+            print(f"{pos}\t{riga.lstrip('• ').replace(' | ', ' · ').replace(',', ' ')}")
+
+
+def cancella_scelta(pos_testo, etichetta):
+    """Cancella la vendita scelta dall'elenco (tutta: anche resto o abbuono attaccati).
+    L'etichetta deve essere ancora quella: se nel frattempo è cambiato qualcosa, niente cancellato."""
+    righe = leggi_csv()
+    gruppi = transazioni(righe)
+    try:
+        pos = int(pos_testo)
+        gruppo = gruppi[pos]
+    except (ValueError, IndexError):
+        print("❌ Vendita non trovata: niente cancellato.")
+        sys.exit(1)
+    riga = (riga_vendita(gruppo) or "").lstrip('• ').replace(' | ', ' · ').replace(',', ' ')
+    if riga != etichetta:
+        print("❌ Le vendite sono cambiate nel frattempo: niente cancellato, riprova.")
+        sys.exit(1)
+    righe_aggiornate = [r for i, g in enumerate(gruppi) if i != pos for r in g]
+    scrivi_csv(righe_aggiornate)
+    salva_copia()
+    print(f"🗑️ Cancellata la vendita delle {riga}")
+    notifica_breve(righe_aggiornate)
+
+
 def cancella_penultima():
     gruppi = transazioni(leggi_csv())
     if len(gruppi) < 2:
@@ -3833,6 +3912,10 @@ def main():
         conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
+    elif comando == "elenco scelta":
+        elenco_scelta()
+    elif sys.argv[1:2] == ["cancellascelta"]:
+        cancella_scelta(*(sys.argv[2:4] + ["", ""])[:2])
     elif "penultima" in comando:
         cancella_penultima()
     elif comando.startswith("apri turno"):
@@ -10921,6 +11004,10 @@ e gli dai lo stesso importo in contanti)
 • Oppure dillo subito: "cancella ultima danea" / "carburante" / "adblue" / "fax".
   In una vendita mista toglie solo quella parte (es. i red bull, non il gasolio).
 • "cancella penultima": toglie la penultima operazione intera.
+• Vendita vecchia (es. di inizio turno): "cancella ultima" → "📋 Scegli dall'elenco".
+  Compare la lista di tutte le vendite (la più recente in alto): tocca quella sbagliata,
+  poi 🗑️ Cancella oppure ✏️ Correggi (riscrivi la vendita giusta, es. "50 gasolio sul nero":
+  quella giusta va in fondo al turno, quella sbagliata viene tolta).
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
@@ -11029,7 +11116,8 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 03 AdBlue litri: litri e pagamento
 04 Resoconto: scegli Totali, Ultime vendite (tutte, la più recente in alto),
    Prodotti venduti o Erogazioni AdBlue (finestra)
-05 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
+05 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax,
+   o 📋 una vendita qualsiasi dall'elenco, da cancellare o correggere)
 06 Abbuono o resto: scegli quale e quanti centesimi
 07 Versamento: importo, poi le banconote (come a voce)
 08 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
@@ -11136,4 +11224,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 04:36"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:05"

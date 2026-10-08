@@ -187,19 +187,66 @@ case "$FRASE" in
     elif [[ "$FRASE" =~ (operazione|qualsiasi|tutto|vendita) ]]; then TIPO_C=tutto
     else
       SCELTA_C=$(termux-dialog radio -t "🗑️ Cosa cancello?" \
-        -v "Ultima operazione (qualsiasi),Ultimo Danea (anche taniche AdBlue),Ultimo carburante,Ultimo AdBlue sfuso,Ultimo fax" 2>/dev/null \
+        -v "Ultima operazione (qualsiasi),Ultimo Danea (anche taniche AdBlue),Ultimo carburante,Ultimo AdBlue sfuso,Ultimo fax,📋 Scegli dall'elenco (cancella o correggi)" 2>/dev/null \
         | python3 -c 'import sys, json
 try:
     d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
 except Exception:
     pass')
       case "$SCELTA_C" in
+        📋*) TIPO_C=elenco ;;
         Ultima*) TIPO_C=tutto ;; *Danea*) TIPO_C=danea ;; *carburante*) TIPO_C=carburante ;;
         *AdBlue*) TIPO_C=adblue ;; *fax*) TIPO_C=fax ;; *) TIPO_C="" ;;
       esac
     fi
     if [ -z "$TIPO_C" ]; then
       echo "Niente cancellato."
+    elif [ "$TIPO_C" = elenco ]; then
+      # Una vendita qualsiasi del turno (anche vecchia): si sceglie dalla lista, poi cancella o correggi
+      ELENCO=$(python3 ~/info_turno.py "elenco scelta")
+      if [ -z "$ELENCO" ]; then
+        echo "Nessuna vendita da cancellare."
+      else
+        N_SCELTA=$(termux-dialog radio -t "📋 Quale vendita? (la più recente in alto)" -v "$(cut -f2 <<< "$ELENCO" | paste -sd,)" 2>/dev/null \
+          | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("index", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+        RIGA=""; [ -n "$N_SCELTA" ] && RIGA=$(sed -n "$((N_SCELTA + 1))p" <<< "$ELENCO")
+        POS=$(cut -f1 <<< "$RIGA"); ETICHETTA=$(cut -f2 <<< "$RIGA")
+        AZIONE=""; [ -n "$RIGA" ] && AZIONE=$(termux-dialog radio -t "$ETICHETTA" -v "🗑️ Cancella,✏️ Correggi (riscrivila giusta)" 2>/dev/null \
+          | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+        case "$AZIONE" in
+          🗑️*)
+            python3 ~/info_turno.py cancellascelta "$POS" "$ETICHETTA"; ESITO=$? ;;
+          ✏️*)
+            # Prima si salva quella giusta (in fondo al turno); solo se è stata capita si toglie quella sbagliata
+            NUOVA=$(chiedi "✏️ Vendita giusta al posto di: $ETICHETTA" "50 gasolio sul nero")
+            if [ -z "$NUOVA" ]; then
+              echo "Niente cambiato."
+            else
+              RISPOSTA=$(python3 $CARTELLA/processa_ia.py "$NUOVA")
+              ESITO_NUOVA=$?
+              echo "$RISPOSTA"
+              if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then
+                TOLTA=$(python3 ~/info_turno.py cancellascelta "$POS" "$ETICHETTA")
+                grep -m1 -E "🗑️|❌" <<< "$TOLTA"
+                [ $ESITO_NUOVA = 2 ] && ESITO=2
+              else
+                echo "❌ Vendita giusta non capita: quella vecchia resta. Niente cambiato."
+                ESITO=1
+              fi
+            fi ;;
+          *) echo "Niente cancellato." ;;
+        esac
+      fi
+      python3 ~/info_turno.py salva > /dev/null 2>&1
+      (exit $ESITO)   # l'esito lo prende la riga "ESITO=$?" qui sotto
     elif [ "$TIPO_C" = tutto ]; then
       python3 ~/info_turno.py "cancella ultima"
     else

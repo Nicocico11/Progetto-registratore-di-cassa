@@ -21,6 +21,10 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 #!/bin/bash
 # Popup finto: risponde in base al titolo
 case "$*" in
+  *"Quale vendita"*) echo '{"code": -1, "text": "?", "index": 1}' ;;     # 📋 elenco: la seconda dall'alto
+  *"Correggi (riscrivila"*) [ "$(cat ~/elenco)" = correggi ] && echo '{"code": -1, "text": "✏️ Correggi (riscrivila giusta)", "index": 1}' || echo '{"code": -1, "text": "🗑️ Cancella", "index": 0}' ;;
+  *"Vendita giusta al posto"*) echo '{"code": -1, "text": "14 gasolio sul nero"}' ;;
+  *"Cosa cancello"*) [ -f ~/elenco ] && echo '{"code": -1, "text": "📋 Scegli dall elenco", "index": 5}' || echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
   *"Aggiungi al carrello"*) echo '{"code": -1, "text": "📠 Fax (€)", "index": 1}' ;;   # ➕ Aggiungi
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
@@ -38,7 +42,6 @@ case "$*" in
   *"Versamento (€)"*) echo '{"code": -1, "text": "100"}' ;;            # widget 09 Versamento
   *"Banconote di 100"*) echo '{"code": -1, "text": ""}' ;;             # vuoto: le calcola il telefono
   *"Banconote di"*) echo '{"code": -1, "text": "1 da 50"}' ;;
-  *"Cosa cancello"*) echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
   *"Carburante (€)"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Danea delle"*) [ -f ~/annulla ] && echo '{"code": -2, "text": ""}' || echo '{"code": -1, "text": "2 red bull"}' ;;  # tendina
   *"Fax delle"*) echo '{"code": -1, "text": "5"}' ;;
@@ -126,6 +129,20 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "codice detto male"         "lampadina acca sette"                         "Lampadina H7 10.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "codice staccato"           "lampadina h 4"                                "Lampadina H4 9.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+# 📋 Scegli dall'elenco: una vendita vecchia (la seconda dall'alto) cancellata o corretta
+controlla "elenco: vendita 11"        "11 gasolio contanti"                          "Gasolio 11.00"
+controlla "elenco: vendita 12"        "12 gasolio contanti"                          "Gasolio 12.00"
+controlla "elenco: vendita 13"        "13 gasolio contanti"                          "Gasolio 13.00"
+echo cancella > $HOME/elenco
+controlla "elenco: cancella"          "cancella ultima"                              "Cancellata la vendita delle"
+python3 $HOME/info_turno.py elenco | grep -q "12.00€" && { echo "  ERRORE elenco: la 12 c'è ancora"; ERRORI=$((ERRORI+1)); } || echo "  ok   elenco: tolta proprio la 12"
+echo correggi > $HOME/elenco
+controlla "elenco: correggi"          "cancella ultima"                              "Cancellata la vendita delle"
+E=$(python3 $HOME/info_turno.py elenco)
+[[ "$E" != *"11.00€"* && "$E" == *"14.00€ (NER)"* && "$E" == *"13.00€"* ]] && echo "  ok   elenco: 11 corretta in 14 sul nero" || { echo "  ERRORE elenco correggi"; echo "$E"; ERRORI=$((ERRORI+1)); }
+rm -f $HOME/elenco
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "nome quasi giusto"         "2 red bul"                                    "\"red bul\" = red bull"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

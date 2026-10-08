@@ -179,6 +179,10 @@ e gli dai lo stesso importo in contanti)
 • Oppure dillo subito: "cancella ultima danea" / "carburante" / "adblue" / "fax".
   In una vendita mista toglie solo quella parte (es. i red bull, non il gasolio).
 • "cancella penultima": toglie la penultima operazione intera.
+• Vendita vecchia (es. di inizio turno): "cancella ultima" → "📋 Scegli dall'elenco".
+  Compare la lista di tutte le vendite (la più recente in alto): tocca quella sbagliata,
+  poi 🗑️ Cancella oppure ✏️ Correggi (riscrivi la vendita giusta, es. "50 gasolio sul nero":
+  quella giusta va in fondo al turno, quella sbagliata viene tolta).
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
@@ -287,7 +291,8 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 03 AdBlue litri: litri e pagamento
 04 Resoconto: scegli Totali, Ultime vendite (tutte, la più recente in alto),
    Prodotti venduti o Erogazioni AdBlue (finestra)
-05 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
+05 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax,
+   o 📋 una vendita qualsiasi dall'elenco, da cancellare o correggere)
 06 Abbuono o resto: scegli quale e quanti centesimi
 07 Versamento: importo, poi le banconote (come a voce)
 08 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
