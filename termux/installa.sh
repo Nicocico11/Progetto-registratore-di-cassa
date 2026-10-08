@@ -3537,6 +3537,10 @@ def voce_breve(v):
     return nome
 
 
+ICONE_PAGAMENTO = {"Contanti": "💵", "POS nero": "⚫", "POS bianco": "⚪", "POS cassa": "🏪",
+                   "Petrolifere": "💳", "OPT": "🏧"}
+
+
 def notifica_breve(righe):
     vv = vendite(righe)
     if not vv:
@@ -3551,14 +3555,14 @@ def notifica_breve(righe):
     parti = []
     carburanti = sum(v["importo"] for v in vv if v["reparto"] in ("Carburante", "OPT"))   # anche gli OPT
     if carburanti:
-        parti.append(f"CARBURANTI: {carburanti:.2f}€")
+        parti.append(f"⛽ CARBURANTI: {carburanti:.2f}€")
     for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
                            ("Credito cliente", "📒 CREDITI"), ("Credito riscosso", "💰 RISCOSSI")):
         val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
         if val:
             parti.append(f"{icona}: {val:.2f}€")
-    out.append("⛽ " + " | ".join(parti))
-    out.append("💳 " + " | ".join(f"{m}: {val:.2f}€" for m, val in totali_per(vv, "metodo").items()))
+    out.append(" | ".join(parti))
+    out.append(" | ".join(f"{ICONE_PAGAMENTO.get(m, '💳')} {m}: {val:.2f}€" for m, val in totali_per(vv, "metodo").items()))
 
     out.append("────────────────")
     out.append("🔍 Ultime transazioni:")
@@ -11021,4 +11025,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:33"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:34"
