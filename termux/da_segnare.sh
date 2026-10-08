@@ -22,7 +22,7 @@ case "$1" in
     echo "$1 $(date +%H:%M)" >> "$FILE"
     termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso: vibrazione decisa (anche in silenzioso)
     NOME=$([ "$1" = fax ] && echo "📠 Fax" || echo "🛒 Danea")
-    termux-toast -s -g bottom "⏳ $NOME segnato · da segnare: $(conta)" 2>/dev/null
+    flash "⏳ $NOME segnato · da segnare: $(conta)"
     bash "$NOTIFICA"
     ;;
   conta)

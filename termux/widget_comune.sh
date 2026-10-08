@@ -33,7 +33,17 @@ finestra() { termux-dialog confirm -t "$1" -i "$2" > /dev/null 2>&1; }
 # Messaggio breve: lanciato da Tasker lo scrive e basta (lo mostra Tasker, con il suo stile);
 # dal widget di Termux compare in basso
 messaggio() {
-  if [ -n "$SENZA_TERMINALE" ]; then echo "$1"; else termux-toast -g bottom "$1" 2>/dev/null; fi
+  if [ -n "$SENZA_TERMINALE" ]; then echo "$1"; else flash "$1"; fi
+}
+
+# Messaggio a fondo schermo: il flash arrotondato di Tasker (profilo "Flash Cassa", attivato con
+# ~/.cassa_flash_tasker); senza, il messaggio rettangolare di Android
+flash() {
+  if [ -f ~/.cassa_flash_tasker ]; then
+    am broadcast --user 0 -a cassa.FLASH -e testo "$1" > /dev/null 2>&1
+  else
+    termux-toast -s -g bottom "$1" 2>/dev/null
+  fi
 }
 
 # Esito di un comando: solo le righe importanti (✅ ⚠️ ❌ ❓ 🧾 ...), o la prima riga
@@ -52,7 +62,7 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
 
 # Esito dei pulsanti della tendina: messaggio che sparisce da solo; finestra (da chiudere) solo per gli errori
 avviso() {
-  if grep -qE '❌|❓' <<< "$2"; then finestra "$1" "$2"; else termux-toast -s -g bottom "$2" 2>/dev/null; fi
+  if grep -qE '❌|❓' <<< "$2"; then finestra "$1" "$2"; else flash "$2"; fi
 }
 
 annullato() { messaggio "Niente salvato"; casa; }

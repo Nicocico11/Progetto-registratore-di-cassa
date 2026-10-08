@@ -328,6 +328,14 @@ nome e prezzo ("caricabatterie 15"). Viene RICORDATO: la volta dopo il codice è
 (anche dopo un aggiornamento del listino Danea).
 I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
 
+MESSAGGI ARROTONDATI ANCHE DALLA TENDINA (una volta sola)
+I messaggi dei pulsanti della tendina (⏳ Danea, Paga carrello, Segna...) di base sono quelli
+rettangolari di Android. Per avere il flash arrotondato di Tasker:
+1) in Tasker importa il profilo Download → Flash_Cassa.prf.xml (tieni premuto sulla scheda
+   PROFILI → Importa profilo) e lascialo attivo
+2) in Termux scrivi:  touch ~/.cassa_flash_tasker
+Per tornare ai messaggi di Android:  rm ~/.cassa_flash_tasker
+
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml

@@ -345,7 +345,17 @@ finestra() { termux-dialog confirm -t "$1" -i "$2" > /dev/null 2>&1; }
 # Messaggio breve: lanciato da Tasker lo scrive e basta (lo mostra Tasker, con il suo stile);
 # dal widget di Termux compare in basso
 messaggio() {
-  if [ -n "$SENZA_TERMINALE" ]; then echo "$1"; else termux-toast -g bottom "$1" 2>/dev/null; fi
+  if [ -n "$SENZA_TERMINALE" ]; then echo "$1"; else flash "$1"; fi
+}
+
+# Messaggio a fondo schermo: il flash arrotondato di Tasker (profilo "Flash Cassa", attivato con
+# ~/.cassa_flash_tasker); senza, il messaggio rettangolare di Android
+flash() {
+  if [ -f ~/.cassa_flash_tasker ]; then
+    am broadcast --user 0 -a cassa.FLASH -e testo "$1" > /dev/null 2>&1
+  else
+    termux-toast -s -g bottom "$1" 2>/dev/null
+  fi
 }
 
 # Esito di un comando: solo le righe importanti (✅ ⚠️ ❌ ❓ 🧾 ...), o la prima riga
@@ -364,7 +374,7 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
 
 # Esito dei pulsanti della tendina: messaggio che sparisce da solo; finestra (da chiudere) solo per gli errori
 avviso() {
-  if grep -qE '❌|❓' <<< "$2"; then finestra "$1" "$2"; else termux-toast -s -g bottom "$2" 2>/dev/null; fi
+  if grep -qE '❌|❓' <<< "$2"; then finestra "$1" "$2"; else flash "$2"; fi
 }
 
 annullato() { messaggio "Niente salvato"; casa; }
@@ -445,7 +455,7 @@ case "$1" in
     echo "$1 $(date +%H:%M)" >> "$FILE"
     termux-vibrate -f -d 150 > /dev/null 2>&1    # tocco preso: vibrazione decisa (anche in silenzioso)
     NOME=$([ "$1" = fax ] && echo "📠 Fax" || echo "🛒 Danea")
-    termux-toast -s -g bottom "⏳ $NOME segnato · da segnare: $(conta)" 2>/dev/null
+    flash "⏳ $NOME segnato · da segnare: $(conta)"
     bash "$NOTIFICA"
     ;;
   conta)
@@ -9902,6 +9912,53 @@ The &amp;lt;B&amp;gt;exit code&amp;lt;/B&amp;gt; of the command.0 often means su
 	</Task>
 </TaskerData>
 FINE_FILE
+cat > ~/storage/downloads/Flash_Cassa.prf.xml <<'FINE_FILE'
+<TaskerData sr="" dvi="1" tv="6.6.20">
+	<Profile sr="prof12" ve="2">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<flags>8</flags>
+		<id>12</id>
+		<mid0>95</mid0>
+		<nme>Flash Cassa</nme>
+		<Event sr="con0" ve="2">
+			<code>599</code>
+			<pri>0</pri>
+			<Str sr="arg0" ve="3">cassa.FLASH</Str>
+			<Int sr="arg1" val="0"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+		</Event>
+	</Profile>
+	<Task sr="task95">
+		<cdate>1791000000000</cdate>
+		<edate>1791000000000</edate>
+		<id>95</id>
+		<nme>Flash Cassa</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">%testo</Str>
+			<Int sr="arg1" val="0"/>
+			<Str sr="arg10" ve="3"/>
+			<Int sr="arg11" val="1"/>
+			<Int sr="arg12" val="0"/>
+			<Str sr="arg13" ve="3"/>
+			<Int sr="arg14" val="0"/>
+			<Str sr="arg15" ve="3"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Str sr="arg5" ve="3"/>
+			<Str sr="arg6" ve="3"/>
+			<Str sr="arg7" ve="3"/>
+			<Str sr="arg8" ve="3"/>
+			<Int sr="arg9" val="1"/>
+		</Action>
+	</Task>
+</TaskerData>
+FINE_FILE
 cat > ~/storage/downloads/Cassa_Pulsanti.prj.xml <<'FINE_FILE'
 <TaskerData sr="" dvi="1" tv="6.6.20">
 	<Project sr="proj0" ve="2">
@@ -10976,6 +11033,14 @@ nome e prezzo ("caricabatterie 15"). Viene RICORDATO: la volta dopo il codice è
 (anche dopo un aggiornamento del listino Danea).
 I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
 
+MESSAGGI ARROTONDATI ANCHE DALLA TENDINA (una volta sola)
+I messaggi dei pulsanti della tendina (⏳ Danea, Paga carrello, Segna...) di base sono quelli
+rettangolari di Android. Per avere il flash arrotondato di Tasker:
+1) in Tasker importa il profilo Download → Flash_Cassa.prf.xml (tieni premuto sulla scheda
+   PROFILI → Importa profilo) e lascialo attivo
+2) in Termux scrivi:  touch ~/.cassa_flash_tasker
+Per tornare ai messaggi di Android:  rm ~/.cassa_flash_tasker
+
 SENZA VEDERE TERMUX (con Tasker)
 Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
 • In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
@@ -11030,4 +11095,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:40"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 02:49"
