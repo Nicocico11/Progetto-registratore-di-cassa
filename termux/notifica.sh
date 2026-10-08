@@ -1,6 +1,6 @@
 #!/bin/bash
 # Notifica fissa "Stato Turno" nella tendina: solo con il turno aperto.
-# Pulsanti: "+ Danea" e "+ Fax" segnano una vendita da registrare dopo (quando c'è tanta gente),
+# Pulsanti: "⏳ Danea" e "⏳ Fax" segnano una vendita da registrare dopo (quando c'è tanta gente),
 # "Segna" chiede importo e pagamento di quelle rimaste (da_segnare.sh).
 # Con prodotti nel carrello dello scanner: "💳 Paga" e "🗑️ Svuota" (carrello.sh).
 PID_CARRELLO=~/.cassa_carrello.pid
@@ -24,8 +24,8 @@ if [ -n "$CARRELLO" ]; then
   PULSANTI=(--button1 "💳 Paga carrello" --button1-action "bash ~/.termux/tasker/carrello.sh paga"
             --button2 "🗑️ Svuota" --button2-action "bash ~/.termux/tasker/carrello.sh svuota")
 else
-  PULSANTI=(--button1 "🛒 + Danea" --button1-action "bash $SEGNARE danea"
-            --button2 "📠 + Fax" --button2-action "bash $SEGNARE fax")
+  PULSANTI=(--button1 "⏳ Danea" --button1-action "bash $SEGNARE danea"
+            --button2 "⏳ Fax" --button2-action "bash $SEGNARE fax")
 fi
 if [ -n "$DA_SEGNARE" ]; then
   TESTO_NOTIFICA="📝 DA SEGNARE: $DA_SEGNARE"$'\n'"$TESTO_NOTIFICA"

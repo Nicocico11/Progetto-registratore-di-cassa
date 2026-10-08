@@ -1,9 +1,0 @@
-#!/bin/bash
-# Pulsante: stato dell'IA, accensione e spegnimento a mano
-. ~/.termux/tasker/widget_comune.sh
-STATO=$(bash $CASSA "stato ia" | head -1)
-case "$(scegli "$STATO" "Lascia così,Accendi IA,Spegni IA")" in
-  "Accendi IA") esito "$(bash $CASSA "accendi ia")" ;;
-  "Spegni IA")  esito "$(bash $CASSA "spegni ia")" ;;
-esac
-casa

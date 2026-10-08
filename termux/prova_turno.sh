@@ -40,7 +40,7 @@ case "$*" in
   *"Cosa cancello"*) echo '{"code": -1, "text": "Ultima operazione (qualsiasi)", "index": 0}' ;;
   *"Carburante (€)"*) echo '{"code": -1, "text": "45,50"}' ;;     # widget 01 Vendita carburante
   *"Danea delle"*) [ -f ~/annulla ] && echo '{"code": -2, "text": ""}' || echo '{"code": -1, "text": "2 red bull"}' ;;  # tendina
-  *"Fax delle"*) echo '{"code": -1, "text": "1,50"}' ;;
+  *"Fax delle"*) echo '{"code": -1, "text": "5"}' ;;
   *"Codice 12345678"*) echo '{"code": -1, "text": "red bull"}' ;;           # codice sconosciuto: prodotto del listino
   *"Codice 87654321"*) echo '{"code": -1, "text": "caricabatterie 15"}' ;;   # codice sconosciuto: prodotto nuovo
   *"Aggiungo il carrello"*) echo '{"code": 0, "text": "yes"}' ;;           # carburante + carrello
@@ -169,7 +169,7 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "resto da solo"             "resto lasciato 5 centesimi"                   "Resto lasciato dal cliente 0.05"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-bash "$QUI/widget/08 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 08 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
+bash "$QUI/widget/06 Abbuono o resto" > /dev/null 2>&1; grep -q "Abbuono -0.07" $HOME/toast.log && echo "  ok   widget 08 abbuono" || { echo "  ERRORE widget 13"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "negozio con carta = cassa"  "2 red bull carta"                             "POS cassa"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
@@ -185,10 +185,12 @@ controlla "cancella"                  "cancella ultima"                         
 bash "$QUI/widget/03 AdBlue litri" > /dev/null 2>&1; grep -q "AdBlue sfuso 26.00 € - POS nero" $HOME/toast.log && echo "  ok   widget 03 AdBlue litri" || { echo "  ERRORE widget 03"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 [ "$(bash $HOME/.termux/tasker/pulsante.sh "Vendita carburante" 2>/dev/null)" = "✅ Vendita salvata: Carburante 45.50 € - POS nero" ] && echo "  ok   pulsante per nome (Tasker)" || { echo "  ERRORE pulsante per nome"; ERRORI=$((ERRORI+1)); }
-for P in "Totali|💶 Attesi in cassa: .* · Tot:" "Ultime vendite|🔍 Ultima: [0-9:]+ \| 45.50€ \(NER\) CARBURANTE" "Prodotti venduti|🛒 Market: [0-9]+ pezz.* · " "Erogazioni AdBlue|🧪 AdBlue: .* l sfuso · .* tanic" "Stato IA|📊 Tot: .* vendit"; do
+for P in "Totali|💶 Attesi in cassa: .* · Tot:" "Ultime vendite|🔍 Ultima: [0-9:]+ \| 45.50€ \(NER\) CARBURANTE" "Prodotti venduti|🛒 Market: [0-9]+ pezz.* · " "Erogazioni AdBlue|🧪 AdBlue: .* l sfuso · .* tanic" "Resoconto|📊 Tot: .* vendit"; do
   bash $HOME/.termux/tasker/pulsante.sh "${P%%|*}" 2>/dev/null | grep -qE "^${P#*|}" && echo "  ok   finestra ${P%%|*} chiusa: suo riassunto" || { echo "  ERRORE riassunto ${P%%|*}: $(bash $HOME/.termux/tasker/pulsante.sh "${P%%|*}" 2>/dev/null)"; ERRORI=$((ERRORI+1)); }
 done
-# Pulsanti della tendina: "+ Danea" / "+ Fax" quando c'è gente, poi "Segna"
+# Icone di Tasker con i nomi vecchi: portano al pulsante nuovo (qui il riquadro è annullato)
+[ "$(bash $HOME/.termux/tasker/pulsante.sh "Anticipo Cartissima" 2>/dev/null)" = "Niente salvato" ] && echo "  ok   nome vecchio Anticipo Cartissima -> Crediti e anticipi" || { echo "  ERRORE nome vecchio crediti"; ERRORI=$((ERRORI+1)); }
+# Pulsanti della tendina: "⏳ Danea" / "⏳ Fax" quando c'è gente, poi "Segna"
 SEG=$HOME/.termux/tasker/da_segnare.sh
 bash $SEG danea; bash $SEG fax
 tail -12 $HOME/notifiche.log | grep -q "DA SEGNARE: 1 Danea · 1 fax" && tail -1 $HOME/notifiche.log | grep -q "Segna (2)" && echo "  ok   tendina: da segnare 1 Danea e 1 fax" || { echo "  ERRORE tendina da segnare"; tail -1 $HOME/notifiche.log; ERRORI=$((ERRORI+1)); }
@@ -285,7 +287,7 @@ controlla "conta cassa a metà turno"  "conta cassa"                            
 controlla "versamento sbagliato"      "versamento 70"                                "Niente salvato"
 controlla "versamento da cancellare"  "versamento 100"                               "Banconote: 1×100"
 controlla "cancella versamento"       "cancella versamento"                          "Versamento di 100.00 € cancellato"
-: > $HOME/toast.log; bash "$QUI/widget/09 Versamento" > /dev/null 2>&1; grep -q "Versamento registrato: 100.00" $HOME/toast.log && echo "  ok   widget 09 Versamento" || { echo "  ERRORE widget 09 Versamento"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
+: > $HOME/toast.log; bash "$QUI/widget/07 Versamento" > /dev/null 2>&1; grep -q "Versamento registrato: 100.00" $HOME/toast.log && echo "  ok   widget 09 Versamento" || { echo "  ERRORE widget 09 Versamento"; cat $HOME/toast.log; ERRORI=$((ERRORI+1)); }
 controlla "cancella versamento widget" "cancella versamento"                         "Versamento di 100.00 € cancellato"
 controlla "gpl"                       "25 di gpl sul nero"                           "GPL 25.00 € - POS nero"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"

@@ -32,14 +32,14 @@ case "$1" in
       [ -n "$(find "$BLOCCO" -maxdepth 0 -mmin +5 2>/dev/null)" ] && rmdir "$BLOCCO" && mkdir "$BLOCCO" || exit 0
     fi
     trap 'rmdir "$BLOCCO" 2>/dev/null' EXIT
-    [ -s "$FILE" ] || { finestra "📝 Da segnare" "Nessuna vendita da segnare."; exit 0; }
+    [ -s "$FILE" ] || { avviso "📝 Da segnare" "📝 Nessuna vendita da segnare"; exit 0; }
     FATTE=""
     while [ -s "$FILE" ]; do
       read -r TIPO ORA < "$FILE"
       TOT=$(grep -c . "$FILE")
       if [ "$TIPO" = fax ]; then
-        COSA=$(numero "📠 Fax delle $ORA (€) · $TOT da segnare" "1,50")
-        [ -n "$COSA" ] && COSA="fax $COSA euro"
+        COSA=$(numero "📠 Fax delle $ORA: quante copie? · $TOT da segnare" "5")
+        [ -n "$COSA" ] && COSA="$COSA fax"
       else
         COSA=$(testo "🛒 Danea delle $ORA · $TOT da segnare" "2 red bull")
       fi
@@ -63,6 +63,6 @@ case "$1" in
     RESTANO=$(conta)
     [ -n "$RESTANO" ] && FATTE+=$'\n'"📝 Restano da segnare: $RESTANO"
     bash "$NOTIFICA"
-    [ -n "$FATTE" ] && finestra "📝 Vendite segnate" "$FATTE"
+    [ -n "$FATTE" ] && avviso "📝 Vendite segnate" "$FATTE"
     ;;
 esac

@@ -18,7 +18,7 @@ trap 'rmdir "$BLOCCO" 2>/dev/null' EXIT
 case "$1" in
   paga)
     RIEPILOGO=$($C riepilogo)
-    [ -z "$RIEPILOGO" ] && { finestra "🛒 Carrello" "Il carrello è vuoto."; exit 0; }
+    [ -z "$RIEPILOGO" ] && { avviso "🛒 Carrello" "🛒 Il carrello è vuoto"; exit 0; }
     # Codici sconosciuti: "che prodotto è?" (ricordato per le prossime volte); annullato = carrello com'è
     if [[ "$RIEPILOGO" == *"❓"* ]]; then
       $C impara || { bash "$NOTIFICA"; exit 0; }
@@ -40,7 +40,7 @@ case "$1" in
     # Salvata: tolti dal carrello i prodotti venduti. Non capita (es. codice sconosciuto): il carrello resta
     if grep -qE '✅|⚠️ Vendita salvata' <<< "$RISPOSTA"; then $C venduti "$N"; fi
     bash "$NOTIFICA"
-    finestra "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
+    avviso "🛒 Carrello" "$(grep -m4 -E '✅|⚠️|❌|❓|🧾' <<< "$RISPOSTA" || head -3 <<< "$RISPOSTA")"
     ;;
   aggiungi)
     # Cose che non si scansionano: carburante, fax, AdBlue sfuso

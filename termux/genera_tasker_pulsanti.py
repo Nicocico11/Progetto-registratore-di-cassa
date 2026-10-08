@@ -84,10 +84,9 @@ def task(tid, nome, argomento):
 pulsanti = sorted(os.path.basename(f) for f in glob.glob(os.path.join(QUI, 'widget', '[0-9][0-9] *')))
 # Nomi corti: sotto le icone della home c'è poco spazio
 CORTI = {'Vendita carburante': 'Carburante', 'Vendita Danea': 'Danea', 'AdBlue litri': 'AdBlue',
-         'Totali': 'Totali', 'Ultime vendite': 'Ultime', 'Cancella ultima': 'Cancella',
-         'Abbuono o resto': 'Centesimi', 'Credito cliente': 'Credito', 'Credito riscosso': 'Riscosso',
-         'Anticipo Cartissima': 'Anticipo', 'Versamento': 'Versamento', 'Conta cassa': 'Conta', 'Prodotti venduti': 'Venduti', 'Erogazioni AdBlue': 'Erogazioni',
-         'Apertura turno': 'Apertura', 'Chiusura turno': 'Chiusura', 'Stato IA': 'IA'}
+         'Resoconto': 'Resoconto', 'Cancella ultima': 'Cancella', 'Abbuono o resto': 'Centesimi',
+         'Versamento': 'Versamento', 'Conta cassa': 'Conta', 'Crediti e anticipi': 'Crediti',
+         'Apertura turno': 'Apertura', 'Chiusura turno': 'Chiusura'}
 # Ogni task chiama il pulsante per NOME (non per numero): se l'ordine cambia, le icone funzionano lo stesso
 voci = [("Cassa", "menu")] + [(CORTI.get(p[3:], p[3:]), p[3:]) for p in pulsanti]
 ids = list(range(301, 301 + len(voci)))

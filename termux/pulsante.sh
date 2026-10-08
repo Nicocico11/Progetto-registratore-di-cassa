@@ -12,6 +12,14 @@ if [ "$QUALE" = menu ]; then
   [ -z "$SCELTA" ] && { echo "Annullato"; exit 0; }
   QUALE="${SCELTA%% *}"
 fi
+# Nomi dei pulsanti di prima (icone di Tasker già sulla home): ora sono dentro Resoconto e Crediti e anticipi
+case "$QUALE" in
+  Totali|"Ultime vendite"|"Prodotti venduti"|"Erogazioni AdBlue")
+    export SCELTA_DIRETTA="$QUALE"; QUALE="Resoconto" ;;
+  "Credito cliente"|"Credito riscosso"|"Anticipo Cartissima")
+    export SCELTA_DIRETTA="$QUALE"; QUALE="Crediti e anticipi" ;;
+  "Stato IA") echo "L'IA non serve più: di' \"stato ia\" se vuoi saperlo"; exit 0 ;;
+esac
 if [[ "$QUALE" =~ ^[0-9][0-9]$ ]]; then
   FILE=$(ls ~/.shortcuts/"$QUALE "* 2>/dev/null | head -1)      # per numero: pulsante.sh 01
 else
@@ -19,17 +27,8 @@ else
 fi
 [ -z "$FILE" ] && { echo "❌ Pulsante $QUALE non trovato: rifai l'installazione"; exit 1; }
 OUT=$(bash "$FILE"); CODICE=$?
-# Un pulsante che non scrive niente (es. chiusa la finestra dei Totali): niente "%stdout" nel messaggio
-# di Tasker, ma un riassunto di quella finestra
-if [ -z "$OUT" ]; then
-  case "$FILE" in
-    *Totali) QUALE=totali ;;
-    *"Ultime vendite") QUALE=elenco ;;
-    *"Prodotti venduti") QUALE=market ;;
-    *"Erogazioni AdBlue") QUALE=adblue ;;
-    *) QUALE="" ;;
-  esac
-  OUT=$(python3 ~/info_turno.py riassunto $QUALE 2>/dev/null)
-fi
+# Un pulsante che non scrive niente: niente "%stdout" nel messaggio di Tasker, ma il riassunto del turno
+# (il Resoconto scrive da solo il riassunto della finestra aperta)
+[ -z "$OUT" ] && OUT=$(python3 ~/info_turno.py riassunto 2>/dev/null)
 echo "${OUT:-OK}"
 exit $CODICE

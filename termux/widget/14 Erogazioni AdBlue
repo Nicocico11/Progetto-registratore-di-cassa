@@ -1,5 +1,0 @@
-#!/bin/bash
-# Pulsante: AdBlue erogato nel turno
-. ~/.termux/tasker/widget_comune.sh
-finestra "🧪 Erogazioni AdBlue" "$(python3 ~/info_turno.py adblue)"
-casa

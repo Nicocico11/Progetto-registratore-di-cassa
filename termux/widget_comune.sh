@@ -50,6 +50,11 @@ casa() {    # torna alla schermata home e chiude il pulsante (da Tasker non serv
   exit 0
 }
 
+# Esito dei pulsanti della tendina: messaggio che sparisce da solo; finestra (da chiudere) solo per gli errori
+avviso() {
+  if grep -qE '❌|❓' <<< "$2"; then finestra "$1" "$2"; else termux-toast -s -g bottom "$2" 2>/dev/null; fi
+}
+
 annullato() { messaggio "Niente salvato"; casa; }
 
 # Pagamento con i riquadri: stampa la frase da aggiungere ("sul nero", "in cassa"...)

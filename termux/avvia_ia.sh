@@ -222,7 +222,7 @@ except Exception:
     fi ;;
   *"totali"*|*"riepilogo"*)
     # In una finestra che resta finché non premi OK (il messaggio a schermo di Tasker è troppo piccolo);
-    # il riepilogo completo è nel pulsante 04 Totali
+    # il riepilogo completo è nel pulsante 04 Resoconto
     RIEPILOGO=$(python3 ~/info_turno.py totali breve)
     nohup termux-dialog confirm -t "📊 Totali del turno" -i "$RIEPILOGO" > /dev/null 2>&1 &
     echo "📊 Totali sullo schermo" ;;

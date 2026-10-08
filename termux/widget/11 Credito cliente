@@ -1,7 +1,0 @@
-#!/bin/bash
-# Pulsante: credito cliente (il cliente prende ora e paga più avanti)
-. ~/.termux/tasker/widget_comune.sh
-NOME=$(testo "📒 Credito: nome" "Rossi"); [ -z "$NOME" ] && annullato
-IMPORTO=$(numero "📒 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
-esito "$(bash $CASSA "credito cliente $NOME $IMPORTO euro")"
-casa

@@ -202,12 +202,12 @@ VERSAMENTI
 5. CONTROLLARE DURANTE IL TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
 • "totali": si apre una finestra con i contanti attesi e i totali dei POS
-  (resta finché non premi OK). Il riepilogo completo è nel pulsante 04 Totali.
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 04 Resoconto.
 • "ultime vendite": le ultime registrazioni.
 • "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
 • "archivio": i turni passati.
-• "CONTA CASSA" (o pulsante 10): FACOLTATIVO, come il riquadro CALCOLO AVANZO CASSA dell'Excel.
+• "CONTA CASSA" (o pulsante 08): FACOLTATIVO, come il riquadro CALCOLO AVANZO CASSA dell'Excel.
   1) banconote nella borsa: "50x2 20x2 10x7 5x13" (oppure "2x50", "2 da 50": va bene in tutti e due gli ordini)
   2) spiccioli del cassetto, in euro: "54,62"
   3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
@@ -282,25 +282,23 @@ si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo
 02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
    "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
 03 AdBlue litri: litri e pagamento
-04 Totali (finestra)
-05 Ultime vendite (finestra): TUTTE le vendite del turno, una riga ciascuna, la più recente in alto
-06 Prodotti venduti (finestra): i prodotti market venduti
-07 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
-08 Abbuono o resto: scegli quale e quanti centesimi
-09 Versamento: importo, poi le banconote (come a voce)
-10 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
-11 Credito cliente · 12 Credito riscosso · 13 Anticipo Cartissima
-14 Erogazioni AdBlue (finestra)
-15 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
-16 Chiusura turno: chiede conferma, poi orario e cassaforte
-17 Stato IA
+04 Resoconto: scegli Totali, Ultime vendite (tutte, la più recente in alto),
+   Prodotti venduti o Erogazioni AdBlue (finestra)
+05 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax)
+06 Abbuono o resto: scegli quale e quanti centesimi
+07 Versamento: importo, poi le banconote (come a voce)
+08 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
+09 Crediti e anticipi: Credito cliente, Credito riscosso o Anticipo Cartissima
+10 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+11 Chiusura turno: chiede conferma, poi orario e cassaforte
+Le icone di Tasker con i nomi di prima (Totali, Credito cliente...) funzionano ancora.
 
 PULSANTI NELLA TENDINA (quando c'è tanta gente)
-Nella notifica del turno ci sono "🛒 + Danea" e "📠 + Fax": ogni tocco segna UNA vendita
+Nella notifica del turno ci sono "⏳ Danea" e "⏳ Fax": ogni tocco segna UNA vendita
 da registrare dopo (solo il tipo e l'ora, niente importo). Il telefono vibra un attimo.
 In cima alla notifica compare "📝 DA SEGNARE: 2 Danea · 1 fax" e il pulsante "📝 Segna (3)".
 Appena c'è tempo tocca "📝 Segna": chiede una vendita alla volta, in ordine
-(Danea: cosa hai venduto; fax: quanti euro) e il pagamento.
+(Danea: cosa hai venduto; fax: quante copie) e il pagamento.
 Se premi Annulla chiede "Scarto questa vendita?": Sì = era un tocco sbagliato, No = la segni dopo.
 Il turno non si chiude finché ci sono vendite da segnare.
 

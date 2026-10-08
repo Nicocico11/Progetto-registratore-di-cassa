@@ -1,5 +1,0 @@
-#!/bin/bash
-# Pulsante: elenco di tutte le vendite del turno, dalla più recente
-. ~/.termux/tasker/widget_comune.sh
-finestra "🔍 Ultime vendite" "$(python3 ~/info_turno.py elenco)"
-casa

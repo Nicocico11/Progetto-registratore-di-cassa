@@ -1,5 +1,0 @@
-#!/bin/bash
-# Pulsante: elenco dei prodotti market venduti nel turno
-. ~/.termux/tasker/widget_comune.sh
-finestra "🛒 Prodotti venduti" "$(python3 ~/info_turno.py market)"
-casa
