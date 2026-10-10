@@ -15,6 +15,7 @@ ALIAS_EXTRA = {
     'ACQUA BOTT 0,500': ['acqua piccola', 'acqua naturale', 'bottiglietta acqua', 'acqua'],
     'ACQUA CONFEZ.1,5 LITRI': ['acqua grande', 'acqua big', 'acqua 1 litro e mezzo'],
     'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'confezione acqua'],
+    'TUC MINI': ['tuc'],
     'COCA COLA BOTT 400': ['coca', 'coca cola', 'cocacola'],
     'FANTA 0,400 CL': ['fanta'],
     'ESTATHE BRICK': ['estathe', 'estate', 'the brick'],

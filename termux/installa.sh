@@ -151,7 +151,17 @@ case "$FRASE" in
   *"correggi"*|*"correggere"*|*"modifica"*)
     # "correggi ultima carta", "correggi penultima 25 euro", "correggi ultima gasolio"
     if [[ "$FRASE" =~ penultim ]]; then QUALE=penultima; else QUALE=ultima; fi
-    python3 $CARTELLA/processa_ia.py --correggi $QUALE "$TESTO"
+    CORREZIONE_DETTA="$TESTO"
+    if [[ "$FRASE" =~ ^[[:space:]]*(correggi|correggere|modifica|modificare)([[:space:]]+(la|l\'|il))?([[:space:]]*(ultim|penultim)[ao])?[[:space:]]*$ ]]; then
+      # Detto solo "correggi ultima": si scrive cosa cambiare
+      COSA=$(chiedi "✏️ Cosa correggo nella $QUALE vendita?" "83,07 · sul nero · gasolio · box acqua")
+      CORREZIONE_DETTA=""; [ -n "$COSA" ] && CORREZIONE_DETTA="correggi $QUALE $COSA"
+    fi
+    if [ -z "$CORREZIONE_DETTA" ]; then
+      echo "Niente cambiato."
+    else
+      python3 $CARTELLA/processa_ia.py --correggi $QUALE "$CORREZIONE_DETTA"
+    fi
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
   *"contatore"*)
@@ -1184,12 +1194,43 @@ def codici_a_barre(testo):
 testo_basso = codici_a_barre(testo_basso)
 
 
+def importo_attaccato(testo):
+    """"8307 cartissima": AutoVoice ha attaccato euro e centesimi (83,07) o sono davvero 8307 €?
+    Un numero di 4 cifre senza punto né virgola, in una frase senza prodotti: si chiede con un riquadro.
+    Annullato = niente salvato. ("1.250" col punto resta 1250; i nomi dei prodotti con numeri non contano.)"""
+    m = re.search(r'(?<![\w.,:-])(\d{4})(?![\w.,:-])', testo)
+    if (not m or int(m.group(1)) < 1000 or m.group(1).endswith('00')         # "1000", "1500": cifra tonda, vera
+            or re.match(r'\s*(?:euro|€)', testo[m.end():]) or testo[:m.start()].rstrip().endswith('€')):
+        return testo                                                          # "1250 euro": detto in euro
+    cifre = m.group(1)
+    # Solo se detto proprio così (non "1.250", non "milleduecento") e non è un numero del nome di un prodotto
+    if (not re.search(r'(?<![\w.,:-])' + cifre + r'(?![\w.,:-])', testo_originale)
+            or any(re.search(r'\b' + cifre + r'\b', a.lower()) for n, p in listino.items() for a in [n] + p.get('alias', []))):
+        return testo
+    centesimi, interi = f"{cifre[:2]},{cifre[2:]} €", f"{cifre} €"
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', f'🔢 "{cifre}": quanto?', '-v', f'{centesimi},{interi}'],
+                           capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        d = {}
+    scelta = d.get('index') if d.get('code') == -1 else None
+    if scelta not in (0, 1):
+        print(f"❌ Importo \"{cifre}\" non scelto. Niente salvato: ridillo con la virgola (es. {centesimi}).")
+        sys.exit(1)
+    valore = f"{cifre[:2]}.{cifre[2:]}" if scelta == 0 else cifre
+    return testo[:m.start()] + valore + testo[m.end():]
+
+
+
 # "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
 from numeri import in_cifre, senza_accenti
+testo_basso = re.sub(r'(?<=\d)\s+eventi\b', ' e venti', testo_basso)                    # "63 eventi" = 63 e venti
 testo_basso = senza_accenti(in_cifre(testo_basso))                                    # "estathé" -> estathe
 # Errori tipici del riconoscimento vocale
 testo_basso = re.sub(r'(?<=\d)\.(?=\d{3}(?!\d))', '', testo_basso)                     # "1.250" = 1250 (migliaia)
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
+testo_basso = re.sub(r'(?<![\w.,])(\d{1,3})-(\d{2})\b', r'\1.\2', testo_basso)          # "70-95" -> 70.95
 # "20 10 di gasolio", "70 07 nero", "83 39": due numeri attaccati, il secondo di 2 cifre = centesimi
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
                      r'\1.\2', testo_basso)
@@ -1248,6 +1289,8 @@ if os.path.exists(prezzi_path):
                 listino[nome] = valore
     except Exception as e:
         print(f"⚠️ Errore lettura prezzi.json: {e}")
+
+testo_basso = importo_attaccato(testo_basso)
 
 
 # ---------- riconoscimento (su un pezzo di frase) ----------
@@ -1756,6 +1799,8 @@ def dividi_in_pezzi(testo):
             uniti.append(p)
 
     # 2) Un pezzo senza prodotto ("con carta", un numero da solo) resta attaccato al vicino
+    #    ...ma non un numero con un nome sconosciuto ("e un tuc"): resta un pezzo a parte, così non si perde
+    #    in silenzio ma compare "Non ho capito"
     pezzi, sospesi = [], []
     for p in uniti:
         # Un importo da solo ("50 e 2 red bull") è un rifornimento, non la quantità del prodotto dopo
@@ -1765,6 +1810,8 @@ def dividi_in_pezzi(testo):
             sospesi = []
         elif pezzi and not re.search(r'\d', p):
             pezzi[-1] += " " + p
+        elif re.search(r'\d', p) and parole_libere(p) and (pezzi or len(uniti) > 1):
+            pezzi.append(p)
         else:
             sospesi.append(p)
     if sospesi:
@@ -1911,9 +1958,20 @@ def correggi(quale):
             and nuovo_importo < 100):
         # "correggi ultima 3" dopo "2 red bull" = 3 red bull (per l'importo: "correggi ultima 3 euro")
         nuova_quantita, nuovo_importo = nuovo_importo, None
-    if not (nuovo_metodo or nuovo_carburante or nuovo_importo or nuova_quantita):
+    # "correggi ultima box acqua": cambia il prodotto del market (uno solo nella vendita, anche se mista)
+    nuovo_prodotto = None
+    market = [v for v in voci if v.get('reparto') == 'Market']
+    parole = parole_libere(re.sub(r'\b(?:correggi\w*|corregg\w*|modific\w*|ultim[ao]|penultim[ao]|la|il|lo|con|in)\b',
+                                  ' ', testo_basso), togli_prodotti=False)
+    if len(market) == 1 and parole and not nuovo_carburante:
+        AMBIGUI.clear()
+        trovato = trova_prodotto_listino(" ".join(parole))
+        AMBIGUI.clear()
+        if trovato and listino[trovato].get('reparto', 'Market') == 'Market' and trovato != market[0].get('prodotto'):
+            nuovo_prodotto = trovato
+    if not (nuovo_metodo or nuovo_carburante or nuovo_importo or nuova_quantita or nuovo_prodotto):
         print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "
-              "\"correggi ultima gasolio\". Niente cambiato.")
+              "\"correggi ultima gasolio\", \"correggi ultima box acqua\". Niente cambiato.")
         sys.exit(1)
     if any(v.get('reparto') == 'Anticipo' for v in voci):
         print("❌ L'anticipo Cartissima non si corregge: \"cancella ultima\" e ridillo. Niente cambiato.")
@@ -1930,6 +1988,11 @@ def correggi(quale):
         print(CARBURANTE_IN_CASSA.replace("ridillo", "correggi").replace("Niente salvato", "Niente cambiato"))
         sys.exit(1)
     for v in voci:
+        if nuovo_prodotto and v is market[0]:
+            v['categoria'] = v['prodotto'] = nuovo_prodotto
+            v['prezzo_unitario'] = float(listino[nuovo_prodotto]['prezzo'])
+            v['importo'] = f"{float(v.get('quantita') or 1) * v['prezzo_unitario']:.2f}"
+            v.pop('danea_a_mano', None)
         if nuovo_metodo:
             v['metodo_pagamento'] = nuovo_metodo
         if nuovo_carburante:
@@ -2548,6 +2611,7 @@ ALIAS_EXTRA = {
     'ACQUA BOTT 0,500': ['acqua piccola', 'acqua naturale', 'bottiglietta acqua', 'acqua'],
     'ACQUA CONFEZ.1,5 LITRI': ['acqua grande', 'acqua big', 'acqua 1 litro e mezzo'],
     'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'confezione acqua'],
+    'TUC MINI': ['tuc'],
     'COCA COLA BOTT 400': ['coca', 'coca cola', 'cocacola'],
     'FANTA 0,400 CL': ['fanta'],
     'ESTATHE BRICK': ['estathe', 'estate', 'the brick'],
@@ -8891,7 +8955,8 @@ cat > ~/.termux/tasker/prezzi_danea.json <<'FINE_FILE'
  "TUC MINI": {
   "prezzo": 1.5,
   "alias": [
-   "tuc mini"
+   "tuc mini",
+   "tuc"
   ],
   "reparto": "Market",
   "unita": "pz",
@@ -11052,9 +11117,14 @@ e gli dai lo stesso importo in contanti)
 • "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
 • "correggi ultima gasolio": cambia il carburante.
+• "correggi ultima box acqua": cambia il prodotto del market (anche in una vendita con il
+  carburante, se il prodotto è uno solo).
+• Detto solo "correggi ultima": compare un riquadro dove scrivi cosa cambiare (83,07 / sul nero…).
 • Al posto di "ultima" puoi dire "penultima". Al posto di "correggi" puoi dire "modifica".
-• Nelle vendite con più cose si può correggere solo il pagamento:
+• Nelle vendite con più cose si possono correggere il pagamento e il prodotto del market:
   per il resto cancellala e ridettala.
+• "8307 cartissima" (euro e centesimi attaccati da AutoVoice): compare il riquadro
+  "8307: quanto?" → 83,07 € oppure 8307 €.
 • Anticipo Cartissima: non si corregge, si cancella e si ridice.
 
 VERSAMENTI
@@ -11270,4 +11340,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 08/10 05:54"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 10/10 05:34"

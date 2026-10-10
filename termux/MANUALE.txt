@@ -187,9 +187,14 @@ e gli dai lo stesso importo in contanti)
 • "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
 • "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
 • "correggi ultima gasolio": cambia il carburante.
+• "correggi ultima box acqua": cambia il prodotto del market (anche in una vendita con il
+  carburante, se il prodotto è uno solo).
+• Detto solo "correggi ultima": compare un riquadro dove scrivi cosa cambiare (83,07 / sul nero…).
 • Al posto di "ultima" puoi dire "penultima". Al posto di "correggi" puoi dire "modifica".
-• Nelle vendite con più cose si può correggere solo il pagamento:
+• Nelle vendite con più cose si possono correggere il pagamento e il prodotto del market:
   per il resto cancellala e ridettala.
+• "8307 cartissima" (euro e centesimi attaccati da AutoVoice): compare il riquadro
+  "8307: quanto?" → 83,07 € oppure 8307 €.
 • Anticipo Cartissima: non si corregge, si cancella e si ridice.
 
 VERSAMENTI

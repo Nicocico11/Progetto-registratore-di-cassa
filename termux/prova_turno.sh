@@ -21,6 +21,8 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 #!/bin/bash
 # Popup finto: risponde in base al titolo
 case "$*" in
+  *": quanto?"*) echo '{"code": -1, "text": "83,07 €", "index": 0}' ;;   # "8307": 83,07
+  *"Cosa correggo"*) echo '{"code": -1, "text": "sul bianco"}' ;;        # "correggi ultima" detto da solo
   *"Quale vendita"*) echo '{"code": -1, "text": "?", "index": 1}' ;;     # 📋 elenco: la seconda dall'alto
   *"Correggi (riscrivila"*) [ "$(cat ~/elenco)" = correggi ] && echo '{"code": -1, "text": "✏️ Correggi (riscrivila giusta)", "index": 1}' || echo '{"code": -1, "text": "🗑️ Cancella", "index": 0}' ;;
   *"Vendita giusta al posto"*) echo '{"code": -1, "text": "14 gasolio sul nero"}' ;;
@@ -131,6 +133,18 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "codice detto male"         "lampadina acca sette"                         "Lampadina H7 10.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "codice staccato"           "lampadina h 4"                                "Lampadina H4 9.00"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+# Frasi capite male da AutoVoice (turno vero del 10/10)
+controlla "70-95 = 70,95"             "70-95 cartissima"                             "Carburante 70.95 € - Petrolifere"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "63 eventi = 63,20"         "63 eventi nero"                               "Carburante 63.20 € - POS nero"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "8307 = 83,07 (riquadro)"   "8307 cartissima"                              "Carburante 83.07 € - Petrolifere"
+controlla "correggi ultima da solo"   "correggi ultima"                              "Carburante 83.07 € - POS bianco"
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
+controlla "nome sconosciuto non perso" "un mars e un tuc"                            "Non ho capito: \"1 tuc\""
+controlla "prodotto: 2 red bull"      "2 red bull contanti"                          "2 × Red Bull"
+controlla "correggi ultima prodotto"  "modifica ultima mars"                         "ora:   2 × Mars 4.00 €"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 # 📋 Scegli dall'elenco: una vendita vecchia (la seconda dall'alto) cancellata o corretta
 controlla "elenco: vendita 11"        "11 gasolio contanti"                          "Gasolio 11.00"
@@ -279,7 +293,7 @@ controlla "cancella (fax)"            "cancella ultima"                         
 controlla "niente adblue sfuso"       "cancella ultima adblue"                       "Nessuna vendita di AdBlue sfuso"
 controlla "20 ore = 20 euro"          "20 ore di gasolio"                            "Gasolio 20.00"
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
-controlla "importo molto alto"        "1990 di gasolio"                              "importo molto alto"
+controlla "importo molto alto"        "1.990 di gasolio"                             "importo molto alto"
 grep -q "mostra --id avviso_cassa.*--sound.*importo molto alto" $HOME/notifiche.log && echo "  ok   notifica con suono per l'avviso" || { echo "  ERRORE notifica avviso"; ERRORI=$((ERRORI+1)); }
 controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "camion 950: normale"       "950 di gasolio sul nero"                      "Gasolio 950.00 € - POS nero"

@@ -4554,7 +4554,8 @@
  "TUC MINI": {
   "prezzo": 1.5,
   "alias": [
-   "tuc mini"
+   "tuc mini",
+   "tuc"
   ],
   "reparto": "Market",
   "unita": "pz",

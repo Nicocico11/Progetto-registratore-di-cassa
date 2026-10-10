@@ -146,7 +146,17 @@ case "$FRASE" in
   *"correggi"*|*"correggere"*|*"modifica"*)
     # "correggi ultima carta", "correggi penultima 25 euro", "correggi ultima gasolio"
     if [[ "$FRASE" =~ penultim ]]; then QUALE=penultima; else QUALE=ultima; fi
-    python3 $CARTELLA/processa_ia.py --correggi $QUALE "$TESTO"
+    CORREZIONE_DETTA="$TESTO"
+    if [[ "$FRASE" =~ ^[[:space:]]*(correggi|correggere|modifica|modificare)([[:space:]]+(la|l\'|il))?([[:space:]]*(ultim|penultim)[ao])?[[:space:]]*$ ]]; then
+      # Detto solo "correggi ultima": si scrive cosa cambiare
+      COSA=$(chiedi "✏️ Cosa correggo nella $QUALE vendita?" "83,07 · sul nero · gasolio · box acqua")
+      CORREZIONE_DETTA=""; [ -n "$COSA" ] && CORREZIONE_DETTA="correggi $QUALE $COSA"
+    fi
+    if [ -z "$CORREZIONE_DETTA" ]; then
+      echo "Niente cambiato."
+    else
+      python3 $CARTELLA/processa_ia.py --correggi $QUALE "$CORREZIONE_DETTA"
+    fi
     ESITO=$?
     python3 ~/info_turno.py salva > /dev/null 2>&1 ;;
   *"contatore"*)
