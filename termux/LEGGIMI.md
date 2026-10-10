@@ -1,0 +1,133 @@
+# Script Termux ottimizzati
+
+| File | Dove va sul telefono |
+|---|---|
+| `avvia_ia.sh` | `~/.termux/tasker/avvia_ia.sh` |
+| `avvia_server.sh` | `~/.termux/tasker/avvia_server.sh` |
+| `processa_ia.py` | `~/.termux/tasker/processa_ia.py` |
+| `info_turno.py` | `~/info_turno.py` |
+| `vibra.sh` | `~/.termux/tasker/vibra.sh` |
+| `stato_ia.sh` | `~/.termux/tasker/stato_ia.sh` (notifica fissa IA con Accendi / Spegni / Aggiorna) |
+| `migra_prezzi.py` | `~/.termux/tasker/` (converte `~/prezzi.json` al nuovo formato) |
+| `Cassa_Vocale.tsk.xml` | Download → da importare in Tasker (Task) |
+| `Continuazione.prf.xml` | Download → da importare in Tasker (Profilo AutoVoice + Task) |
+
+Installazione/aggiornamento (una riga in Termux):
+
+    curl -L -o ~/.termux/tasker/installa.sh https://raw.githubusercontent.com/Nicocico11/Progetto-registratore-di-cassa/claude/cash-register-ai-latency-n0e165/termux/installa.sh && bash ~/.termux/tasker/installa.sh
+
+Flusso: frase → regole veloci (istantaneo) → solo se non bastano, IA con risposta
+limitata a 60 token e forzata in JSON → listino `~/prezzi.json` → `~/transazioni_turno.csv`
+→ notifica aggiornata in sottofondo. I tempi dell'IA vengono scritti in `~/debug_tasker.log`.
+
+`info_turno.py totali` stampa il riepilogo per la chiusura (per pagamento e per prodotto);
+`chiudi turno` archivia e stampa lo stesso riepilogo.
+
+## Comandi vocali (tutto passa da `avvia_ia.sh`)
+
+| Frase | Cosa fa |
+|---|---|
+| apri turno / apertura turno / inizio turno | accende l'IA |
+| apertura turno | registra orario e tipo di turno (Mattina 6-14, Pomeriggio 14-22, Notte 22-6) |
+| chiudi turno / chiusura turno / fine turno [HH MM SS] | popup orario terminale pompe (con secondi, es. 140532), documento in Download/Chiusure_Turno, archivia, spegne l'IA |
+| accendi ia / spegni ia / stato ia | gestione manuale del server IA |
+| correggi ultima / correggi penultima + carta, 25 euro, gasolio… | corregge pagamento, importo o carburante (vendite miste: solo il pagamento) |
+| avanzo 150 | inserisce/corregge l'avanzo cassa del turno precedente |
+| market / danea / negozio | prodotti market venduti, raggruppati con quantità |
+| erogazioni / quanto adblue | elenco erogazioni AdBlue, litri sfuso e taniche |
+| cancella ultima / annulla ultima | elimina l'ultima vendita |
+| cancella penultima | elimina la penultima |
+| totali / riepilogo | prospetto per la chiusura |
+| ultime / ultimi | notifica con le ultime vendite |
+| archivio / storico | turni archiviati |
+| qualsiasi altra frase | vendita |
+
+Vibrazioni: 1 corta = ok · 2 corte = salvata ma da controllare · 1 lunga = errore, niente salvato.
+
+Sicurezza: senza un numero nella frase non viene salvato nulla; se l'IA propone un importo che non è tra i numeri detti, la vendita viene scartata.
+
+## Listino `~/prezzi.json`
+
+    "Red Bull":      {"prezzo": 3.0,  "alias": ["red bull", "redbull"], "reparto": "Market", "unita": "pz"},
+    "AdBlue sfuso":  {"prezzo": 1.3,  "alias": ["adblue", "sfuso"],    "reparto": "AdBlue", "unita": "l"}
+
+"2 red bull" = 2 × prezzo; "adblue 20 litri" = 20 × 1,30; "adblue 13 euro" = importo 13 (10 litri).
+
+## Vendite miste e ricevute
+
+- Una frase può contenere più voci con un solo pagamento: "50 di gasolio, 20 litri di adblue e 2 red bull con carta"
+  → 3 righe con lo stesso numero di transazione; "cancella ultima" le toglie tutte insieme.
+- Pagamenti: Contanti (se non detto), POS bianco ("sul bianco" → D14 PAX bancarie), POS nero ("sul nero" → D12 POS banca),
+  Petrolifere ("petrolifere"/"cartissima" → D9), POS cassa ("in cassa" → scontrini S27:V32, uno per vendita).
+  Solo "carta"/"pos"/"bancomat" → popup "su quale POS?" (annullato = niente salvato).
+- "credito cliente NOME N" → I8:K15 (nome) / L8:L15; "credito riscosso NOME N [pagamento]" → M8:N15 / O8:O15.
+  "anticipo cartissima N" → +N Petrolifere (D9), -N contanti. Widget 08, 09, 10.
+- Caselle finite (telefax, scontrini, litri, crediti): si riparte dalla prima sommando, con avviso.
+- Pagato "in cassa" → notifica "🧾 STAMPARE RICEVUTA" con l'importo della vendita.
+- Centesimi: "20 e 50", "20 euro e 50", "20 virgola 50" → 20,50 €.
+- Fax / fotocopie (lettere di vettura, delivery, CMR): 0,30 € a foglio, sezione a parte nei totali; "5 fax" = 1,50 €.
+
+## Copia di sicurezza del turno
+
+All'apertura nasce `Download/Chiusure_Turno/<data>_<turno>/Documenti/<data>_<turno>.txt` (con `_dati.csv`;
+i due Excel vanno in `<data>_<turno>/Excel/`), riscritto dopo
+ogni vendita o cancellazione e sovrascritto con la versione finale alla chiusura.
+Se il file delle vendite in Termux va perso: comando vocale "ripristina turno".
+
+## Prova automatica
+
+`bash termux/prova_turno.sh` simula un turno completo (apertura, vendite, cancellazioni,
+ripristino, chiusura) senza toccare dati veri. Va eseguita prima di ogni aggiornamento.
+
+## Quadratura cassa
+
+- Apertura: popup "Avanzo cassa turno precedente" (suggerisce l'ultimo conteggio).
+- Chiusura: popup orario terminale e "In cassaforte". I contanti non si chiedono:
+  avanzo + vendite contanti - versamenti = contanti attesi (D34), proposti come avanzo al turno dopo.
+
+## Termux:Widget
+
+`installa.sh` crea in `~/.shortcuts` i pulsanti (cartella `widget/`): Apertura, Chiusura,
+Totali, Prodotti venduti, Erogazioni AdBlue, Ultime vendite, Cancella ultima (con conferma), Stato IA, Credito cliente, Credito riscosso, Anticipo Cartissima, Vendita Danea (prodotto scritto a mano).
+
+## Turno chiuso
+
+Senza turno aperto: le vendite non vengono salvate (messaggio e vibrazione lunga),
+nessuna notifica nella tendina, IA spenta (anche "accendi ia" viene rifiutato).
+I pulsanti della notifica IA scrivono in `~/debug_tasker.log` ("stato_ia spegni"):
+se il pulsante non lascia traccia, Android non lo sta facendo arrivare a Termux.
+
+## Listino Danea
+
+`prezzi_danea.json` è generato da `danea_listino.py` partendo dall'esportazione Prodotti di
+Easyfatt (Categoria, Descrizione, Listino 1 ivato). Per ogni prodotto crea i nomi a voce
+(senza formati e misure; con e senza codici tipo H7). Carburanti esclusi; AdBlue e fax hanno
+reparto e unità propri. Se un nome detto vale per più prodotti con prezzi diversi, la vendita
+viene rifiutata chiedendo il nome completo. `installa.sh` installa il listino solo se è cambiato.
+
+`installa.sh` si genera con `bash termux/genera_installa.sh` (non va modificato a mano).
+
+## File Excel del distributore
+
+`excel_turno.py` compila `modello_turno.xlsx` (il modello "TURNO NUOVO", con protezione del foglio)
+scrivendo solo nelle caselle bianche: data/turno/ora chiusura (I20/I22/I24), DANEA (E2:H29),
+TELEFAX (A21:D25), litri AdBlue sfuso (I17:N18), contatore AdBlue (O20 iniziale,
+O19 = iniziale + litri), taniche (K30 precedenti, K31 = precedenti - vendute), scontrini POS
+registratore (S27:V32, una per vendita "in cassa"), petrolifere (D9), POS nero (D12),
+POS bianco (D14), avanzo precedente (D7) e contanti attesi negli spiccioli cassetto (D34).
+Prepara anche il file del turno successivo (data, turno, D7, O20, K30). Lo stato tra un turno e
+l'altro è in `~/stato_cassa.json`. Comandi: "contatore adblue N", "contatore taniche N",
+"versamento N", "abbuono N centesimi".
+
+## Mail della chiusura
+
+`invia_mail.py` (Gmail, Libero o Outlook, server scelto dal dominio): alla chiusura, in sottofondo, manda i 2 Excel e il riepilogo
+della cartella del turno. Dati di accesso solo sul telefono in `~/.cassa_email.json` (chmod 600, mai su
+GitHub); configurazione con `invia_mail.py configura`, prova con `invia_mail.py prova`. Senza internet la
+cartella va in `~/.cassa_email_coda` e `avvia_ia.sh` riprova a ogni comando.
+
+## Pulsanti senza Termux (Tasker)
+
+`pulsante.sh menu|NN` lancia gli stessi script dei pulsanti (`~/.shortcuts`) con `SENZA_TERMINALE=1`.
+`genera_tasker_pulsanti.py` crea `Cassa_Pulsanti.prj.xml` (progetto Tasker: "Cassa Menu" + un task per
+pulsante, plugin Termux:Tasker in sottofondo, senza attesa del risultato), copiato in Download dall'installazione.

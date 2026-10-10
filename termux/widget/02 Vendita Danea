@@ -1,0 +1,8 @@
+#!/bin/bash
+# Pulsante: vendita market scritta (niente errori di AutoVoice)
+. ~/.termux/tasker/widget_comune.sh
+PRODOTTO=$(testo "🛒 Danea" "2 red bull e 1 mars")
+[ -z "$PRODOTTO" ] && annullato
+PAGATO=$(pagamento "💳 Pagamento di: $PRODOTTO"); [ -z "$PAGATO" ] && annullato
+esito "$(bash $CASSA "$PRODOTTO $PAGATO")"
+casa

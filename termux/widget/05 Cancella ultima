@@ -1,0 +1,5 @@
+#!/bin/bash
+# Pulsante: cancella l'ultima operazione, o l'ultima di un tipo (Danea, carburante, AdBlue, fax)
+. ~/.termux/tasker/widget_comune.sh
+esito "$(bash $CASSA "cancella ultima")"   # compare il riquadro "Cosa cancello?"
+casa

@@ -1,0 +1,5273 @@
+{
+ "DEODORANTE LUXURY 150 ML": {
+  "prezzo": 7.5,
+  "alias": [
+   "deodorante luxury"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ALTRO",
+  "barre": "8053369073088"
+ },
+ "CACIOTTA DELLA LUNIGIANA": {
+  "prezzo": 6.1,
+  "alias": [
+   "caciotta della lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "GILET RIFRANGENTE": {
+  "prezzo": 7.0,
+  "alias": [
+   "gilet rifrangente"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ALTRO",
+  "barre": "5450564042520"
+ },
+ "PANNO SONAX PELLE PLASTICA": {
+  "prezzo": 4.5,
+  "alias": [
+   "panno sonax pelle plastica"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ALTRO",
+  "barre": "4064700415607"
+ },
+ "SET TAPPI PNEUMATICI": {
+  "prezzo": 2.0,
+  "alias": [
+   "set tappi pneumatici"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692024881"
+ },
+ "ADESIVI ITALIA STIKY": {
+  "prezzo": 8.0,
+  "alias": [
+   "adesivi italia stiky"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692150047"
+ },
+ "NUMERI/PAROLE ADESIVI 80X35": {
+  "prezzo": 1.0,
+  "alias": [
+   "numeri parole adesivi",
+   "numeri parole adesivi 80x35"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692079621"
+ },
+ "TANICA CAMION 25 LITRI CON RUBINETTO": {
+  "prezzo": 27.0,
+  "alias": [
+   "tanica camion litri con rubinetto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4847001"
+ },
+ "TANICA ROSSA 5 LITRI": {
+  "prezzo": 6.5,
+  "alias": [
+   "tanica rossa litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8010710001343"
+ },
+ "PRIMO SOCCORSO": {
+  "prezzo": 15.0,
+  "alias": [
+   "primo soccorso"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8034028011139"
+ },
+ "VULCANO ZAMPIRONE": {
+  "prezzo": 2.5,
+  "alias": [
+   "vulcano zampirone"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8008090063488"
+ },
+ "SPONGE 2 IN UNO": {
+  "prezzo": 6.5,
+  "alias": [
+   "sponge in uno"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252418971"
+ },
+ "SPUGNA": {
+  "prezzo": 2.5,
+  "alias": [
+   "spugna"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001003330"
+ },
+ "TUBO 12MT GONFIAGGIO": {
+  "prezzo": 48.0,
+  "alias": [
+   "tubo 12mt gonfiaggio",
+   "tubo gonfiaggio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001008540"
+ },
+ "KIT GONFIAGGIO": {
+  "prezzo": 75.0,
+  "alias": [
+   "kit gonfiaggio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001008533"
+ },
+ "VENTILATORE 24V": {
+  "prezzo": 32.0,
+  "alias": [
+   "ventilatore",
+   "ventilatore 24v"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252299976"
+ },
+ "DISCHI TACHIGRAFO": {
+  "prezzo": 12.0,
+  "alias": [
+   "dischi tachigrafo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4028875001195"
+ },
+ "ATTACCO GPL": {
+  "prezzo": 20.0,
+  "alias": [
+   "attacco gpl"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001004337"
+ },
+ "ADESIVI RIFRANGENTI VELOCITA": {
+  "prezzo": 6.5,
+  "alias": [
+   "adesivi rifrangenti velocita"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION"
+ },
+ "ADESIVO ANGOLO MORTO": {
+  "prezzo": 12.5,
+  "alias": [
+   "adesivo angolo morto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001007314"
+ },
+ "POMMELLO VOLANTE": {
+  "prezzo": 25.0,
+  "alias": [
+   "pommello volante"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692000434"
+ },
+ "TAPPO SERBATOIO": {
+  "prezzo": 18.0,
+  "alias": [
+   "tappo serbatoio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252079806"
+ },
+ "TAPPO ADBLUE": {
+  "prezzo": 12.0,
+  "alias": [
+   "tappo adblue"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978061"
+ },
+ "PISTOLE SOFFIAGGIO": {
+  "prezzo": 14.0,
+  "alias": [
+   "pistole soffiaggio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION"
+ },
+ "LAMPADINA H7": {
+  "prezzo": 10.0,
+  "alias": [
+   "lampadina",
+   "lampadina h7"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4050300925202"
+ },
+ "FUSIBILI": {
+  "prezzo": 2.5,
+  "alias": [
+   "fusibili"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692700846"
+ },
+ "CAVI BATTERIA 35MM": {
+  "prezzo": 59.0,
+  "alias": [
+   "cavi batteria"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252361826"
+ },
+ "CORDA TIRANTE CAMION": {
+  "prezzo": 21.0,
+  "alias": [
+   "corda tirante camion"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "5903991494405"
+ },
+ "CORDA CRICCHETTO ITIS": {
+  "prezzo": 21.0,
+  "alias": [
+   "corda cricchetto itis"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8022698164347"
+ },
+ "CORDA CRIK CAMION": {
+  "prezzo": 19.0,
+  "alias": [
+   "corda crik camion"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "5903839954207"
+ },
+ "TAPPETTO AUTO": {
+  "prezzo": 12.0,
+  "alias": [
+   "tappetto auto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692260111"
+ },
+ "PARASOLE": {
+  "prezzo": 15.0,
+  "alias": [
+   "parasole"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252341934"
+ },
+ "TANICA 10 LT": {
+  "prezzo": 12.0,
+  "alias": [
+   "tanica"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8010710001350"
+ },
+ "TANICA ROSSA 5 LT": {
+  "prezzo": 6.5,
+  "alias": [
+   "tanica rossa"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION"
+ },
+ "VENTILATORE 12 V": {
+  "prezzo": 21.0,
+  "alias": [
+   "ventilatore v"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252722276"
+ },
+ "CARICO SPORGENTE": {
+  "prezzo": 9.5,
+  "alias": [
+   "carico sporgente"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8022593651416"
+ },
+ "CAVO BATTERIA": {
+  "prezzo": 47.0,
+  "alias": [
+   "cavo batteria"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252361819"
+ },
+ "FRIGGITRICE ARIA": {
+  "prezzo": 110.0,
+  "alias": [
+   "friggitrice aria"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION"
+ },
+ "SPAZZOLONE 2,3 METRI": {
+  "prezzo": 45.0,
+  "alias": [
+   "spazzolone metri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252036687"
+ },
+ "CAFFETTIERA CIALDE": {
+  "prezzo": 40.0,
+  "alias": [
+   "caffettiera cialde"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252391557"
+ },
+ "TENDINA CALZA PARASOLE": {
+  "prezzo": 18.0,
+  "alias": [
+   "tendina calza parasole"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8016565048946"
+ },
+ "SECCHIO TONDO RICHIUDIBILE": {
+  "prezzo": 11.0,
+  "alias": [
+   "secchio tondo richiudibile"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252475387"
+ },
+ "SECCHIO QUADRATO": {
+  "prezzo": 11.0,
+  "alias": [
+   "secchio quadrato"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252496191"
+ },
+ "FUSIBILI LAMA": {
+  "prezzo": 4.0,
+  "alias": [
+   "fusibili lama"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252327334"
+ },
+ "PULITORE VALVOLE GPL": {
+  "prezzo": 18.0,
+  "alias": [
+   "pulitore valvole gpl"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8032919011046"
+ },
+ "NASTRO ISOLANTE MEDIO": {
+  "prezzo": 4.5,
+  "alias": [
+   "nastro isolante medio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8001814309572"
+ },
+ "CHIAVE CROCE AUTO": {
+  "prezzo": 15.0,
+  "alias": [
+   "chiave croce auto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252044538"
+ },
+ "FASCETTA PLASTICA NERA": {
+  "prezzo": 12.0,
+  "alias": [
+   "fascetta plastica nera"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252721125"
+ },
+ "SPAZZOLONE FUTURA": {
+  "prezzo": 20.0,
+  "alias": [
+   "spazzolone futura"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692380062"
+ },
+ "ANGLES MORTS": {
+  "prezzo": 4.7,
+  "alias": [
+   "angles morts"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000001008038"
+ },
+ "KIT RIPARA GOMME": {
+  "prezzo": 15.5,
+  "alias": [
+   "kit ripara gomme"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8016565023981"
+ },
+ "GIUBBOTTO DI SICUREZZA": {
+  "prezzo": 7.0,
+  "alias": [
+   "giubbotto di sicurezza"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252007366"
+ },
+ "TENDINE PARASOLE": {
+  "prezzo": 5.0,
+  "alias": [
+   "tendine parasole"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252021348"
+ },
+ "COPRIVOLANTE CAMION": {
+  "prezzo": 20.0,
+  "alias": [
+   "coprivolante camion"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252101873"
+ },
+ "COPRIVOLANTE": {
+  "prezzo": 11.0,
+  "alias": [
+   "coprivolante"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692329863"
+ },
+ "CHAMOIS SPONGE": {
+  "prezzo": 8.0,
+  "alias": [
+   "chamois sponge"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692371527"
+ },
+ "PRO CLEAN ALVEOLAR": {
+  "prezzo": 5.0,
+  "alias": [
+   "pro clean alveolar"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692371633"
+ },
+ "PANNO FIBRA DOUBLE FACE": {
+  "prezzo": 15.0,
+  "alias": [
+   "panno fibra double face"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692371657"
+ },
+ "PANNO ANTIAPPANNANTE": {
+  "prezzo": 3.0,
+  "alias": [
+   "panno antiappannante"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692377048"
+ },
+ "CLEANING CLOTHS": {
+  "prezzo": 7.0,
+  "alias": [
+   "cleaning cloths"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692377130"
+ },
+ "CHAMOIS LEATHER": {
+  "prezzo": 15.0,
+  "alias": [
+   "chamois leather"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692382936"
+ },
+ "DETERGI VETRI": {
+  "prezzo": 5.0,
+  "alias": [
+   "detergi vetri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692384152"
+ },
+ "PLUG IN EVO": {
+  "prezzo": 18.0,
+  "alias": [
+   "plug in evo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692389751"
+ },
+ "SPINOTTO": {
+  "prezzo": 9.0,
+  "alias": [
+   "spinotto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980903"
+ },
+ "MULTI SOCKET": {
+  "prezzo": 19.0,
+  "alias": [
+   "multi socket"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390245"
+ },
+ "DUO 4": {
+  "prezzo": 18.0,
+  "alias": [
+   "duo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390481"
+ },
+ "SWIVEL ADAPTER": {
+  "prezzo": 12.0,
+  "alias": [
+   "swivel adapter"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390528"
+ },
+ "TWIN SCKET": {
+  "prezzo": 12.0,
+  "alias": [
+   "twin scket"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390627"
+ },
+ "DUAL MUFFLER": {
+  "prezzo": 13.0,
+  "alias": [
+   "dual muffler"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692390801"
+ },
+ "CUSCINO DA VIAGGIO MEMORI WAP": {
+  "prezzo": 19.0,
+  "alias": [
+   "cuscino da viaggio memori wap"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692541661"
+ },
+ "TTIE DOWMN 2X250CM": {
+  "prezzo": 12.0,
+  "alias": [
+   "ttie dowmn",
+   "ttie dowmn 2x250cm"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601501"
+ },
+ "TIOE DOWN 500": {
+  "prezzo": 15.0,
+  "alias": [
+   "tioe down"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601594"
+ },
+ "NASTRO TENSORE": {
+  "prezzo": 8.5,
+  "alias": [
+   "nastro tensore"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601624"
+ },
+ "TIE DOWN 500 CM": {
+  "prezzo": 15.0,
+  "alias": [
+   "tie down"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692601617"
+ },
+ "CORDE ELASTICHE 200M": {
+  "prezzo": 11.0,
+  "alias": [
+   "corde elastiche"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692602218"
+ },
+ "DISCO ORARIO": {
+  "prezzo": 1.5,
+  "alias": [
+   "disco orario"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692653500"
+ },
+ "TAPPETO ANTISCIVOLO": {
+  "prezzo": 2.0,
+  "alias": [
+   "tappeto antiscivolo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692654484"
+ },
+ "ASHTRAY": {
+  "prezzo": 13.0,
+  "alias": [
+   "ashtray"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692654613"
+ },
+ "PARASOLE XXL": {
+  "prezzo": 15.0,
+  "alias": [
+   "parasole xxl"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692668436"
+ },
+ "MOLLY FACE TENDINA": {
+  "prezzo": 6.0,
+  "alias": [
+   "molly face tendina"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669082"
+ },
+ "TANICA RUBINETTO 25 LITRI": {
+  "prezzo": 27.0,
+  "alias": [
+   "tanica rubinetto litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669686"
+ },
+ "TANICA PER ALIMENTI 5 LITRI": {
+  "prezzo": 7.0,
+  "alias": [
+   "tanica per alimenti litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669914"
+ },
+ "TANICA PER ALIMENTI LITRI 10": {
+  "prezzo": 11.0,
+  "alias": [
+   "tanica per alimenti litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669921"
+ },
+ "TANICA PER ALIMENTI 15 LITRI": {
+  "prezzo": 18.0,
+  "alias": [
+   "tanica per alimenti litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669938"
+ },
+ "TAN ICA PER ALIMENTI LITRI 20": {
+  "prezzo": 20.0,
+  "alias": [
+   "tan ica per alimenti litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669945"
+ },
+ "TANICA CON RUBINETTO LT 15": {
+  "prezzo": 20.0,
+  "alias": [
+   "tanica con rubinetto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692669976"
+ },
+ "TANICA CON RUBINETTO 10 LITRI": {
+  "prezzo": 20.0,
+  "alias": [
+   "tanica con rubinetto litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "6962642"
+ },
+ "TANICA CO RUBINETTO 20 LITRI": {
+  "prezzo": 24.0,
+  "alias": [
+   "tanica co rubinetto litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692670163"
+ },
+ "EASY CAP": {
+  "prezzo": 9.0,
+  "alias": [
+   "easy cap"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692670255"
+ },
+ "CLIP ADESIVA PER TELEPASS": {
+  "prezzo": 7.0,
+  "alias": [
+   "clip adesiva per telepass"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692699416"
+ },
+ "CLIPS": {
+  "prezzo": 7.0,
+  "alias": [
+   "clips"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692699461"
+ },
+ "ADESIVO TELEPSASS": {
+  "prezzo": 5.0,
+  "alias": [
+   "adesivo telepsass"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692700037"
+ },
+ "BELT STOPPER": {
+  "prezzo": 7.0,
+  "alias": [
+   "belt stopper"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692723883"
+ },
+ "ZITTO 2": {
+  "prezzo": 12.0,
+  "alias": [
+   "zitto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692723975"
+ },
+ "ZITTO": {
+  "prezzo": 8.0,
+  "alias": [
+   "zitto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692723999"
+ },
+ "TRAVEL KIT 3PZ": {
+  "prezzo": 9.0,
+  "alias": [
+   "travel kit",
+   "travel kit 3pz"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692724088"
+ },
+ "NEK SUPPORT": {
+  "prezzo": 6.0,
+  "alias": [
+   "nek support"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692724118"
+ },
+ "FRIGGITRICE ARIA 24 VOLT": {
+  "prezzo": 110.0,
+  "alias": [
+   "friggitrice aria volt"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8711252572345"
+ },
+ "GANCI PER TENDE": {
+  "prezzo": 3.5,
+  "alias": [
+   "ganci per tende"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692970904"
+ },
+ "SCALDAVIVANDE": {
+  "prezzo": 26.0,
+  "alias": [
+   "scaldavivande"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692971413"
+ },
+ "ADAPTOR D3": {
+  "prezzo": 4.5,
+  "alias": [
+   "adaptor",
+   "adaptor d3"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972007"
+ },
+ "RACCORDO RAPIDO D1": {
+  "prezzo": 9.0,
+  "alias": [
+   "raccordo rapido",
+   "raccordo rapido d1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972083"
+ },
+ "RACCORDO RAPIDO D2": {
+  "prezzo": 5.0,
+  "alias": [
+   "raccordo rapido",
+   "raccordo rapido d2"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980057"
+ },
+ "RACCORDO RAPIDO L1": {
+  "prezzo": 8.5,
+  "alias": [
+   "raccordo rapido",
+   "raccordo rapido l1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972106"
+ },
+ "RACCORDO RAPIDO": {
+  "prezzo": 8.0,
+  "alias": [
+   "raccordo rapido"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972120"
+ },
+ "FUEL CAP D-6": {
+  "prezzo": 14.0,
+  "alias": [
+   "fuel cap",
+   "fuel cap d-6"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692977989"
+ },
+ "FUEL CAP D 1": {
+  "prezzo": 14.0,
+  "alias": [
+   "fuel cap d"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978009"
+ },
+ "FUEL CAP D-2": {
+  "prezzo": 8.0,
+  "alias": [
+   "fuel cap",
+   "fuel cap d-2"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978016"
+ },
+ "FUEL CAP D 3": {
+  "prezzo": 15.0,
+  "alias": [
+   "fuel cap d"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978023"
+ },
+ "FUEL CAP D-4": {
+  "prezzo": 12.0,
+  "alias": [
+   "fuel cap",
+   "fuel cap d-4"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978030"
+ },
+ "FUEL CAP D-5": {
+  "prezzo": 12.0,
+  "alias": [
+   "fuel cap",
+   "fuel cap d-5"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978047"
+ },
+ "UREA CAP U1": {
+  "prezzo": 7.0,
+  "alias": [
+   "urea cap",
+   "urea cap u1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978054"
+ },
+ "UREA CAP U3": {
+  "prezzo": 8.5,
+  "alias": [
+   "urea cap",
+   "urea cap u3"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978078"
+ },
+ "UREA CAP U4": {
+  "prezzo": 9.0,
+  "alias": [
+   "urea cap",
+   "urea cap u4"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978085"
+ },
+ "UREA CAP U-5": {
+  "prezzo": 19.0,
+  "alias": [
+   "urea cap",
+   "urea cap u-5"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978092"
+ },
+ "TANICA CON RUBINETTO E PORTASAPONE LT 25": {
+  "prezzo": 25.0,
+  "alias": [
+   "tanica con rubinetto e portasapone"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692978689"
+ },
+ "SKIN COVER": {
+  "prezzo": 15.0,
+  "alias": [
+   "skin cover"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692979174"
+ },
+ "CONNECTOR C4": {
+  "prezzo": 10.0,
+  "alias": [
+   "connector",
+   "connector c4"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692979822"
+ },
+ "CONNECTOR C 5": {
+  "prezzo": 15.0,
+  "alias": [
+   "connector c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692979839"
+ },
+ "RACCORDO RAPIDO T 4": {
+  "prezzo": 5.0,
+  "alias": [
+   "raccordo rapido t"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980040"
+ },
+ "CONNETTORE ARIA T5": {
+  "prezzo": 6.2,
+  "alias": [
+   "connettore aria",
+   "connettore aria t5"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980064"
+ },
+ "MOLTIPLICATORE DI FORZA PER DADI": {
+  "prezzo": 70.0,
+  "alias": [
+   "moltiplicatore di forza per dadi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980415"
+ },
+ "ROTOLINI TACHIGRAFO": {
+  "prezzo": 10.0,
+  "alias": [
+   "rotolini tachigrafo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980460"
+ },
+ "PORTA TARGA RIPETITRICE": {
+  "prezzo": 14.0,
+  "alias": [
+   "porta targa ripetitrice"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980729"
+ },
+ "CONNECTOR T1": {
+  "prezzo": 8.5,
+  "alias": [
+   "connector",
+   "connector t1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980750"
+ },
+ "CONNECTOR C1": {
+  "prezzo": 12.5,
+  "alias": [
+   "connector",
+   "connector c1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980767"
+ },
+ "CONNECTOR C 2": {
+  "prezzo": 14.0,
+  "alias": [
+   "connector c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980774"
+ },
+ "SET PISTOLA GONFIAGGIO": {
+  "prezzo": 29.0,
+  "alias": [
+   "set pistola gonfiaggio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980781"
+ },
+ "CONNETTORE C 3": {
+  "prezzo": 12.0,
+  "alias": [
+   "connettore c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980798"
+ },
+ "CONNECTOR T2": {
+  "prezzo": 18.0,
+  "alias": [
+   "connector",
+   "connector t2"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980811"
+ },
+ "TUBO ARIA": {
+  "prezzo": 14.0,
+  "alias": [
+   "tubo aria"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980866"
+ },
+ "CIGARETTE LIGHTER": {
+  "prezzo": 13.0,
+  "alias": [
+   "cigarette lighter"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980910"
+ },
+ "PISTOLA SOFFIAGGIO ARIA": {
+  "prezzo": 16.0,
+  "alias": [
+   "pistola soffiaggio aria"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692980958"
+ },
+ "DC/CD ADAPTER": {
+  "prezzo": 24.0,
+  "alias": [
+   "dc cd adapter"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692983478"
+ },
+ "ADATTATORE X2 USCITE": {
+  "prezzo": 11.0,
+  "alias": [
+   "adattatore uscite",
+   "adattatore x2 uscite"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692983485"
+ },
+ "LAMPADA P21W": {
+  "prezzo": 5.0,
+  "alias": [
+   "lampada",
+   "lampada p21w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692983645"
+ },
+ "COPRIVOLANTE 46-48": {
+  "prezzo": 20.0,
+  "alias": [
+   "coprivolante"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692988473"
+ },
+ "BENDA RIPARA MMARMITTE": {
+  "prezzo": 5.0,
+  "alias": [
+   "benda ripara mmarmitte"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "5010373046456"
+ },
+ "KAMPADSA H7 OSRAM": {
+  "prezzo": 7.0,
+  "alias": [
+   "kampadsa h7 osram",
+   "kampadsa osram"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "4050300386522"
+ },
+ "RACCORDO RAPIDO T4": {
+  "prezzo": 8.0,
+  "alias": [
+   "raccordo rapido",
+   "raccordo rapido t4"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI AUTO/CAMION",
+  "barre": "8000692972137"
+ },
+ "SUPER ATTAK": {
+  "prezzo": 7.0,
+  "alias": [
+   "super attak"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000776157658"
+ },
+ "SILICONE NERO/TRASPARENTE": {
+  "prezzo": 8.0,
+  "alias": [
+   "silicone nero trasparente"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8016818028213"
+ },
+ "LUCCHETTO 40MM": {
+  "prezzo": 4.0,
+  "alias": [
+   "lucchetto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252793887"
+ },
+ "LUCCHETTO 50MM": {
+  "prezzo": 5.5,
+  "alias": [
+   "lucchetto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE"
+ },
+ "LUCCHETTO 30 MM": {
+  "prezzo": 3.5,
+  "alias": [
+   "lucchetto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252487335"
+ },
+ "LUCCHETTO BLACK+DEKER 70MM": {
+  "prezzo": 25.0,
+  "alias": [
+   "lucchetto black+deker"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252231891"
+ },
+ "LUCCHETTO BLACK DEKER 40MM": {
+  "prezzo": 14.0,
+  "alias": [
+   "lucchetto black deker"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252232171"
+ },
+ "MULTI TOOLS": {
+  "prezzo": 8.0,
+  "alias": [
+   "multi tools"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692661246"
+ },
+ "MULTI PLIER": {
+  "prezzo": 12.0,
+  "alias": [
+   "multi plier"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692661239"
+ },
+ "ACCENDIGAS": {
+  "prezzo": 4.0,
+  "alias": [
+   "accendigas"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE"
+ },
+ "PLUVIO MANTELLO": {
+  "prezzo": 25.0,
+  "alias": [
+   "pluvio mantello"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "5450564030350"
+ },
+ "FORNELLO KOK": {
+  "prezzo": 21.0,
+  "alias": [
+   "fornello kok"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "6934589406509"
+ },
+ "FOTNELLO KOK 150": {
+  "prezzo": 37.0,
+  "alias": [
+   "fotnello kok"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "6934589408602"
+ },
+ "PONCHO PER ADULTI": {
+  "prezzo": 7.5,
+  "alias": [
+   "poncho per adulti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252911984"
+ },
+ "ATOMIC GAS 60ML": {
+  "prezzo": 4.5,
+  "alias": [
+   "atomic gas"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "4014663158936"
+ },
+ "LETTERE ADESIVE": {
+  "prezzo": 1.0,
+  "alias": [
+   "lettere adesive"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE"
+ },
+ "NASTRO TRASPARENTE": {
+  "prezzo": 4.5,
+  "alias": [
+   "nastro trasparente"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8001814169176"
+ },
+ "NASTRO TELATO": {
+  "prezzo": 15.0,
+  "alias": [
+   "nastro telato"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8001814000165"
+ },
+ "CARTA ASSORBENTE": {
+  "prezzo": 12.0,
+  "alias": [
+   "carta assorbente"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8001512900255"
+ },
+ "5 PANNI FIBRE": {
+  "prezzo": 5.0,
+  "alias": [
+   "panni fibre"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8711252563237"
+ },
+ "LAMPADINA P21W": {
+  "prezzo": 9.5,
+  "alias": [
+   "lampadina",
+   "lampadina p21w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983669"
+ },
+ "CACCIAVITE TAGLIO": {
+  "prezzo": 3.0,
+  "alias": [
+   "cacciavite taglio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595237"
+ },
+ "CACCIAVITE": {
+  "prezzo": 3.0,
+  "alias": [
+   "cacciavite"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692595282"
+ },
+ "CACCIAVITE CROCE": {
+  "prezzo": 3.0,
+  "alias": [
+   "cacciavite croce"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692595305"
+ },
+ "FORBICI 140MM": {
+  "prezzo": 7.0,
+  "alias": [
+   "forbici"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "8000692660065"
+ },
+ "ACCENDINI PICCOLI BIC": {
+  "prezzo": 1.5,
+  "alias": [
+   "accendini piccoli bic"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "070330600072"
+ },
+ "ACCENDINO GRANDE BIC": {
+  "prezzo": 2.0,
+  "alias": [
+   "accendino grande bic"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "ACCESSORI FAI DA TE",
+  "barre": "070330600065"
+ },
+ "AdBlue sfuso": {
+  "prezzo": 1.3,
+  "alias": [
+   "adblue",
+   "ad blue",
+   "adblue sfuso",
+   "sfuso"
+  ],
+  "reparto": "AdBlue",
+  "unita": "l",
+  "danea": "ADBLUE SFUSO"
+ },
+ "AdBlue tanica": {
+  "prezzo": 26.0,
+  "alias": [
+   "tanica adblue",
+   "taniche adblue",
+   "adblue tanica",
+   "adblue taniche",
+   "tanica di adblue",
+   "taniche di adblue"
+  ],
+  "reparto": "AdBlue",
+  "unita": "pz",
+  "danea": "TANICA ADBLUE",
+  "barre": "8000899721088"
+ },
+ "BIRRA HEINEKEN 33 CL": {
+  "prezzo": 3.5,
+  "alias": [
+   "birra heineken"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "8006890627015"
+ },
+ "BIRRA MORETTI 66 CL": {
+  "prezzo": 4.0,
+  "alias": [
+   "birra moretti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "8001435500013"
+ },
+ "SUCCO DI FRUTTA YOGA": {
+  "prezzo": 2.5,
+  "alias": [
+   "succo di frutta yoga"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "8001440136986"
+ },
+ "COCA COLA BOTT 400": {
+  "prezzo": 3.0,
+  "alias": [
+   "coca",
+   "coca cola",
+   "cocacola"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "42105220"
+ },
+ "ESTATHE BRICK": {
+  "prezzo": 1.5,
+  "alias": [
+   "estate",
+   "estathe",
+   "the brick"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "80050803"
+ },
+ "ESTA THE LIMONE PESCA": {
+  "prezzo": 3.0,
+  "alias": [
+   "esta the limone pesca",
+   "estathe bottiglia",
+   "the limone",
+   "the pesca"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "8001440137037"
+ },
+ "BOX 6 BOTTIGLIE ACQUA": {
+  "prezzo": 5.5,
+  "alias": [
+   "box acqua",
+   "box bottiglie acqua",
+   "confezione acqua"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "04847100"
+ },
+ "ICHNUSA METODO LENTO": {
+  "prezzo": 3.5,
+  "alias": [
+   "ichnusa metodo lento"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE"
+ },
+ "RED BULL": {
+  "prezzo": 3.0,
+  "alias": [
+   "red bull",
+   "redbull"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "90435874"
+ },
+ "FANTA 0,400 CL": {
+  "prezzo": 3.0,
+  "alias": [
+   "fanta"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "54032354"
+ },
+ "ACQUA CONFEZ.1,5 LITRI": {
+  "prezzo": 2.5,
+  "alias": [
+   "acqua 1 litro e mezzo",
+   "acqua big",
+   "acqua confez.1,5 litri",
+   "acqua grande",
+   "acqua litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "8002495512343"
+ },
+ "ACQUA BOTT 0,500": {
+  "prezzo": 1.5,
+  "alias": [
+   "acqua",
+   "acqua naturale",
+   "acqua piccola",
+   "bottiglietta acqua"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "BEVANDE",
+  "barre": "80097402"
+ },
+ "RICOLA": {
+  "prezzo": 3.0,
+  "alias": [
+   "ricola"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "7610700901021"
+ },
+ "FISHERMANS FRIEND": {
+  "prezzo": 3.0,
+  "alias": [
+   "fishermans friend"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "50819218"
+ },
+ "HALLS": {
+  "prezzo": 1.0,
+  "alias": [
+   "halls"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80000327"
+ },
+ "PECTOL": {
+  "prezzo": 1.0,
+  "alias": [
+   "pectol"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "84115942"
+ },
+ "CARAMELLE MARY GIO": {
+  "prezzo": 3.0,
+  "alias": [
+   "caramelle mary gio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "1002001"
+ },
+ "VIGORSOL": {
+  "prezzo": 3.0,
+  "alias": [
+   "vigorsol"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80656074"
+ },
+ "DAYGUM": {
+  "prezzo": 3.0,
+  "alias": [
+   "daygum"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80818793"
+ },
+ "VIVIDENT": {
+  "prezzo": 3.0,
+  "alias": [
+   "vivident"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80593980"
+ },
+ "GOLIA ACTIVE PASTIGLIE": {
+  "prezzo": 3.0,
+  "alias": [
+   "golia active pastiglie"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80737018"
+ },
+ "BARATTI": {
+  "prezzo": 1.5,
+  "alias": [
+   "baratti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "8007692058106"
+ },
+ "VIOLETTE": {
+  "prezzo": 3.5,
+  "alias": [
+   "violette"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "V379SH"
+ },
+ "HAPPYDENT": {
+  "prezzo": 3.0,
+  "alias": [
+   "happydent"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80695929"
+ },
+ "TIC TAC": {
+  "prezzo": 2.0,
+  "alias": [
+   "tic tac"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80052043"
+ },
+ "TIC TAC TWO": {
+  "prezzo": 2.2,
+  "alias": [
+   "tic tac two"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "80785385"
+ },
+ "KORDOEAN LIQUIRIZIA": {
+  "prezzo": 3.0,
+  "alias": [
+   "kordoean liquirizia"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "V379KB"
+ },
+ "VICKS RESPIRO VIVO": {
+  "prezzo": 2.5,
+  "alias": [
+   "vicks respiro vivo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "8006530442787"
+ },
+ "LEONE PASTIGLIE VESPA": {
+  "prezzo": 3.5,
+  "alias": [
+   "leone pastiglie vespa"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "8005028137525"
+ },
+ "LEONE PASTIGLIE C'ERA UNA VOLTA": {
+  "prezzo": 3.5,
+  "alias": [
+   "leone pastiglie c'era una volta"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "8005028117015"
+ },
+ "PASTIGLIE LEONE": {
+  "prezzo": 3.5,
+  "alias": [
+   "pastiglie leone"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CARAMELLE",
+  "barre": "8005028136665"
+ },
+ "AREXONS ADDITTIVO/ INIETTORI/COMMON RAIL": {
+  "prezzo": 12.0,
+  "alias": [
+   "arexons addittivo iniettori common rail"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565096544"
+ },
+ "AREXONS ADDITTIVO ANTIGELO -20": {
+  "prezzo": 11.0,
+  "alias": [
+   "arexons addittivo antigelo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565096506"
+ },
+ "AREXONS TRATTAMENTO FAP/DPF": {
+  "prezzo": 14.0,
+  "alias": [
+   "arexons trattamento fap dpf"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565098005"
+ },
+ "RHUTTEN PULITORE INIETTORI": {
+  "prezzo": 9.5,
+  "alias": [
+   "rhutten pulitore iniettori"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565034840"
+ },
+ "DISISCROSTANTE RADIATORI": {
+  "prezzo": 5.5,
+  "alias": [
+   "disiscrostante radiatori"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8013099008033"
+ },
+ "DEGHIACCIANTE SPRAY": {
+  "prezzo": 5.0,
+  "alias": [
+   "deghiacciante spray"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "5010373046838"
+ },
+ "ADDITIVO D+ MOTORE DIESEL": {
+  "prezzo": 11.0,
+  "alias": [
+   "additivo d+ motore diesel"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI"
+ },
+ "ADDITIVO PER ADBLUE": {
+  "prezzo": 9.0,
+  "alias": [
+   "additivo per adblue"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8032919013002"
+ },
+ "RAIN OF VISIERA": {
+  "prezzo": 5.0,
+  "alias": [
+   "rain of visiera"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565085654"
+ },
+ "GONFIA E RIPARA": {
+  "prezzo": 8.5,
+  "alias": [
+   "gonfia e ripara"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8015353003563"
+ },
+ "GRASSO SPRY": {
+  "prezzo": 6.0,
+  "alias": [
+   "grasso spry"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8015353003198"
+ },
+ "RHUTTEN PASTA ABRASIVA": {
+  "prezzo": 7.0,
+  "alias": [
+   "rhutten pasta abrasiva"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565001712"
+ },
+ "AREXONS CERA": {
+  "prezzo": 13.0,
+  "alias": [
+   "arexons cera"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565082707"
+ },
+ "RHUTTEN POLISH V10": {
+  "prezzo": 9.5,
+  "alias": [
+   "rhutten polish",
+   "rhutten polish v10"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565001729"
+ },
+ "AREXONS RIMUOVI GRAFFI": {
+  "prezzo": 6.0,
+  "alias": [
+   "arexons rimuovi graffi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565082509"
+ },
+ "RHUTTEN ACQUA BLU WC": {
+  "prezzo": 8.5,
+  "alias": [
+   "rhutten acqua blu wc"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565039203"
+ },
+ "VETROX LIQUIDO VETRI": {
+  "prezzo": 3.5,
+  "alias": [
+   "vetrox liquido vetri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8007596001628"
+ },
+ "RHUTTEN LAVAVETRO 1 LITRO": {
+  "prezzo": 3.5,
+  "alias": [
+   "rhutten lavavetro litro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565014606"
+ },
+ "LAVAVETRO 5 LITRI": {
+  "prezzo": 16.0,
+  "alias": [
+   "lavavetro litri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8007596001642"
+ },
+ "RUTTEN NERO GOMME": {
+  "prezzo": 8.0,
+  "alias": [
+   "rutten nero gomme"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565026388"
+ },
+ "PULITORE CERCHIONI SHELL": {
+  "prezzo": 6.5,
+  "alias": [
+   "pulitore cerchioni shell"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "7317191049163"
+ },
+ "RHUTTEN VETRI AUTO": {
+  "prezzo": 4.5,
+  "alias": [
+   "rhutten vetri auto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565001361"
+ },
+ "RHUTTEN SHAMPOO AUTO": {
+  "prezzo": 6.0,
+  "alias": [
+   "rhutten shampoo auto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565004362"
+ },
+ "AREXONS SHAMPOO CERA": {
+  "prezzo": 11.0,
+  "alias": [
+   "arexons shampoo cera"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8002565083605"
+ },
+ "LUCIDACRUSCOTTO IL PIU": {
+  "prezzo": 8.0,
+  "alias": [
+   "lucidacruscotto il piu"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8015353006007"
+ },
+ "RHUTTEN LUCIDANTE CRUSCOTTO": {
+  "prezzo": 8.0,
+  "alias": [
+   "rhutten lucidante cruscotto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565025800"
+ },
+ "RHUTTEN RAVVIVANTE CRUSCOTTO": {
+  "prezzo": 8.0,
+  "alias": [
+   "rhutten ravvivante cruscotto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8016565013388"
+ },
+ "CLEANING GEL": {
+  "prezzo": 4.0,
+  "alias": [
+   "cleaning gel"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8000692381571"
+ },
+ "LAVAVETRO LAMPA": {
+  "prezzo": 4.0,
+  "alias": [
+   "lavavetro lampa"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8000692380895"
+ },
+ "POWER ONE SGRASSATORE": {
+  "prezzo": 4.5,
+  "alias": [
+   "power one sgrassatore"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "CHIMICI",
+  "barre": "8000692382813"
+ },
+ "ARBRE MAGIQUE": {
+  "prezzo": 2.5,
+  "alias": [
+   "arbre magique"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8001365022906"
+ },
+ "DEKODORANTE POWER AIR": {
+  "prezzo": 4.0,
+  "alias": [
+   "dekodorante power air"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8595600903421"
+ },
+ "AEBRE MAGIUQUE POP": {
+  "prezzo": 4.5,
+  "alias": [
+   "aebre magiuque pop"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8001365290053"
+ },
+ "DEODORANTE DANNY": {
+  "prezzo": 4.5,
+  "alias": [
+   "deodorante danny"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692354070"
+ },
+ "DEODORANTE KING": {
+  "prezzo": 10.0,
+  "alias": [
+   "deodorante king"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692351826"
+ },
+ "RICARICHE DEODORANTE KING": {
+  "prezzo": 3.5,
+  "alias": [
+   "ricariche deodorante king"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692351956"
+ },
+ "DEODORANTE Q8": {
+  "prezzo": 4.0,
+  "alias": [
+   "deodorante",
+   "deodorante q8"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO"
+ },
+ "DEODORANTE FRESH CARD": {
+  "prezzo": 2.5,
+  "alias": [
+   "deodorante fresh card"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "DEODORANTI AUTO",
+  "barre": "8000692353844"
+ },
+ "NASTRO IMBALLAGGI": {
+  "prezzo": 4.5,
+  "alias": [
+   "nastro imballaggi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8001814003906"
+ },
+ "NASTRO TPL BLACK": {
+  "prezzo": 15.0,
+  "alias": [
+   "nastro tpl black"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8001814000226"
+ },
+ "NASTRO TPL SILVER": {
+  "prezzo": 15.0,
+  "alias": [
+   "nastro tpl silver"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE"
+ },
+ "T HANDLE SCREW DRIVERSET": {
+  "prezzo": 28.0,
+  "alias": [
+   "t handle screw driverset"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8711252068305"
+ },
+ "ACCENDIFUOCO": {
+  "prezzo": 4.5,
+  "alias": [
+   "accendifuoco"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8008150112163"
+ },
+ "BOMBOLETTA GAS": {
+  "prezzo": 3.5,
+  "alias": [
+   "bomboletta gas"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8711252213767"
+ },
+ "KIT SERRAGGIO": {
+  "prezzo": 8.5,
+  "alias": [
+   "kit serraggio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8711252040691"
+ },
+ "KINZO FASCETTE 4,8MM 400 MM": {
+  "prezzo": 15.0,
+  "alias": [
+   "kinzo fascette"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8711252721170"
+ },
+ "CORDE ELARSTCHE 150 MM": {
+  "prezzo": 8.5,
+  "alias": [
+   "corde elarstche"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8004068008093"
+ },
+ "CORDE ELASTICHE 100": {
+  "prezzo": 7.5,
+  "alias": [
+   "corde elastiche"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8004068008086"
+ },
+ "CHIAVE 21": {
+  "prezzo": 8.0,
+  "alias": [
+   "chiave"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595114"
+ },
+ "FASCETTE 6PZ": {
+  "prezzo": 6.5,
+  "alias": [
+   "fascette",
+   "fascette 6pz"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8711252041278"
+ },
+ "NASTRO ADESIVO": {
+  "prezzo": 4.5,
+  "alias": [
+   "nastro adesivo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE"
+ },
+ "MIDLAND 4190": {
+  "prezzo": 36.0,
+  "alias": [
+   "midland"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8011869006739"
+ },
+ "STRISCE RIFRANGENTI": {
+  "prezzo": 14.0,
+  "alias": [
+   "strisce rifrangenti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE"
+ },
+ "SCARPE ANTINFORTUNISTICHE OTAVITE": {
+  "prezzo": 48.0,
+  "alias": [
+   "scarpe antinfortunistiche otavite"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "5450564028937"
+ },
+ "SCARPE ANTINFORTUNISTICHE COVERGUARD": {
+  "prezzo": 45.0,
+  "alias": [
+   "scarpe antinfortunistiche coverguard"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "5450564045781"
+ },
+ "PORTACHIAVI ITALIA": {
+  "prezzo": 4.0,
+  "alias": [
+   "portachiavi italia"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8057094080175"
+ },
+ "STATUETTE CARICATURE": {
+  "prezzo": 12.0,
+  "alias": [
+   "statuette caricature"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8057094109593"
+ },
+ "CASCO TESCHIO SALCADANAIO": {
+  "prezzo": 21.0,
+  "alias": [
+   "casco teschio salcadanaio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE"
+ },
+ "TESCHIO": {
+  "prezzo": 21.0,
+  "alias": [
+   "teschio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "4029811451746"
+ },
+ "CHIAVE 10 11 15 17 13": {
+  "prezzo": 5.0,
+  "alias": [
+   "chiave"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595077"
+ },
+ "SET CHIAVI": {
+  "prezzo": 62.0,
+  "alias": [
+   "set chiavi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595015"
+ },
+ "CHIVE 6": {
+  "prezzo": 2.0,
+  "alias": [
+   "chive"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595039"
+ },
+ "SET CACCIAVITI": {
+  "prezzo": 32.0,
+  "alias": [
+   "set cacciaviti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595329"
+ },
+ "PINZA": {
+  "prezzo": 10.0,
+  "alias": [
+   "pinza"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595350"
+ },
+ "CHIAVE PAPPÈAGALLO": {
+  "prezzo": 10.0,
+  "alias": [
+   "chiave pappèagallo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595381"
+ },
+ "PINZA CURVA": {
+  "prezzo": 10.0,
+  "alias": [
+   "pinza curva"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595374"
+ },
+ "CHIVE INGLESE": {
+  "prezzo": 16.0,
+  "alias": [
+   "chive inglese"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692595022"
+ },
+ "CORDE ELASTICHE 80": {
+  "prezzo": 7.5,
+  "alias": [
+   "corde elastiche"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692601914"
+ },
+ "SET CACCIAVITI MICRO": {
+  "prezzo": 6.5,
+  "alias": [
+   "set cacciaviti micro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692659939"
+ },
+ "CUTTERS": {
+  "prezzo": 7.0,
+  "alias": [
+   "cutters"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692659984"
+ },
+ "SET CHIAVI ESAGONALI": {
+  "prezzo": 9.0,
+  "alias": [
+   "set chiavi esagonali"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692660034"
+ },
+ "TORX KEY SET": {
+  "prezzo": 9.0,
+  "alias": [
+   "torx key set"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692660041"
+ },
+ "CHIAVI BRUGOLA": {
+  "prezzo": 9.0,
+  "alias": [
+   "chiavi brugola"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692660515"
+ },
+ "DOUBLE SIDED": {
+  "prezzo": 9.0,
+  "alias": [
+   "double sided"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692700112"
+ },
+ "FASCETTE FERMACAVO": {
+  "prezzo": 10.0,
+  "alias": [
+   "fascette fermacavo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692700181"
+ },
+ "ADHESIVE TAPES": {
+  "prezzo": 15.0,
+  "alias": [
+   "adhesive tapes"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "FAI DA TE",
+  "barre": "8000692700280"
+ },
+ "MR COOKIE": {
+  "prezzo": 2.8,
+  "alias": [
+   "mr cookie"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "GHIACCIOLO": {
+  "prezzo": 1.5,
+  "alias": [
+   "ghiaccioli",
+   "ghiacciolo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "YOGHI": {
+  "prezzo": 2.8,
+  "alias": [
+   "yoghi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "FRAGOLOTTO": {
+  "prezzo": 2.8,
+  "alias": [
+   "fragolotto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "CHANTILLY": {
+  "prezzo": 2.8,
+  "alias": [
+   "chantilly"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "CRUNCHY CARAMEL": {
+  "prezzo": 2.8,
+  "alias": [
+   "crunchy caramel"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "TINORETTI": {
+  "prezzo": 2.9,
+  "alias": [
+   "tinoretti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "LINEA VEGAN": {
+  "prezzo": 2.8,
+  "alias": [
+   "linea vegan"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GELATI"
+ },
+ "GUANTO": {
+  "prezzo": 7.0,
+  "alias": [
+   "guanto"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "GUANTI",
+  "barre": "8032765478598"
+ },
+ "H7 12V55W OSRAM": {
+  "prezzo": 10.0,
+  "alias": [
+   "h7 12v55w osram",
+   "osram"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO"
+ },
+ "OSRAM H7 12V 55W": {
+  "prezzo": 10.0,
+  "alias": [
+   "osram",
+   "osram h7 12v"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO",
+  "barre": "4062172395014"
+ },
+ "LAMPADE H7 BLUE": {
+  "prezzo": 13.0,
+  "alias": [
+   "lampade blue",
+   "lampade h7 blue"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO",
+  "barre": "8000692982877"
+ },
+ "LAMPADINA H4": {
+  "prezzo": 9.0,
+  "alias": [
+   "lampadina",
+   "lampadina h4"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580400"
+ },
+ "LAMPADINA T10": {
+  "prezzo": 13.0,
+  "alias": [
+   "lampadina",
+   "lampadina t10"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983614"
+ },
+ "LAMPADINA LED T10": {
+  "prezzo": 11.0,
+  "alias": [
+   "lampadina led",
+   "lampadina led t10"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692583968"
+ },
+ "LAMPADINA H1": {
+  "prezzo": 7.0,
+  "alias": [
+   "lampadina",
+   "lampadina h1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580103"
+ },
+ "LAMPADINA ALOGENA": {
+  "prezzo": 6.0,
+  "alias": [
+   "lampadina alogena"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580301"
+ },
+ "LAMPADINA H5": {
+  "prezzo": 8.0,
+  "alias": [
+   "lampadina",
+   "lampadina h5"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580509"
+ },
+ "LAMOADINA H7": {
+  "prezzo": 9.5,
+  "alias": [
+   "lamoadina",
+   "lamoadina h7"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580530"
+ },
+ "LAMPADINA P21/5W": {
+  "prezzo": 6.0,
+  "alias": [
+   "lampadina",
+   "lampadina p21"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580622"
+ },
+ "LAMPADINA PY21W": {
+  "prezzo": 3.5,
+  "alias": [
+   "lampadina",
+   "lampadina py21w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580653"
+ },
+ "LAMPADINA MICRO": {
+  "prezzo": 6.0,
+  "alias": [
+   "lampadina micro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692580806"
+ },
+ "LAMPADINA W5W": {
+  "prezzo": 3.5,
+  "alias": [
+   "lampadina",
+   "lampadina w5w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692581056"
+ },
+ "LAMPADA T10": {
+  "prezzo": 12.0,
+  "alias": [
+   "lampada",
+   "lampada t10"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692583951"
+ },
+ "LAMPADA H1": {
+  "prezzo": 7.0,
+  "alias": [
+   "lampada",
+   "lampada h1"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982037"
+ },
+ "LAMPADINA R10W": {
+  "prezzo": 3.0,
+  "alias": [
+   "lampadina",
+   "lampadina r10w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982150"
+ },
+ "LAMPADE 24 5WR5W": {
+  "prezzo": 3.0,
+  "alias": [
+   "lampade",
+   "lampade 5wr5w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982174"
+ },
+ "LAMPADINA SV8 5-8": {
+  "prezzo": 10.0,
+  "alias": [
+   "lampadina",
+   "lampadina sv8"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983584"
+ },
+ "CP LAMPADE   24 21": {
+  "prezzo": 4.0,
+  "alias": [
+   "cp lampade"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982310"
+ },
+ "LAMPADA C5W": {
+  "prezzo": 4.0,
+  "alias": [
+   "lampada",
+   "lampada c5w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982495"
+ },
+ "LAMPADE 260 LUMEN P21W": {
+  "prezzo": 15.0,
+  "alias": [
+   "lampade lumen",
+   "lampade lumen p21w"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983522"
+ },
+ "LAMPADA P21W 25 WHITE": {
+  "prezzo": 12.5,
+  "alias": [
+   "lampada p21w white",
+   "lampada white"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982570"
+ },
+ "LAMPADINE P21W 100WHITE": {
+  "prezzo": 6.0,
+  "alias": [
+   "lampadine",
+   "lampadine p21w 100white"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982594"
+ },
+ "LAMPADA NICRO": {
+  "prezzo": 3.0,
+  "alias": [
+   "lampada nicro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982617"
+ },
+ "LAMPADA T10 WHITE": {
+  "prezzo": 10.0,
+  "alias": [
+   "lampada t10 white",
+   "lampada white"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692982686"
+ },
+ "LAMPSADA 7 LUMEN BLUE": {
+  "prezzo": 3.0,
+  "alias": [
+   "lampsada lumen blue"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LAMPADINE AUTO/CAMION",
+  "barre": "8000692983423"
+ },
+ "ACQUA DISTILLATA": {
+  "prezzo": 3.6,
+  "alias": [
+   "acqua distillata"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8711252088327"
+ },
+ "TURAFALLE RADIIATORI": {
+  "prezzo": 9.5,
+  "alias": [
+   "turafalle radiiatori"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8013099008019"
+ },
+ "LIQUIDO LAVAVETRI Q8 250ML": {
+  "prezzo": 4.0,
+  "alias": [
+   "liquido lavavetri",
+   "liquido lavavetri q8"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8000899001562"
+ },
+ "LIQUIDO RADIATORE  CORA": {
+  "prezzo": 10.0,
+  "alias": [
+   "liquido radiatore cora"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8010718000201"
+ },
+ "LIQUIDO LAVAVETRI PROF 3 LT": {
+  "prezzo": 7.5,
+  "alias": [
+   "liquido lavavetri prof"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LIQUIDI X AUTO",
+  "barre": "8000692380581"
+ },
+ "Q8 FORMULA EXCEL PLUS 5W-40": {
+  "prezzo": 16.5,
+  "alias": [
+   "formula excel plus",
+   "q8 formula excel plus 5w-40"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899148281"
+ },
+ "Q8 FORMULA VX LONG LIFE 5W-30": {
+  "prezzo": 23.0,
+  "alias": [
+   "formula vx long life",
+   "q8 formula vx long life 5w-30"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046372"
+ },
+ "Q8 FORMULA ULTRA 0W-20": {
+  "prezzo": 23.0,
+  "alias": [
+   "formula ultra",
+   "q8 formula ultra 0w-20"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046334"
+ },
+ "Q8 FORMULA V BLUE 0W-20": {
+  "prezzo": 23.0,
+  "alias": [
+   "formula v blue",
+   "q8 formula v blue 0w-20"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046327"
+ },
+ "Q8 ZC 90  CAMBI MANUALI": {
+  "prezzo": 14.0,
+  "alias": [
+   "q8 zc cambi manuali",
+   "zc cambi manuali"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899207339"
+ },
+ "Q8 AUTO 14 AUTOMATIC TRASMISSION FLUID": {
+  "prezzo": 14.5,
+  "alias": [
+   "auto automatic trasmission fluid",
+   "q8 auto automatic trasmission fluid"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899207742"
+ },
+ "LIQUIDO FLUID -38 SHELL": {
+  "prezzo": 9.0,
+  "alias": [
+   "liquido fluid shell"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "5011987028500"
+ },
+ "LIQUIDO RADIATORI RHUTTEN BLU/ROSSO/ROSA": {
+  "prezzo": 10.0,
+  "alias": [
+   "liquido radiatori rhutten blu rosso rosa"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8016565039111"
+ },
+ "DOT 4": {
+  "prezzo": 6.5,
+  "alias": [
+   "dot"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8002565081106"
+ },
+ "RHUTTEN GARDEN OIL": {
+  "prezzo": 28.0,
+  "alias": [
+   "rhutten garden oil"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8016565038725"
+ },
+ "RHUTTEN GARDEN OIL 100 ML": {
+  "prezzo": 4.5,
+  "alias": [
+   "rhutten garden oil"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8016565038695"
+ },
+ "SF5288": {
+  "prezzo": 20.0,
+  "alias": [
+   "sf5288"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI"
+ },
+ "ATF 33 SHELL": {
+  "prezzo": 8.0,
+  "alias": [
+   "atf shell"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI"
+ },
+ "Q8 FORMULA M LONG LIFE 5W40": {
+  "prezzo": 19.5,
+  "alias": [
+   "formula m long life",
+   "q8 formula m long life 5w40"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899046389"
+ },
+ "Q8 FORMULA PRESTIGE V 5W-30": {
+  "prezzo": 20.0,
+  "alias": [
+   "formula prestige v",
+   "q8 formula prestige v 5w-30"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899047751"
+ },
+ "Q8 FORM R LONGLIFE 5W-30": {
+  "prezzo": 22.0,
+  "alias": [
+   "form r longlife",
+   "q8 form r longlife 5w-30"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899047966"
+ },
+ "Q8 FORMULA ADVANCE PLUS 10W-40": {
+  "prezzo": 16.5,
+  "alias": [
+   "formula advance plus",
+   "q8 formula advance plus 10w-40"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899148298"
+ },
+ "Q8 FORMULA SPECIAL FE 0W-20": {
+  "prezzo": 24.5,
+  "alias": [
+   "formula special fe",
+   "q8 formula special fe 0w-20"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899147482"
+ },
+ "Q8 FORMULA PLUS 15W-40": {
+  "prezzo": 15.5,
+  "alias": [
+   "formula plus",
+   "q8 formula plus 15w-40"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "LUBRIFICANTI",
+  "barre": "8000899148328"
+ },
+ "OCCHIALI VISTA ZIPPO": {
+  "prezzo": 9.9,
+  "alias": [
+   "occhiali vista zippo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "OCCHIALI",
+  "barre": "8057717112610"
+ },
+ "OCCHIALI DA SOLE ZIPPO": {
+  "prezzo": 19.9,
+  "alias": [
+   "occhiali da sole zippo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "OCCHIALI",
+  "barre": "8057717118537"
+ },
+ "DURACELL PILA TORCIA": {
+  "prezzo": 6.5,
+  "alias": [
+   "duracell pila torcia"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394019171"
+ },
+ "DURACELL PILA MEZZATORCIA": {
+  "prezzo": 5.7,
+  "alias": [
+   "duracell pila mezzatorcia"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394019089"
+ },
+ "DURACELL MIN ISTILO": {
+  "prezzo": 6.0,
+  "alias": [
+   "duracell min istilo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394160743"
+ },
+ "DURACELL CR2430": {
+  "prezzo": 4.0,
+  "alias": [
+   "duracell",
+   "duracell cr2430"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394030398"
+ },
+ "DURACELL 2016": {
+  "prezzo": 3.5,
+  "alias": [
+   "duracell"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394033948"
+ },
+ "DURACELL 2032": {
+  "prezzo": 7.5,
+  "alias": [
+   "duracell"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394203921"
+ },
+ "DURTACELL 2025": {
+  "prezzo": 7.5,
+  "alias": [
+   "durtacell"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394203907"
+ },
+ "TORCIA ENERGIZER": {
+  "prezzo": 12.0,
+  "alias": [
+   "torcia energizer"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "7638900015096"
+ },
+ "PILE MINISTYLO ENERGIZER": {
+  "prezzo": 1.5,
+  "alias": [
+   "pile ministylo energizer"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "7638900410693"
+ },
+ "DURACELL  PILE STYLO": {
+  "prezzo": 6.0,
+  "alias": [
+   "duracell pile stylo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PILE E TORCE",
+  "barre": "5000394002241"
+ },
+ "SPRAY PEPERONCINO": {
+  "prezzo": 15.0,
+  "alias": [
+   "spray peperoncino"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8000692669556"
+ },
+ "CEROTTI SALVELOX": {
+  "prezzo": 5.0,
+  "alias": [
+   "cerotti salvelox"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE"
+ },
+ "SPIRA PIASTRINE ANTIZANZARE": {
+  "prezzo": 4.5,
+  "alias": [
+   "spira piastrine antizanzare"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8008090044012"
+ },
+ "SCHIUMA DA BARBA GILETTE 400": {
+  "prezzo": 6.0,
+  "alias": [
+   "schiuma da barba gilette"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8700216473460"
+ },
+ "SCHIUMA DA BARBA GILETTE 300": {
+  "prezzo": 4.5,
+  "alias": [
+   "schiuma da barba gilette"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "3014260302733"
+ },
+ "GILETTE RASOIO B 2": {
+  "prezzo": 5.5,
+  "alias": [
+   "gilette rasoio b"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "3014260201753"
+ },
+ "\\RASOIO 20 PEZZI": {
+  "prezzo": 12.0,
+  "alias": [
+   "\\rasoio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE"
+ },
+ "DENTIFRICIO SPAZZOLINO": {
+  "prezzo": 7.5,
+  "alias": [
+   "dentifricio spazzolino"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002140036293"
+ },
+ "DENTIFRICIO ACQUA FRESH": {
+  "prezzo": 3.5,
+  "alias": [
+   "dentifricio acqua fresh"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE"
+ },
+ "DOCCIA SHAMPO VIDAL": {
+  "prezzo": 4.0,
+  "alias": [
+   "doccia shampo vidal"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8008970056067"
+ },
+ "DOCCIASCHIUMA VIDAL": {
+  "prezzo": 3.0,
+  "alias": [
+   "docciaschiuma vidal"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8008970036984"
+ },
+ "SALVIETTE FRESH CLEAN": {
+  "prezzo": 4.5,
+  "alias": [
+   "salviette fresh clean"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002340012509"
+ },
+ "DETERGENTE MANI": {
+  "prezzo": 4.0,
+  "alias": [
+   "detergente mani"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8003693402115"
+ },
+ "SALVIETTA FRIA MILLEUSI": {
+  "prezzo": 3.5,
+  "alias": [
+   "salvietta fria milleusi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8009432019002"
+ },
+ "SALVIETTE FRESH CLEAN BABY": {
+  "prezzo": 6.0,
+  "alias": [
+   "salviette fresh clean baby"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002340008984"
+ },
+ "FAZZOLETTINI 6 PEZZI": {
+  "prezzo": 3.5,
+  "alias": [
+   "fazzolettini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8001512205633"
+ },
+ "VELINE 2 VELI 150": {
+  "prezzo": 4.5,
+  "alias": [
+   "veline veli"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8001512982084"
+ },
+ "OMBRELLO  BLUE DROP": {
+  "prezzo": 7.0,
+  "alias": [
+   "ombrello blue drop"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8013054015328"
+ },
+ "PETTINE": {
+  "prezzo": 7.0,
+  "alias": [
+   "pettine"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8004992461339"
+ },
+ "SPAZZOLA": {
+  "prezzo": 6.0,
+  "alias": [
+   "spazzola"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8711252998305"
+ },
+ "LAMETTE GILETTE": {
+  "prezzo": 5.5,
+  "alias": [
+   "lamette gilette"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE"
+ },
+ "REPELLENTE ZANZARE": {
+  "prezzo": 7.5,
+  "alias": [
+   "repellente zanzare"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002840818144"
+ },
+ "KILLER ZANZARE": {
+  "prezzo": 9.0,
+  "alias": [
+   "killer zanzare"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8683190709063"
+ },
+ "DEO SPRAY MANTOVANI": {
+  "prezzo": 6.0,
+  "alias": [
+   "deo spray mantovani"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8002340008496"
+ },
+ "ASSORBENTI": {
+  "prezzo": 3.0,
+  "alias": [
+   "assorbenti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8001480401600"
+ },
+ "RASOIO BIC LADY": {
+  "prezzo": 3.0,
+  "alias": [
+   "rasoio bic lady"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "3086123493056"
+ },
+ "FAZZOLETTINI": {
+  "prezzo": 2.8,
+  "alias": [
+   "fazzolettini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI IGIENE",
+  "barre": "8005892343695"
+ },
+ "OLIO EVO FERRARI VIVALDI 0,75 LT": {
+  "prezzo": 18.0,
+  "alias": [
+   "olio evo ferrari vivaldi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "OLIO EVO FERRARI VIVALDI 0,500": {
+  "prezzo": 13.5,
+  "alias": [
+   "olio evo ferrari vivaldi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "LIQUORE MIRTILLO-NOCI-FRAGOLA LOMONE": {
+  "prezzo": 14.5,
+  "alias": [
+   "liquore mirtillo-noci-fragola lomone"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "PESTO GENOVESE E ROSSO": {
+  "prezzo": 6.0,
+  "alias": [
+   "pesto genovese e rosso"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8020619000231"
+ },
+ "CONFETTURA GUSTI VARI": {
+  "prezzo": 6.5,
+  "alias": [
+   "confettura gusti vari"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420828"
+ },
+ "MIELE GUSTI VARI GR.400": {
+  "prezzo": 9.0,
+  "alias": [
+   "miele gusti vari",
+   "miele gusti vari gr.400"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421382"
+ },
+ "MIELE DI CASTAGNO PAPPINI KG 1": {
+  "prezzo": 18.0,
+  "alias": [
+   "miele di castagno pappini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "00071"
+ },
+ "MIELE DI ACACIA PAPPINI 1 KG": {
+  "prezzo": 22.0,
+  "alias": [
+   "miele di acacia pappini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "NIELE DI MILLEFIORI PAPPINI 1 KG": {
+  "prezzo": 18.0,
+  "alias": [
+   "niele di millefiori pappini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "RAGU DI LEPRE/CINGHIALE": {
+  "prezzo": 4.5,
+  "alias": [
+   "ragu di lepre cinghiale"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421023"
+ },
+ "SUGO POMODORO E BASILICO": {
+  "prezzo": 3.5,
+  "alias": [
+   "sugo pomodoro e basilico"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420248"
+ },
+ "FARINA DI CASTAGNO 500 GR": {
+  "prezzo": 10.0,
+  "alias": [
+   "farina di castagno"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420156"
+ },
+ "FARINA DI MAIS KG 1": {
+  "prezzo": 8.0,
+  "alias": [
+   "farina di mais"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "FUNGHI PORCINI SOTT OLIO": {
+  "prezzo": 17.0,
+  "alias": [
+   "funghi porcini sott olio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420071"
+ },
+ "FUNGHI PORCINI SOT OLIO": {
+  "prezzo": 18.5,
+  "alias": [
+   "funghi porcini sot olio"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420064"
+ },
+ "FUNGHI SECCHI MISTI": {
+  "prezzo": 7.0,
+  "alias": [
+   "funghi secchi misti"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420217"
+ },
+ "FUNGHI SECCHI PORCINI": {
+  "prezzo": 9.0,
+  "alias": [
+   "funghi secchi porcini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "PASTA ARTIGIANALE TOSCANA GUSTI VARI": {
+  "prezzo": 6.5,
+  "alias": [
+   "pasta artigianale toscana gusti vari"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420675"
+ },
+ "CONDIMENTO SECCO GUSTI VARI": {
+  "prezzo": 4.5,
+  "alias": [
+   "condimento secco gusti vari"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420507"
+ },
+ "VERDURE DEL CONTADINO": {
+  "prezzo": 4.5,
+  "alias": [
+   "verdure del contadino"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8009609007252"
+ },
+ "CARCIOFI A SPICCHI": {
+  "prezzo": 4.5,
+  "alias": [
+   "carciofi a spicchi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420460"
+ },
+ "PEPERONCINO RIPIENO": {
+  "prezzo": 8.0,
+  "alias": [
+   "peperoncino ripieno"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420712"
+ },
+ "TESTAROLO DELLA LUNIGIANA": {
+  "prezzo": 4.7,
+  "alias": [
+   "testarolo della lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8052211060009"
+ },
+ "MIRTILLI SCHIACCIATI": {
+  "prezzo": 6.0,
+  "alias": [
+   "mirtilli schiacciati"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420972"
+ },
+ "PANIGACCI": {
+  "prezzo": 3.5,
+  "alias": [
+   "panigacci"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8055118802000"
+ },
+ "FUNGHI PORCINI 40 GRAMMI": {
+  "prezzo": 11.0,
+  "alias": [
+   "funghi porcini grammi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509420927"
+ },
+ "MIELE DI ACACIA 400 GR": {
+  "prezzo": 11.0,
+  "alias": [
+   "miele di acacia"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI"
+ },
+ "MIELE DI ACACIA 400": {
+  "prezzo": 11.0,
+  "alias": [
+   "miele di acacia"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421498"
+ },
+ "SALSA PICCANTE": {
+  "prezzo": 5.0,
+  "alias": [
+   "salsa piccante"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PRODOTTI TIPICI",
+  "barre": "8033509421214"
+ },
+ "DEODORANTE LUXURY 300 ML": {
+  "prezzo": 14.0,
+  "alias": [
+   "deodorante luxury"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8053369073897"
+ },
+ "DEODORANTE LUXURY ML 150": {
+  "prezzo": 7.5,
+  "alias": [
+   "deodorante luxury"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8053369073187"
+ },
+ "LIQUIDO INSETTICIDA": {
+  "prezzo": 3.5,
+  "alias": [
+   "liquido insetticida"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8008090079151"
+ },
+ "PROFUMO UOMO": {
+  "prezzo": 15.0,
+  "alias": [
+   "profumo uomo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "PROFUMI CASA PERSONA",
+  "barre": "8715658350224"
+ },
+ "COPPA DELLA LUNIGIANA GR 950": {
+  "prezzo": 20.5,
+  "alias": [
+   "coppa della lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "PECORINO": {
+  "prezzo": 18.0,
+  "alias": [
+   "pecorino"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "FILETTO DELLA LUNIGIANA GR 900": {
+  "prezzo": 30.0,
+  "alias": [
+   "filetto della lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "FILETTO DELLA LLUNIGIANA GR 964": {
+  "prezzo": 32.0,
+  "alias": [
+   "filetto della llunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "MORTADELLA DELLA LUNIGIANA GR 610": {
+  "prezzo": 15.0,
+  "alias": [
+   "mortadella della lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "MORTADELLA DELLA LUNIGIANA GR 590": {
+  "prezzo": 13.8,
+  "alias": [
+   "mortadella della lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "SALAME LUNIGIANA GR 450": {
+  "prezzo": 11.3,
+  "alias": [
+   "salame lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "SALAME LUNIGIANA GR": {
+  "prezzo": 10.5,
+  "alias": [
+   "salame lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "SALAME LUNIGIANA GR 460": {
+  "prezzo": 11.5,
+  "alias": [
+   "salame lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "LARDO LUNIGIANA": {
+  "prezzo": 6.0,
+  "alias": [
+   "lardo lunigiana"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "BRESAOLA": {
+  "prezzo": 38.5,
+  "alias": [
+   "bresaola"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SALUMI FORMAGGI"
+ },
+ "Fax / fotocopie": {
+  "prezzo": 0.3,
+  "alias": [
+   "fax",
+   "telefax",
+   "fotocopie",
+   "fotocopia",
+   "copie",
+   "fogli",
+   "foglio",
+   "lettera di vettura",
+   "lettere di vettura",
+   "cmr",
+   "delivery"
+  ],
+  "reparto": "Fax",
+  "unita": "fogli",
+  "danea": "TEFAX"
+ },
+ "TORTINA DI ALICE": {
+  "prezzo": 2.5,
+  "alias": [
+   "tortina di alice"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8019278603280"
+ },
+ "SRTUDIDI FICHI": {
+  "prezzo": 2.5,
+  "alias": [
+   "srtudidi fichi",
+   "strudel",
+   "strudel di fichi"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8029404008445"
+ },
+ "KINDER BUENO": {
+  "prezzo": 2.0,
+  "alias": [
+   "kinder bueno"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "80761761"
+ },
+ "BOUNTY": {
+  "prezzo": 2.0,
+  "alias": [
+   "bounty"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "5000159557771"
+ },
+ "NUTELLA BISCUITS": {
+  "prezzo": 2.0,
+  "alias": [
+   "nutella biscuits"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8000500359358"
+ },
+ "CROCCANTE": {
+  "prezzo": 1.5,
+  "alias": [
+   "croccante"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8013273103530"
+ },
+ "SNIKERS": {
+  "prezzo": 2.0,
+  "alias": [
+   "snickers",
+   "snikers"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "5900951311505"
+ },
+ "KIT KAT CLASSICO": {
+  "prezzo": 2.0,
+  "alias": [
+   "kit kat classico"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "40052410"
+ },
+ "TWIX": {
+  "prezzo": 2.0,
+  "alias": [
+   "twix"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "5900951313592"
+ },
+ "MARS": {
+  "prezzo": 2.0,
+  "alias": [
+   "mars"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "5900951311321"
+ },
+ "LISBONA TOMATIS": {
+  "prezzo": 2.0,
+  "alias": [
+   "lisbona tomatis"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8056479000081"
+ },
+ "KINDER CEREALI": {
+  "prezzo": 1.5,
+  "alias": [
+   "kinder cereali"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "80310266"
+ },
+ "KINDERE CIOCCOLATO": {
+  "prezzo": 2.0,
+  "alias": [
+   "kinder cioccolato",
+   "kindere cioccolato"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "80177609"
+ },
+ "KINDER CRISPY": {
+  "prezzo": 2.2,
+  "alias": [
+   "kinder crispy"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8000500434123"
+ },
+ "NIPPON": {
+  "prezzo": 3.2,
+  "alias": [
+   "nippon"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "4021700900021"
+ },
+ "NUTELLA BREADY": {
+  "prezzo": 2.0,
+  "alias": [
+   "nutella bready"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8000500224281"
+ },
+ "M E MS": {
+  "prezzo": 2.0,
+  "alias": [
+   "emmenems",
+   "m and m",
+   "m e ms",
+   "m&m"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "40111445"
+ },
+ "LION": {
+  "prezzo": 2.0,
+  "alias": [
+   "lion"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "7613038315706"
+ },
+ "BARRETTA FITNESS": {
+  "prezzo": 2.0,
+  "alias": [
+   "barretta fitness"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "3387390320558"
+ },
+ "FERRERO ROCHER": {
+  "prezzo": 2.5,
+  "alias": [
+   "ferrero rocher"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "80050278"
+ },
+ "MINI OREO": {
+  "prezzo": 1.8,
+  "alias": [
+   "mini oreo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "84100429"
+ },
+ "OREO": {
+  "prezzo": 2.4,
+  "alias": [
+   "oreo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "84100733"
+ },
+ "CANESTRELLI": {
+  "prezzo": 3.5,
+  "alias": [
+   "canestrelli"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8029404004324"
+ },
+ "FIOR DI COCCO": {
+  "prezzo": 3.5,
+  "alias": [
+   "fior di cocco"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8029404005932"
+ },
+ "CROSTATA FALCONE": {
+  "prezzo": 1.5,
+  "alias": [
+   "crostata falcone"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK DOLCI",
+  "barre": "8023696006073"
+ },
+ "PAN PIZZA": {
+  "prezzo": 3.0,
+  "alias": [
+   "pan pizza"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8029404005239"
+ },
+ "PAN AJO": {
+  "prezzo": 3.0,
+  "alias": [
+   "pan ajo"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8029404005246"
+ },
+ "BRUSCHETTA": {
+  "prezzo": 2.8,
+  "alias": [
+   "bruschetta"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8029404007202"
+ },
+ "PATATINA AMICA CHIPS": {
+  "prezzo": 2.0,
+  "alias": [
+   "amica chips",
+   "patatina amica chips",
+   "patatine"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8008714000028"
+ },
+ "TUC MINI": {
+  "prezzo": 1.5,
+  "alias": [
+   "tuc mini",
+   "tuc"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8100090000019"
+ },
+ "RITZ MINI": {
+  "prezzo": 1.5,
+  "alias": [
+   "ritz mini"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "7622300791490"
+ },
+ "YONKER": {
+  "prezzo": 1.6,
+  "alias": [
+   "yonker"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "4009267003300"
+ },
+ "CIPSTER": {
+  "prezzo": 1.6,
+  "alias": [
+   "cipster"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8000090600519"
+ },
+ "FONZIES": {
+  "prezzo": 1.6,
+  "alias": [
+   "fonzies"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "4009267003409"
+ },
+ "STIRACCHIE": {
+  "prezzo": 3.0,
+  "alias": [
+   "stiracchie"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "8029404012367"
+ },
+ "PRINGLESS MGUSTI VARI": {
+  "prezzo": 2.5,
+  "alias": [
+   "pringles",
+   "pringless mgusti vari"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SNACK SALATI",
+  "barre": "5053990107384"
+ },
+ "SPAZZOLE Q8": {
+  "prezzo": 15.0,
+  "alias": [
+   "spazzole",
+   "spazzole q8"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SPAZZOLE TERGI",
+  "barre": "8000866110990"
+ },
+ "TERGI ONE FIT": {
+  "prezzo": 13.5,
+  "alias": [
+   "tergi one fit"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SPAZZOLE TERGI",
+  "barre": "8000692192153"
+ },
+ "SPAZZOLA TERGI SKYLON": {
+  "prezzo": 13.5,
+  "alias": [
+   "spazzola tergi skylon"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "SPAZZOLE TERGI",
+  "barre": "8000692193129"
+ },
+ "VOLT BLUETOOTH": {
+  "prezzo": 28.0,
+  "alias": [
+   "volt bluetooth"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387399"
+ },
+ "TYPE C CABLE 1 M": {
+  "prezzo": 8.9,
+  "alias": [
+   "type c cable m"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388082"
+ },
+ "POWER BANK 5000": {
+  "prezzo": 16.0,
+  "alias": [
+   "power bank"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692386774"
+ },
+ "APPLE 8 PIN 1 M": {
+  "prezzo": 8.9,
+  "alias": [
+   "apple pin m"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388075"
+ },
+ "CAVO TYPE C 1 M": {
+  "prezzo": 8.9,
+  "alias": [
+   "cavo type c m"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA"
+ },
+ "EARPHONES APPLE 8 PIN": {
+  "prezzo": 12.0,
+  "alias": [
+   "earphones apple pin"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692386873"
+ },
+ "CAR CHARGER USB C": {
+  "prezzo": 13.0,
+  "alias": [
+   "car charger usb c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692386927"
+ },
+ "APPLE 8 PIN": {
+  "prezzo": 14.0,
+  "alias": [
+   "apple pin"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387016"
+ },
+ "TYPE C SPRING 100 CM": {
+  "prezzo": 7.5,
+  "alias": [
+   "type c spring"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387023"
+ },
+ "LIGHTNING PRO 100 CM IPHOINE IPAD": {
+  "prezzo": 28.0,
+  "alias": [
+   "lightning pro iphoine ipad"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387108"
+ },
+ "TYPE C PRO 100 CM": {
+  "prezzo": 18.0,
+  "alias": [
+   "type c pro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387139"
+ },
+ "TYPE C KIT PRO 100 CM": {
+  "prezzo": 25.0,
+  "alias": [
+   "type c kit pro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387153"
+ },
+ "USB POWER PRO": {
+  "prezzo": 21.0,
+  "alias": [
+   "usb power pro"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387160"
+ },
+ "SION 5,0": {
+  "prezzo": 28.0,
+  "alias": [
+   "sion"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387405"
+ },
+ "EKKO 5,0 BLUETOOTH": {
+  "prezzo": 31.0,
+  "alias": [
+   "ekko bluetooth"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692387412"
+ },
+ "MICRO USB CABLE 1 M": {
+  "prezzo": 7.0,
+  "alias": [
+   "micro usb cable m"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388068"
+ },
+ "CARICATORE DOMESTICO": {
+  "prezzo": 10.0,
+  "alias": [
+   "caricatore domestico"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388105"
+ },
+ "CAVI APPLE 8 PIN 2 METRI": {
+  "prezzo": 9.9,
+  "alias": [
+   "cavi apple pin metri"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388150"
+ },
+ "CAVO TYPE C 2 M": {
+  "prezzo": 9.9,
+  "alias": [
+   "cavo type c m"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388167"
+ },
+ "ROCKET DUAL": {
+  "prezzo": 15.0,
+  "alias": [
+   "rocket dual"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388266"
+ },
+ "UNIVERSAL CONNECTOR APPLE": {
+  "prezzo": 16.0,
+  "alias": [
+   "universal connector apple"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388402"
+ },
+ "UNIVERSAL CONNECTORMICRO USB": {
+  "prezzo": 19.0,
+  "alias": [
+   "universal connectormicro usb"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388419"
+ },
+ "CERBERO": {
+  "prezzo": 29.0,
+  "alias": [
+   "cerbero"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388471"
+ },
+ "APPLE IRON": {
+  "prezzo": 19.5,
+  "alias": [
+   "apple iron"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388563"
+ },
+ "TYPE C IRON 100 CM": {
+  "prezzo": 19.0,
+  "alias": [
+   "type c iron"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388570"
+ },
+ "SPLITTER APPLE": {
+  "prezzo": 25.0,
+  "alias": [
+   "splitter apple"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388594"
+ },
+ "UNIVERSAL 2 USB": {
+  "prezzo": 20.0,
+  "alias": [
+   "universal usb"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388716"
+ },
+ "TYPE C 100 CM": {
+  "prezzo": 16.0,
+  "alias": [
+   "type c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388907"
+ },
+ "TYPE C 200 CM": {
+  "prezzo": 16.0,
+  "alias": [
+   "type c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388914"
+ },
+ "CLIP MULTIPOINT BLUETOOTH": {
+  "prezzo": 46.0,
+  "alias": [
+   "clip multipoint bluetooth"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388969"
+ },
+ "MONO UNIVERSAL": {
+  "prezzo": 10.0,
+  "alias": [
+   "mono universal"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388976"
+ },
+ "PÈHIXIA AUX AUX": {
+  "prezzo": 9.0,
+  "alias": [
+   "pèhixia aux aux"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389003"
+ },
+ "BLUETOOTH CAR KIT": {
+  "prezzo": 35.0,
+  "alias": [
+   "bluetooth car kit"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA"
+ },
+ "DYNAMIC OUTER EARPHONE": {
+  "prezzo": 56.0,
+  "alias": [
+   "dynamic outer earphone"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389171"
+ },
+ "LIGHTNINIG IPHONE IPAD": {
+  "prezzo": 28.0,
+  "alias": [
+   "lightninig iphone ipad"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389201"
+ },
+ "LIGHTNING IPHONE IPAD": {
+  "prezzo": 27.0,
+  "alias": [
+   "lightning iphone ipad"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389300"
+ },
+ "MICRO USB ULTRA SPEED": {
+  "prezzo": 13.0,
+  "alias": [
+   "micro usb ultra speed"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389317"
+ },
+ "KIT LIGHTNING 2 IN 1": {
+  "prezzo": 31.0,
+  "alias": [
+   "kit lightning in"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389379"
+ },
+ "KIT MICRO USB 2 IN 1": {
+  "prezzo": 21.0,
+  "alias": [
+   "kit micro usb in"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692389386"
+ },
+ "CAVO TYPE C": {
+  "prezzo": 12.0,
+  "alias": [
+   "cavo type c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692386842"
+ },
+ "CUFFIE BLUETOOTH": {
+  "prezzo": 20.0,
+  "alias": [
+   "cuffie bluetooth"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692386897"
+ },
+ "AURICOLARI TYPE C": {
+  "prezzo": 14.0,
+  "alias": [
+   "auricolari type c"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692386934"
+ },
+ "TECNO ARM PORTATELEFONO": {
+  "prezzo": 18.0,
+  "alias": [
+   "tecno arm portatelefono"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692724613"
+ },
+ "MAGNETO BASIC": {
+  "prezzo": 13.0,
+  "alias": [
+   "magneto basic"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725252"
+ },
+ "MAGNTO PLUS": {
+  "prezzo": 18.0,
+  "alias": [
+   "magnto plus"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725269"
+ },
+ "SNAP ELEVATOR": {
+  "prezzo": 22.0,
+  "alias": [
+   "snap elevator"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725276"
+ },
+ "ATMOS ELEVATOR PORTATELEFONO": {
+  "prezzo": 28.0,
+  "alias": [
+   "atmos elevator portatelefono"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725283"
+ },
+ "SNAP FIN PORTA TELEFONO": {
+  "prezzo": 25.0,
+  "alias": [
+   "snap fin porta telefono"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725306"
+ },
+ "ATMOS FIN PORTATELEFONO": {
+  "prezzo": 25.0,
+  "alias": [
+   "atmos fin portatelefono"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "-8000692725313"
+ },
+ "VISOR SNAP": {
+  "prezzo": 20.0,
+  "alias": [
+   "visor snap"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725351"
+ },
+ "SUPER GRIP 2,0": {
+  "prezzo": 26.0,
+  "alias": [
+   "super grip"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725382"
+ },
+ "STYCKY EXTRA STRONG": {
+  "prezzo": 5.0,
+  "alias": [
+   "stycky extra strong"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725405"
+ },
+ "GRAVITON BASIC PORTATELEFONO": {
+  "prezzo": 25.0,
+  "alias": [
+   "graviton basic portatelefono"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692725498"
+ },
+ "CAR CARGER  A+A": {
+  "prezzo": 9.9,
+  "alias": [
+   "car carger a+a"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692388112"
+ },
+ "HOMEUSB POWER": {
+  "prezzo": 21.0,
+  "alias": [
+   "homeusb power"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692917985"
+ },
+ "MAG SURFACE": {
+  "prezzo": 20.0,
+  "alias": [
+   "mag surface"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8000692918135"
+ },
+ "SIM ADDATTATORE": {
+  "prezzo": 9.0,
+  "alias": [
+   "sim addattatore"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8058129150016"
+ },
+ "TRVEL MATE": {
+  "prezzo": 28.0,
+  "alias": [
+   "trvel mate"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "TELEFONIA",
+  "barre": "8052132150049"
+ },
+ "VERMENTINO COLLI DI LUNI": {
+  "prezzo": 14.0,
+  "alias": [
+   "vermentino colli di luni"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "VINI",
+  "barre": "8032523503074"
+ },
+ "AUXO COLLI DI LUNI": {
+  "prezzo": 14.0,
+  "alias": [
+   "auxo colli di luni"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "VINI",
+  "barre": "8032523503081"
+ },
+ "CASTAGNINI ROSE": {
+  "prezzo": 12.5,
+  "alias": [
+   "castagnini rose"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "VINI"
+ },
+ "CASTAGNIN IBOLLA": {
+  "prezzo": 12.5,
+  "alias": [
+   "castagnin ibolla"
+  ],
+  "reparto": "Market",
+  "unita": "pz",
+  "categoria": "VINI"
+ }
+}

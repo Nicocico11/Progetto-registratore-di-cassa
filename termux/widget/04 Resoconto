@@ -1,0 +1,14 @@
+#!/bin/bash
+# Pulsante: resoconto del turno (totali, ultime vendite, prodotti venduti, erogazioni AdBlue) in una finestra
+. ~/.termux/tasker/widget_comune.sh
+QUALE="${SCELTA_DIRETTA:-$(scegli "📊 Resoconto" "📊 Totali,🔍 Ultime vendite,🛒 Prodotti venduti,🧪 Erogazioni AdBlue")}"
+case "$QUALE" in
+  *Totali) finestra "📊 Totali del turno" "$(python3 ~/info_turno.py totali | sed '/📋 TUTTE LE VENDITE/,$d')"; R=totali ;;
+  *"Ultime vendite") finestra "🔍 Ultime vendite" "$(python3 ~/info_turno.py elenco)"; R=elenco ;;
+  *"Prodotti venduti") finestra "🛒 Prodotti venduti" "$(python3 ~/info_turno.py market)"; R=market ;;
+  *"Erogazioni AdBlue") finestra "🧪 Erogazioni AdBlue" "$(python3 ~/info_turno.py adblue)"; R=adblue ;;
+  *) casa ;;
+esac
+# Da Tasker: dopo la finestra, il riassunto di quella finestra nel messaggio
+[ -n "$SENZA_TERMINALE" ] && python3 ~/info_turno.py riassunto $R
+casa

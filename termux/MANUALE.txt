@@ -1,0 +1,401 @@
+🎙️ CASSA VOCALE Q8 – MANUALE D'USO
+
+Un registratore di cassa a voce: dici la vendita ad alta voce e il telefono la registra.
+A fine turno prepara da solo il riepilogo per la chiusura.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+1. COME SI USA
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Fai un DOPPIO TAP sul retro del telefono.
+• Parla subito, con frasi semplici: "20 euro di gasolio sul nero".
+• Compaiono due messaggi a schermo:
+  🎙️ quello che il telefono ha capito
+  ✅ / ❓ / ❌ il risultato
+
+Vibrazioni (non serve guardare il telefono):
+• 1 vibrazione corta = tutto ok
+• 2 vibrazioni corte = salvato, ma controlla
+• 1 vibrazione lunga = errore, NIENTE salvato → ripeti
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+2. INIZIO TURNO
+━━━━━━━━━━━━━━━━━━━━━━━━
+Di': "APERTURA TURNO". Compaiono quattro riquadri:
+1) AVANZO CASSA del turno precedente (es. 150,50)
+2) ORA CHIUSURA del turno precedente, tutto attaccato (es. 140532)
+3) CONTATORE ADBLUE iniziale (numero sulla colonnina, es. 68624,4)
+4) TANICHE ADBLUE presenti in magazzino (es. 59)
+Sono i valori lasciati dal collega del turno prima: vanno scritti ogni volta.
+Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
+• Il turno viene riconosciuto in automatico: Mattina 6-14, Pomeriggio 14-22, Notte 22-6.
+  Per sceglierlo tu: "apertura turno notte" / "apertura turno mattina" / "apertura turno pomeriggio".
+  La notte prende la data del giorno dopo (aperta alle 22 del 4 = notte del 5).
+• Nella tendina compare la notifica del turno: nel titolo il turno e l'ora in cui
+  ha chiuso il collega (es. "☀️ Pomeriggio · 13:59:12";
+  🌅 Mattina, ☀️ Pomeriggio, 🌙 Notte).
+
+🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
+"apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
+(la mail di prova arriva solo a te, cioè all'indirizzo che invia, non al lavoro)
+(es. 05_10_2026_notte_TEST.xlsx) e contatore AdBlue, taniche e orari veri NON
+vengono toccati: dopo la prova basta cancellare la cartella …_TEST.
+
+📛 PERIODO DI PROVA (turni veri, ma file con TEST nel nome per non confonderli con
+quelli fatti a mano): in Termux
+  python3 ~/info_turno.py nomi test si    → da ora i turni veri hanno TEST nel nome
+  python3 ~/info_turno.py nomi test no    → si torna ai nomi normali
+La mail dei turni veri va comunque al lavoro; contatori, taniche e avanzo si aggiornano.
+
+⚠️ Senza "apertura turno" le vendite NON vengono salvate.
+Se hai sbagliato l'avanzo: "avanzo 160".
+
+Contatore e taniche si possono correggere anche dopo, a voce:
+• "contatore adblue 68624 virgola 4"  •  "contatore taniche 59"
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+3. REGISTRARE LE VENDITE
+━━━━━━━━━━━━━━━━━━━━━━━━
+CARBURANTE
+• "20 euro di gasolio"  •  "trentacinque di verde sul bianco"  •  "50 diesel cartissima"
+  (verde / senza piombo = Benzina, diesel = Gasolio, gpl / gas = GPL)
+• GPL: "25 di gpl", "30 di gas" (va bene anche se AutoVoice scrive "g p l" o "gi pi elle")
+• Basta anche solo l'importo: "85 euro nero", "77 bianco", "70 07 nero" (= 70,07)
+  → registrato come "Carburante" (il tipo non serve per l'Excel).
+
+⚠️ Un rifornimento sopra i 1200 € si salva con 2 vibrazioni e "Importo molto alto":
+controlla che non sia un "19 e 90" capito come 1990.
+
+OPT (accettatore esterno, senza metodo di pagamento) — SOLO GASOLIO
+• "50 opt" · "50 gasolio opt" · "opt 35 e 50" · "ottanta di opt"
+  Benzina, GPL, AdBlue o prodotti con "opt" NON vengono salvati.
+  → una casella della sezione OPT dell'Excel (I2:O3) per ogni importo.
+  Non tocca i contanti. Anche dal pulsante 01 Vendita carburante: pagamento "OPT".
+
+CENTESIMI
+• "20 e 50 di gasolio"  oppure  "20 virgola 50 di gasolio"  = 20,50 €
+
+ADBLUE
+• Sfuso, a litri: "adblue 20 litri" (20 × 1,30 €)  oppure  "adblue 13 euro"
+• Taniche: "2 taniche di adblue" (dire sempre "adblue": "tanica" da sola è la tanica da 10 litri)
+
+MARKET (tutti i prodotti di Danea, con i prezzi del listino)
+• "2 red bull", "una coca cola in cassa", "3 ghiaccioli", "kinder bueno e twix"
+• Basta UNA parola del nome: "ichnusa", "heineken", "moretti", "luxury".
+• I codici si capiscono comunque li scriva il telefono:
+  "h7" = "h 7" = "acca 7" = "acca sette" · "p21w" = "p 21 doppia vu" · "5w40" = "5 w 40"
+• Nome sentito un po' storto ("icnusa", "heiniken", "red bul"): il telefono prende
+  il prodotto più simile, lo salva con 2 vibrazioni e scrive 🔎 "icnusa" = ichnusa.
+  Se è sbagliato: "cancella ultima".
+• Si dice il nome del prodotto, senza formati: "acqua grande", "acqua piccola",
+  "formula excel plus", "lampadina h7".
+• Se il nome vale per più prodotti (es. "birra", "lampadina") compare la lista
+  "Quale prodotto?" con i prezzi: tocca quello giusto e premi OK.
+  Compare anche per lo stesso prodotto in formati diversi
+  ("deodorante luxury" → 150 ml / 300 ml, "miele di acacia" → 400 g / 1 kg).
+• OLIO MOTORE: compare sempre la lista di tutti gli oli motore, con quelli detti
+  in cima ("olio motore", "olio 5w40", "formula ultra").
+• Alimentari simili con lo stesso prezzo si salvano col nome generico, senza lista:
+  "nutella" → NUTELLA 2,00 · "leone" → LEONE PASTIGLIE 3,50 · "colli di luni" → 14,00
+• Nomi generici: "cingomme" / "chewing gum" / "cicca" → CHEWING GUM 3,00
+  (Vigorsol, Vivident, Happydent, Daygum). Il nome della marca va bene lo stesso.
+• "birra" da sola → lista di tutte le birre (Heineken, Moretti, Ichnusa);
+  "vino" → lista dei vini. Con il nome ("birra moretti", "ichnusa") va diretto.
+
+PREZZO DIVERSO DAL LISTINO
+• "2 red bull 7 euro" → 2 red bull, 7 € in tutto (2 vibrazioni: prezzo diverso dal listino)
+
+PRODOTTO CHE NON CONOSCE O PREZZO CAMBIATO: di' "danea" e l'importo
+• "danea 15 euro"                    → DANEA (a mano) 15 €
+• "danea caricabatterie 15 euro"     → CARICABATTERIE 15 €
+• "danea red bull 3 e 50"            → RED BULL a 3,50 (invece del prezzo del listino)
+• "danea 2 red bull 7 euro in cassa" → 2 × RED BULL, 7 € in tutto
+La parola "danea" da sola mostra invece l'elenco dei prodotti venduti.
+
+FAX / FOTOCOPIE (0,30 € a foglio)
+• "5 fax", "10 fotocopie", "2 lettere di vettura"
+
+PAGAMENTI (si dicono in fondo alla frase)
+• contanti ............................ se non dici niente, è contanti
+• "bianco" / "sul bianco" ............ POS bianco  → TOTALE PAX BANCARIE (somma)
+• "nero" / "sul nero" / "pos nero" ... POS nero    → TOTALE POS BANCA (somma)
+• "petrolifere" / "cartissima" ....... Petrolifere (va bene anche "cortissima")
+                                        → CHIUSURA PETROLIFERE PAX (somma)
+• "in cassa" / "cassa" / "pos cassa" . POS cassa   → SCONTRINI POS REG. CASSA
+                                       (una casella per ogni vendita)
+Solo prodotti del negozio (market, fax, taniche AdBlue) senza carburante: con "carta"
+va da sola IN CASSA; se dici "nero" o "bianco" si salva con 2 vibrazioni e
+"⚠️ negozio: di solito IN CASSA".
+Se dici solo "carta", "pos" o "bancomat" compare il riquadro
+"Pagato con carta: su quale POS?": tocca quello giusto e premi OK.
+Se lo annulli la vendita NON viene salvata.
+
+RESTO ARROTONDATO / ABBUONI
+• Il cliente fa 20,10 e gli dai il resto di 20:
+  "20 e 10 di gasolio, abbuono 10 centesimi"
+  (oppure subito dopo la vendita: "abbuono 10 centesimi")
+  La vendita resta 20,10 come sulla pompa e i contanti attesi calano di 10 centesimi.
+  Nell'Excel l'abbuono NON va negli SCONTI: compare nella differenza (in meno)
+  e nelle NOTE viene scritto da dove viene.
+
+RESTO LASCIATO DAL CLIENTE (il contrario: il cliente lascia qualche centesimo)
+• Il cliente fa 19,90, ti dà 20 e non vuole il resto:
+  "19 e 90 di gasolio, ha lasciato 10 centesimi"
+  (oppure subito dopo la vendita: "lasciato 10 centesimi")
+  (oppure dopo, anche a vendita già salvata: "resto 10 centesimi", "lasciato 10 centesimi")
+  I centesimi si sommano ai contanti attesi (spiccioli cassetto). Nell'Excel
+  compaiono come differenza in più, e nelle NOTE viene scritto da dove vengono.
+
+PIÙ COSE NELLA STESSA VENDITA (un solo pagamento)
+• "50 di gasolio, 20 litri di adblue e 2 red bull sul nero"
+
+🧾 Se paghi "in cassa" (POS della cassa) compare in mezzo allo schermo la finestra
+"STAMPARE RICEVUTA" con l'importo da battere (resta finché non premi OK),
+più una notifica. Con gli altri pagamenti no.
+❌ Il carburante non si paga "in cassa": una vendita con carburante detta
+"in cassa" NON viene salvata → ridilla "sul nero" o "sul bianco".
+
+CREDITI CLIENTI (il cliente prende ora e paga più avanti)
+• "credito cliente Rossi 50 euro"
+  → casella CREDITI CLIENTI (nome + importo). Non entra nei contanti.
+
+CREDITI RISCOSSI (il cliente paga un vecchio credito)
+• "credito riscosso Rossi 50 euro"            (contanti)
+• "credito riscosso Rossi 50 euro sul nero"   (o sul bianco, in cassa, petrolifere)
+  → casella CREDITI RISCOSSI (nome + importo).
+  Se paga "in cassa" arriva anche la notifica STAMPARE RICEVUTA.
+Se il nome non viene capito il credito si salva lo stesso, con 2 vibrazioni:
+il nome lo scrivi a mano nell'Excel.
+
+ANTICIPO CON CARTISSIMA (paga con Cartissima come gasolio, senza rifornimento,
+e gli dai lo stesso importo in contanti)
+• "anticipo cartissima 100"
+  → +100 nelle PETROLIFERE e -100 dai contanti attesi.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+4. CORREGGERE E CANCELLARE
+━━━━━━━━━━━━━━━━━━━━━━━━
+• "cancella ultima": compare il riquadro "Cosa cancello?": ultima operazione (qualsiasi),
+  ultimo Danea (anche taniche AdBlue), ultimo carburante, ultimo AdBlue sfuso, ultimo fax.
+• Oppure dillo subito: "cancella ultima danea" / "carburante" / "adblue" / "fax".
+  In una vendita mista toglie solo quella parte (es. i red bull, non il gasolio).
+• "cancella penultima": toglie la penultima operazione intera.
+• Vendita vecchia (es. di inizio turno): "cancella ultima" → "📋 Scegli dall'elenco".
+  Compare la lista di tutte le vendite (la più recente in alto): tocca quella sbagliata,
+  poi 🗑️ Cancella oppure ✏️ Correggi (riscrivi la vendita giusta, es. "50 gasolio sul nero":
+  quella giusta va in fondo al turno, quella sbagliata viene tolta).
+• "correggi ultima sul bianco": cambia il pagamento.
+• "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
+• "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
+• "correggi ultima gasolio": cambia il carburante.
+• "correggi ultima box acqua": cambia il prodotto del market (anche in una vendita con il
+  carburante, se il prodotto è uno solo).
+• Detto solo "correggi ultima": compare un riquadro dove scrivi cosa cambiare (83,07 / sul nero…).
+• Al posto di "ultima" puoi dire "penultima". Al posto di "correggi" puoi dire "modifica".
+• Nelle vendite con più cose si possono correggere il pagamento e il prodotto del market:
+  per il resto cancellala e ridettala.
+• "8307 cartissima" (euro e centesimi attaccati da AutoVoice): compare il riquadro
+  "8307: quanto?" → 83,07 € oppure 8307 €.
+• Anticipo Cartissima: non si corregge, si cancella e si ridice.
+
+VERSAMENTI
+• Se togli contanti dal cassetto per il versamento: "versamento 350"
+  Compare il riquadro delle BANCONOTE: scrivi "200 50 50 50" oppure "1x200 3x50" o "50x12".
+  Vanno nel riquadro VERSAMENTO dell'Excel (quante da 500, 200, 100, 50, 20, 10, 5).
+  Se lo lasci vuoto le calcolo io (le più grandi possibili) e compare ⚠️ da controllare.
+  Se le banconote NON fanno la cifra, il riquadro ricompare (fino a 3 volte): se non
+  tornano o lo annulli, il versamento NON viene salvato.
+  Più versamenti nello stesso turno si sommano.
+• Versamento sbagliato: "cancella versamento" (toglie l'ultimo, con le sue banconote).
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+5. CONTROLLARE DURANTE IL TURNO
+━━━━━━━━━━━━━━━━━━━━━━━━
+• "totali": si apre una finestra con i contanti attesi e i totali dei POS
+  (resta finché non premi OK). Il riepilogo completo è nel pulsante 04 Resoconto.
+• "ultime vendite": le ultime registrazioni.
+• "market": prodotti venduti, raggruppati (es. 3 × Red Bull).
+• "erogazioni": AdBlue erogato (litri sfuso e taniche).
+• "archivio": i turni passati.
+• "CONTA CASSA" (o pulsante 08): FACOLTATIVO, come il riquadro CALCOLO AVANZO CASSA dell'Excel.
+  1) banconote nella borsa: "50x2 20x2 10x7 5x13" (oppure "2x50", "2 da 50": va bene in tutti e due gli ordini)
+  2) spiccioli del cassetto, in euro: "54,62"
+  3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
+  Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
+  ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
+  ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (le vendite non cambiano).
+  Nella finestra, sotto, c'è il DETTAGLIO DEL CALCOLO: banconote taglio per taglio,
+  spiccioli e monete (= contati); avanzo, vendite in contanti, versamento e cassaforte
+  (= attesi); contati − attesi e resti/abbuoni (= differenza).
+  Se chiudi il turno senza altre vendite dopo il conteggio, nell'Excel vanno banconote e
+  spiccioli contati (più sicuro: un euro caduto o 5 euro in tasca li vedi subito).
+  Se non conti, l'Excel usa i contanti calcolati dal telefono.
+  4) cassaforte, in euro (vuoto = niente): non va contata nel cassetto.
+  Se un riquadro si chiude senza OK (Annulla o tocco fuori), compare "↩️ Riquadro chiuso
+  senza OK: riapro?". Sì = si riapre; No = conta cassa annullato (niente a zero per sbaglio).
+  Lo stesso vale per i riquadri di apertura e chiusura turno (No = campo vuoto, come prima).
+Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+6. FINE TURNO
+━━━━━━━━━━━━━━━━━━━━━━━━
+Di': "CHIUSURA TURNO". Compaiono tre riquadri:
+1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
+   140532 = 14:05:32
+2) IN CASSAFORTE (vuoto se non c'è niente)
+3) ⛽ TOTALE CARBURANTI COLONNINA: il totale letto sulla colonnina.
+   Va nell'Excel (TOTALE CARBURANTI) e nel messaggio di chiusura compare
+   subito la DIFFERENZA dell'Excel. Vuoto = lo scrivi tu sul computer.
+I contanti non si contano: li calcola il telefono dalle vendite
+(avanzo + vendite in contanti - versamenti).
+
+Il documento di chiusura viene salvato in:
+  Download → Chiusure_Turno → una cartella per ogni turno, es. 2026-10-02_Mattina
+    • Documenti → 2026-10-02_Mattina.txt (il riepilogo) e 2026-10-02_Mattina_dati.csv
+    • Excel     → i due file Excel (questo turno e il turno dopo)
+Contiene: pagamenti, carburanti, AdBlue, fax, market, la QUADRATURA CASSA
+(avanzo + contanti - versamenti = contanti attesi) e l'elenco di tutte le vendite.
+
+Nella sottocartella Excel vengono creati i due file del distributore:
+  • 04_10_2026_pomeriggio.xlsx = il turno appena chiuso, già compilato con:
+    data, turno, ora chiusura, DANEA, TELEFAX, litri AdBlue, contatori,
+    taniche, petrolifere PAX, POS banca (nero), PAX bancarie (bianco),
+    crediti clienti e crediti riscossi (nome e importo),
+    scontrini POS registratore (cassa), avanzo precedente e (negli spiccioli
+    cassetto) i contanti che dovrebbero esserci.
+  • 05_10_2026_notte.xlsx = il turno dopo, già "imbastito": data, turno, avanzo,
+    ORA CHIUSURA (l'orario del terminale appena inserito), contatore AdBlue
+    iniziale, taniche precedenti, cassaforte.
+  Se le caselle di un riquadro finiscono (es. più di 20 telefax o 24 scontrini),
+  si ricomincia dalla prima casella sommando: il totale resta giusto e
+  nel messaggio di chiusura compare un avviso.
+  Gli OPT e il versamento segnati si compilano da soli.
+  Sul computer restano da scrivere: ricariche, operatore (e i totali dei POS se vuoi correggerli).
+
+📧 MAIL AUTOMATICA (se configurata): alla chiusura parte da sola una mail con i
+due Excel e il riepilogo. Nel messaggio di chiusura compare "📧 Mail inviata a …".
+Senza internet resta in coda e riparte da sola al primo comando successivo.
+Configurazione (una volta sola, in Termux):
+  python3 ~/.termux/tasker/invia_mail.py configura   (Gmail o Libero, password, destinatario)
+  python3 ~/.termux/tasker/invia_mail.py prova       (manda una mail di prova)
+  python3 ~/.termux/tasker/invia_mail.py coda        (rimanda subito le mail in coda)
+La password resta solo sul telefono.
+
+Dopo la chiusura l'IA si spegne e le notifiche spariscono.
+I contanti attesi vengono proposti come avanzo all'apertura del turno dopo.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+7. L'IA
+━━━━━━━━━━━━━━━━━━━━━━━━
+Non serve più per le vendite: tutto si capisce con le regole, in meno di un secondo.
+Resta spenta e NON compare nella tendina (lì c'è solo "Stato Turno").
+Se mai servisse: "accendi ia" (compare la notifica IA finché è accesa), "spegni ia".
+Si spegne comunque con la chiusura del turno.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+8. PULSANTI SULLA SCHERMATA HOME (widget)
+━━━━━━━━━━━━━━━━━━━━━━━━
+Per quando non si può parlare (in ordine di uso). Tutti funzionano con i riquadri:
+si scrive o si sceglie, poi compare l'esito in basso e il telefono torna da solo alla home.
+01 Vendita carburante: importo e pagamento
+02 Vendita Danea: SCRIVI il prodotto (es. "ichnusa", "2 red bull e 1 mars",
+   "danea caricabatterie 15") e scegli il pagamento. Senza errori di AutoVoice.
+03 AdBlue litri: litri e pagamento
+04 Resoconto: scegli Totali, Ultime vendite (tutte, la più recente in alto),
+   Prodotti venduti o Erogazioni AdBlue (finestra)
+05 Cancella ultima: chiede cosa cancellare (ultima operazione, Danea, carburante, AdBlue, fax,
+   o 📋 una vendita qualsiasi dall'elenco, da cancellare o correggere)
+06 Abbuono o resto: scegli quale e quanti centesimi
+07 Versamento: importo, poi le banconote (come a voce)
+08 Conta cassa: banconote e spiccioli → DIFFERENZA come nell'Excel
+09 Crediti e anticipi: Credito cliente, Credito riscosso o Anticipo Cartissima
+10 Apertura turno: "Turno vero" oppure "Turno di PROVA" (file TEST, mail solo a te)
+11 Chiusura turno: chiede conferma, poi orario, cassaforte e totale carburanti colonnina
+Le icone di Tasker con i nomi di prima (Totali, Credito cliente...) funzionano ancora.
+
+PULSANTI NELLA TENDINA (quando c'è tanta gente)
+Nella notifica del turno ci sono "⏳ Danea" e "⏳ Fax": ogni tocco segna UNA vendita
+da registrare dopo (solo il tipo e l'ora, niente importo). Il telefono vibra un attimo.
+In cima alla notifica compare "📝 DA SEGNARE: 2 Danea · 1 fax" e il pulsante "📝 Segna (3)".
+Appena c'è tempo tocca "📝 Segna": chiede una vendita alla volta, in ordine
+(Danea: cosa hai venduto; fax: quante copie) e il pagamento.
+Se premi Annulla chiede "Scarto questa vendita?": Sì = era un tocco sbagliato, No = la segni dopo.
+Il turno non si chiude finché ci sono vendite da segnare.
+
+SCANNER DEI CODICI A BARRE (app Binary Eye, per i clienti con tanti prodotti)
+Impostazioni di Binary Eye (una volta sola):
+  • Scansione continua: SÌ          • Ignora duplicati: Accetta duplicati (2 prodotti uguali = 2)
+  • Ritardo tra scansioni continue: un secondo
+  • Inoltra le scansioni: SÌ
+  • URL a cui inoltrare:  http://127.0.0.1:8765/?c=
+  • Tipo di richiesta: GET e aggiungi contenuto
+Durante il turno: apri Binary Eye e passa i prodotti uno dopo l'altro (lo stesso prodotto
+due volte = 2 pezzi). Nella tendina compare "🛒 CARRELLO: 2× RED BULL, 1× TWIX · 8,00 €"
+con i pulsanti "💳 Paga carrello" (scegli il pagamento: salva tutto come una vendita sola;
+c'è anche "Togli l'ultimo letto"), "🗑️ Svuota" e "➕ Aggiungi" (per quello che non si scansiona:
+⛽ carburante (€), 📠 fax (numero di copie), 🧪 AdBlue sfuso (litri) o 🛒 un prodotto scritto,
+es. "2 taniche adblue", "olio 5w40": se vale per più prodotti compare la lista con i prezzi).
+CARBURANTE + CARRELLO: se c'è un carrello in attesa e registri un rifornimento ("50 gasolio",
+"50 nero" o il pulsante 01), compare "🛒 Aggiungo il carrello?" con la somma. Sì = una vendita
+sola (carburante + prodotti) con lo stesso pagamento; se il pagamento non l'hai detto te lo chiede.
+No = solo il carburante, il carrello resta.
+Senza carrello, il terzo pulsante della tendina è "🧺 Apri carrello": si comincia un carrello
+aggiungendo a mano carburante, fax, AdBlue o un prodotto (poi si può anche scansionare).
+Funziona solo a turno aperto. Il turno non si chiude con il carrello pieno.
+Un codice che non è nel listino: "❓ codice sconosciuto". Con "💳 Paga carrello" compare
+"❓ Codice …: che prodotto è?": scrivi il nome ("red bull") o, se è un prodotto nuovo,
+nome e prezzo ("caricabatterie 15"). Viene RICORDATO: la volta dopo il codice è riconosciuto
+(anche dopo un aggiornamento del listino Danea).
+I codici a barre arrivano dal listino Danea (colonna "Cod. a barre" di Prodotti.xlsx).
+
+MESSAGGI ARROTONDATI ANCHE DALLA TENDINA (una volta sola)
+I messaggi dei pulsanti della tendina (⏳ Danea, Paga carrello, Segna...) di base sono quelli
+rettangolari di Android. Per avere il flash arrotondato di Tasker:
+1) in Tasker importa il progetto Download → Flash_Cassa.prj.xml, come Cassa Pulsanti
+   (tieni premuto sulla barra in basso dei progetti → Importa progetto);
+   compare il progetto "Flash Cassa" con il profilo acceso: lascialo così
+2) in Termux scrivi:  touch ~/.cassa_flash_tasker
+Per tornare ai messaggi di Android:  rm ~/.cassa_flash_tasker
+
+SENZA VEDERE TERMUX (con Tasker)
+Gli stessi pulsanti si possono lanciare da Tasker: Termux non si apre mai.
+• In Tasker importa il progetto Download → Cassa_Pulsanti.prj.xml
+  (tieni premuto sulla barra in basso dei progetti → Importa progetto).
+• Sulla schermata home: widget di Tasker "Task 1×1" → "Cassa":
+  un'icona sola che apre la lista di tutte le funzioni.
+  Si possono mettere anche icone singole: Carburante, Danea, AdBlue, Totali, Chiusura…
+• Dopo aver modificato o importato qualcosa in Tasker, esci con il tasto indietro
+  finché Tasker si chiude, altrimenti compare "dati bloccati".
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+9. SICUREZZA DEI DATI
+━━━━━━━━━━━━━━━━━━━━━━━━
+• Dopo ogni vendita il documento del turno in Download/Chiusure_Turno/<turno>/Documenti
+  viene aggiornato.
+• Se le vendite in Termux vanno perse, di' "ripristina turno": vengono recuperate da lì.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+10. SE QUALCOSA NON VA
+━━━━━━━━━━━━━━━━━━━━━━━━
+• "❓ Non ho capito": ripeti più lentamente, con importo e prodotto.
+• "⚠️ …" (prima riga del messaggio): la vendita è salvata ma c'è qualcosa da controllare
+  (2 vibrazioni + notifica "⚠️ Controlla" con suono nella tendina):
+  - "importo piccolo: era carburante?": hai detto "2 mars" ma è arrivato solo "2"?
+  - "uguale a poco fa": registrata due volte?
+  - "prezzo 3,50 € (listino 3,00)": prezzo diverso dal listino.
+  - "pagamento non detto → CONTANTI" / "\"…\" non capito → CONTANTI": salvata in contanti, controlla.
+  - "negozio: di solito IN CASSA": prodotti del negozio pagati sul nero/bianco/cartissima.
+  - 🔎 "icnusa" = ICHNUSA: parola sentita storta, preso il prodotto più simile.
+  Se è sbagliata: "cancella ultima" o "correggi ultima …".
+• Frase non capita (parola sentita male): compare il riquadro
+  "✏️ Non capito, riscrivi", con la frase sentita scritta in grigio.
+  Scrivi la frase corretta (es. "20 pos bianco") e premi OK: viene registrata.
+  Annulla = niente salvato. Se la parola non è nel listino usa "danea … euro".
+• "❌ Turno non aperto": di' prima "apertura turno".
+• "❌ IA spenta, la sto avviando": aspetta 30 secondi e ripeti la frase.
+• Il testo capito è tagliato o sbagliato: ripeti, parlando subito dopo il doppio tap.
+• Vendita sbagliata: "correggi ultima …" oppure "cancella ultima".
+• Prezzi cambiati in Danea: esporta di nuovo i Prodotti in Excel, mettili in Download, poi in Termux:
+  python3 ~/.termux/tasker/danea_listino.py ~/storage/downloads/Prodotti.xlsx
+• Il manuale aggiornato è in Download → MANUALE_Cassa_Vocale.txt (si rinnova a ogni aggiornamento).
+• Per aggiornare il programma, in Termux:
+  curl -L -o ~/.termux/tasker/installa.sh https://raw.githubusercontent.com/Nicocico11/Progetto-registratore-di-cassa/claude/cash-register-ai-latency-n0e165/termux/installa.sh && bash ~/.termux/tasker/installa.sh
