@@ -1069,6 +1069,12 @@ cat > ~/.termux/tasker/notifica.sh <<'FINE_FILE'
 # "Segna" chiede importo e pagamento di quelle rimaste (da_segnare.sh).
 # Con prodotti nel carrello dello scanner: "💳 Paga" e "🗑️ Svuota" (carrello.sh).
 PID_CARRELLO=~/.cassa_carrello.pid
+# Tocco sulla notifica: la tendina mostra solo le prime righe (limite di Android), qui c'è tutto
+if [ "$1" = dettaglio ]; then
+  termux-dialog confirm -t "📊 Turno · $(date +%H:%M)" \
+    -i "$(python3 ~/info_turno.py totali breve)"$'\n\n'"$(python3 ~/info_turno.py elenco)" > /dev/null 2>&1
+  exit 0
+fi
 if ! python3 ~/info_turno.py aperto; then
   termux-notification-remove distributore_turno 2>/dev/null
   # Turno chiuso: si spegne il ricevitore dello scanner
@@ -1112,6 +1118,7 @@ termux-notification \
   --ongoing \
   --alert-once \
   --priority high \
+  --action "bash ~/.termux/tasker/notifica.sh dettaglio" \
   "${PULSANTI[@]}"
 FINE_FILE
 cat > ~/.termux/tasker/processa_ia.py <<'FINE_FILE'
@@ -11056,6 +11063,8 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Nella tendina compare la notifica del turno: nel titolo il turno e l'ora in cui
   ha chiuso il collega (es. "☀️ Pomeriggio · 13:59:12";
   🌅 Mattina, ☀️ Pomeriggio, 🌙 Notte).
+  Android mostra solo le prime righe della notifica: TOCCALA (sul testo, non sui pulsanti)
+  e si apre una finestra con i totali e tutte le vendite del turno.
 
 🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
 "apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome
@@ -11440,4 +11449,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 16:19"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 19:08"

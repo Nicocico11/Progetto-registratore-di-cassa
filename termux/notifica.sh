@@ -4,6 +4,12 @@
 # "Segna" chiede importo e pagamento di quelle rimaste (da_segnare.sh).
 # Con prodotti nel carrello dello scanner: "💳 Paga" e "🗑️ Svuota" (carrello.sh).
 PID_CARRELLO=~/.cassa_carrello.pid
+# Tocco sulla notifica: la tendina mostra solo le prime righe (limite di Android), qui c'è tutto
+if [ "$1" = dettaglio ]; then
+  termux-dialog confirm -t "📊 Turno · $(date +%H:%M)" \
+    -i "$(python3 ~/info_turno.py totali breve)"$'\n\n'"$(python3 ~/info_turno.py elenco)" > /dev/null 2>&1
+  exit 0
+fi
 if ! python3 ~/info_turno.py aperto; then
   termux-notification-remove distributore_turno 2>/dev/null
   # Turno chiuso: si spegne il ricevitore dello scanner
@@ -47,4 +53,5 @@ termux-notification \
   --ongoing \
   --alert-once \
   --priority high \
+  --action "bash ~/.termux/tasker/notifica.sh dettaglio" \
   "${PULSANTI[@]}"

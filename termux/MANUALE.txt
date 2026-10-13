@@ -33,6 +33,8 @@ Se ne lasci uno vuoto, nell'Excel quella casella resta da scrivere a mano.
 • Nella tendina compare la notifica del turno: nel titolo il turno e l'ora in cui
   ha chiuso il collega (es. "☀️ Pomeriggio · 13:59:12";
   🌅 Mattina, ☀️ Pomeriggio, 🌙 Notte).
+  Android mostra solo le prime righe della notifica: TOCCALA (sul testo, non sui pulsanti)
+  e si apre una finestra con i totali e tutte le vendite del turno.
 
 🧪 TURNO DI PROVA: "apertura turno prova" (o "apertura turno test", anche
 "apertura turno notte prova"). Cartella, Excel e mail hanno TEST nel nome

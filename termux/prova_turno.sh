@@ -228,6 +228,7 @@ done
 # Pulsanti della tendina: "⏳ Danea" / "⏳ Fax" quando c'è gente, poi "Segna"
 SEG=$HOME/.termux/tasker/da_segnare.sh
 bash $SEG danea; bash $SEG fax
+tail -1 $HOME/notifiche.log | grep -q -- "--action bash ~/.termux/tasker/notifica.sh dettaglio" && bash $HOME/.termux/tasker/notifica.sh dettaglio && echo "  ok   tocco sulla notifica: finestra con tutto" || { echo "  ERRORE tocco notifica"; ERRORI=$((ERRORI+1)); }
 tail -12 $HOME/notifiche.log | grep -q "DA SEGNARE: 1 Danea · 1 fax" && tail -1 $HOME/notifiche.log | grep -q "Segna (2)" && echo "  ok   tendina: da segnare 1 Danea e 1 fax" || { echo "  ERRORE tendina da segnare"; tail -1 $HOME/notifiche.log; ERRORI=$((ERRORI+1)); }
 controlla "chiusura con vendite da segnare" "chiusura turno"                    "NON CHIUSO: ci sono vendite da segnare"
 RIGHE_PRIMA=$(wc -l < $HOME/transazioni_turno.csv)
