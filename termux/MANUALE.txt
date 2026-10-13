@@ -256,12 +256,15 @@ Di': "CHIUSURA TURNO". Compaiono questi riquadri:
    Va nell'Excel (TOTALE CARBURANTI) e nel messaggio di chiusura compare
    subito la DIFFERENZA dell'Excel. Vuoto = lo scrivi tu sul computer.
 4) 💳 TOTALE PAX PETROLIFERE, ⚫ TOTALE POS NERO, ⚪ TOTALE POS BIANCO: i totali delle
-   chiusure dei terminali (vuoto = quel controllo si salta). Se non tornano con le vendite
-   segnate compare l'elenco delle vendite con quel pagamento, con l'ora: confrontalo con gli
-   scontrini, premi OK e scegli:
-   ➕ Segna la vendita mancante (l'importo che manca) · ✏️ Segna un altro importo ·
-   Chiudi senza segnare · ❌ Non chiudere (controllo prima)
-   La vendita segnata entra subito nell'Excel della chiusura.
+   chiusure dei terminali (vuoto = quel controllo si salta). Si scrivono tutti, poi:
+   • una vendita segnata sul pagamento sbagliato (manca su un terminale ed è in più su un
+     altro, proprio quell'importo) si sposta DA SOLA: "🔁 Corretto da solo: 17:24 112,79 € …"
+   • se un totale non torna ancora compare l'elenco delle vendite con quel pagamento, con
+     l'ora: confrontalo con gli scontrini, premi OK e scegli:
+     🔁 Era quella in contanti delle … (se c'è una vendita in contanti proprio di quell'importo) ·
+     ➕ Segna la vendita mancante · ✏️ Segna un altro importo · Chiudi senza segnare ·
+     ❌ Non chiudere (controllo prima)
+   Tutto entra subito nell'Excel della chiusura.
 I contanti non si contano: li calcola il telefono dalle vendite
 (avanzo + vendite in contanti - versamenti).
 

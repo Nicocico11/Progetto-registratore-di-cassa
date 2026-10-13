@@ -118,22 +118,31 @@ case "$FRASE" in
       CASSAFORTE=$(chiedi_ok "Cassaforte (€)" "vuoto = niente")
       # Totale della colonnina: nell'Excel (TOTALE CARBURANTI) e per la differenza; vuoto = lo scrivi sul computer
       CARBURANTI_COLONNINA=$(chiedi_ok "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
-      # Totali delle chiusure dei terminali: se non tornano con le vendite segnate si vede quali ci sono
-      # (con l'ora) e la vendita mancante si segna subito, così entra nell'Excel della chiusura
-      NON_CHIUDERE=""
+      # Totali delle chiusure dei terminali: prima si scrivono tutti; una vendita messa sul pagamento sbagliato
+      # (manca su un terminale ed è in più su un altro) si sposta da sola; per quelle che restano si vede
+      # l'elenco con l'ora e la vendita mancante si segna subito, così entra nell'Excel della chiusura
+      NON_CHIUDERE=""; TERMINALI=(); TOTALI_T=()
       for TERMINALE in "Petrolifere|💳 Totale PAX petrolifere (€)|petrolifere" \
                        "POS nero|⚫ Totale POS nero (€)|sul nero" "POS bianco|⚪ Totale POS bianco (€)|sul bianco"; do
-        [ -n "$NON_CHIUDERE" ] && break
         IFS='|' read -r METODO TITOLO DETTO <<< "$TERMINALE"
         TOT_TERMINALE=$(chiedi_ok "$TITOLO" "vuoto = non controllo") || TOT_TERMINALE=""
         [ -z "$TOT_TERMINALE" ] && continue
-        CONFRONTO=$(python3 ~/info_turno.py confronta "$METODO" "$TOT_TERMINALE")
+        TERMINALI+=("$TERMINALE"); TOTALI_T+=("$METODO=$TOT_TERMINALE")
+      done
+      [ ${#TOTALI_T[@]} -gt 1 ] && python3 ~/info_turno.py scambi "${TOTALI_T[@]}"
+      for K in "${!TERMINALI[@]}"; do
+        [ -n "$NON_CHIUDERE" ] && break
+        IFS='|' read -r METODO TITOLO DETTO <<< "${TERMINALI[$K]}"
+        CONFRONTO=$(python3 ~/info_turno.py confronta "$METODO" "${TOTALI_T[$K]#*=}")
         if [ $? != 2 ]; then echo "$CONFRONTO"; continue; fi
         DIFF=$(tail -1 <<< "$CONFRONTO" | cut -d' ' -f2)
-        RIEPILOGO_M=$(sed '$d' <<< "$CONFRONTO")
+        IN_CONTANTI=$(grep '^CONTANTI ' <<< "$CONFRONTO")
+        RIEPILOGO_M=$(grep -v -e '^DIFF ' -e '^CONTANTI ' <<< "$CONFRONTO")
         termux-dialog confirm -t "🔎 $METODO" -i "$RIEPILOGO_M" > /dev/null 2>&1   # si legge, poi OK
         if [[ "$DIFF" != -* ]]; then
           VOCI_M="➕ Segna la vendita mancante (${DIFF/./,} €),✏️ Segna un altro importo,Chiudi senza segnare,❌ Non chiudere (controllo prima)"
+          # Una vendita in contanti proprio di quell'importo: forse era su questo terminale
+          [ -n "$IN_CONTANTI" ] && VOCI_M="🔁 Era quella in contanti delle $(cut -d' ' -f3 <<< "$IN_CONTANTI"): spostala,$VOCI_M"
         else
           VOCI_M="Chiudi lo stesso,❌ Non chiudere (controllo prima)"
         fi
@@ -145,6 +154,8 @@ except Exception:
         MANCANTE=""
         head -1 <<< "$RIEPILOGO_M"
         case "$SCELTA_M" in
+          🔁*) python3 ~/info_turno.py sposta "$(cut -d' ' -f2 <<< "$IN_CONTANTI")" Contanti "$METODO"
+               echo "🔁 Spostata su $METODO la vendita in contanti delle $(cut -d' ' -f3 <<< "$IN_CONTANTI") ($(cut -d' ' -f4- <<< "$IN_CONTANTI"))" ;;
           ➕*) MANCANTE="$DIFF" ;;
           ✏️*) MANCANTE=$(chiedi_ok "✏️ Importo mancante ($METODO)" "${DIFF/./,}") || MANCANTE="" ;;
           Chiudi*) ;;

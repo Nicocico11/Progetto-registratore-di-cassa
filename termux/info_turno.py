@@ -904,6 +904,65 @@ def cancella_scelta(pos_testo, etichetta):
     notifica_breve(righe_aggiornate)
 
 
+def _vendite_con_metodo(gruppi, metodo):
+    """[(posizione, ora, importo, cosa)] delle vendite con quel pagamento (la parte pagata così)."""
+    out = []
+    for i, gruppo in enumerate(gruppi):
+        vv = [v for v in (vendita(r) for r in gruppo) if v and v["metodo"] == metodo]
+        if vv:
+            cosa = " + ".join(voce_breve(v) for v in vv if v["reparto"] not in ("Sconto", "Resto lasciato"))
+            out.append((i, vv[0]["ora"], round(sum(v["importo"] for v in vv), 2), cosa))
+    return out
+
+
+def sposta_vendita(posizione, da, a):
+    """La vendita in quella posizione era segnata con il pagamento sbagliato: la parte "da" passa ad "a"."""
+    righe = leggi_csv()
+    gruppi = transazioni(righe)
+    gruppo = gruppi[int(posizione)]
+    for r in gruppo:
+        v = vendita(r)
+        if v and v["metodo"] == da:
+            d = json.loads(r[1])
+            d["metodo_pagamento"] = a
+            d["note"] = (d.get("note", "") + f" [era {da}, spostata su {a} alla chiusura]").strip()
+            r[1] = json.dumps(d)
+    scrivi_csv([r for g in gruppi for r in g])
+    import contextlib, io
+    with contextlib.redirect_stdout(io.StringIO()):   # niente riga "💾 ..." in mezzo ai messaggi della chiusura
+        salva_copia()
+
+
+def scambi_terminali(*coppie):
+    """Chiusura: "Petrolifere=1458,46" "POS nero=653,18"... Se a un terminale manca un importo che su un altro
+    è in più, ed è proprio una vendita segnata là, la vendita è stata messa sul pagamento sbagliato:
+    si sposta da sola e si dice quale."""
+    totali = {}
+    for c in coppie:
+        metodo, _, testo = c.partition("=")
+        valore = importo_da_testo(testo)
+        if valore is not None:
+            totali[metodo] = valore
+    spostate = True
+    while spostate:
+        spostate = False
+        gruppi = transazioni(leggi_csv())
+        diff = {m: round(t - sum(imp for _, _, imp, _ in _vendite_con_metodo(gruppi, m)), 2) for m, t in totali.items()}
+        for a, manca in diff.items():
+            for da, eccesso in diff.items():
+                # "da" ha in più esattamente una sua vendita, e ad "a" manca almeno quella (forse anche altro)
+                if manca > 0 and eccesso < 0 and -eccesso <= manca + 0.005:
+                    uguali = [x for x in _vendite_con_metodo(gruppi, da) if abs(x[2] + eccesso) < 0.005]
+                    if uguali:
+                        pos, ora, imp, cosa = uguali[-1]
+                        sposta_vendita(pos, da, a)
+                        print(f"🔁 Corretto da solo: {ora} {imp:.2f} € ({cosa}) era su {da}, è {a}".replace(".", ","))
+                        spostate = True
+                        break
+            if spostate:
+                break
+
+
 def confronta_terminale(metodo, totale_testo):
     """Chiusura: totale letto sulla chiusura del terminale (PAX petrolifere, POS nero, POS bianco)
     confrontato con le vendite segnate con quel pagamento. Prima riga: l'esito; poi le vendite con l'ora
@@ -912,12 +971,8 @@ def confronta_terminale(metodo, totale_testo):
     if terminale is None:
         print(f"⚠️ {metodo}: totale \"{totale_testo}\" non capito, controllo saltato")
         sys.exit(1)
-    righe = []
-    for gruppo in transazioni(leggi_csv()):
-        vv = [v for v in (vendita(r) for r in gruppo) if v and v["metodo"] == metodo]
-        if vv:
-            cosa = " + ".join(voce_breve(v) for v in vv if v["reparto"] not in ("Sconto", "Resto lasciato"))
-            righe.append((vv[0]["ora"], round(sum(v["importo"] for v in vv), 2), cosa))
+    gruppi = transazioni(leggi_csv())
+    righe = [(ora, imp, cosa) for _, ora, imp, cosa in _vendite_con_metodo(gruppi, metodo)]
     segnate = round(sum(i for _, i, _ in righe), 2)
     diff = round(terminale - segnate, 2)
     e = lambda x: f"{x:.2f} €".replace(".", ",")
@@ -931,6 +986,12 @@ def confronta_terminale(metodo, totale_testo):
     print(f"{len(righe)} vendite {metodo} segnate (confrontale con gli scontrini):")
     for ora, imp, cosa in righe:
         print(f"  {ora}  {e(imp)}  {cosa}")
+    if diff > 0:
+        # Una vendita in contanti proprio di quell'importo: forse era su questo terminale
+        uguali = [x for x in _vendite_con_metodo(gruppi, "Contanti") if abs(x[2] - diff) < 0.005]
+        if uguali:
+            pos, ora, imp, cosa = uguali[-1]
+            print(f"CONTANTI {pos} {ora} {cosa}")
     print(f"DIFF {diff:.2f}")
     sys.exit(2)
 
@@ -1045,6 +1106,10 @@ def main():
         conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
+    elif sys.argv[1:2] == ["scambi"]:
+        scambi_terminali(*sys.argv[2:])
+    elif sys.argv[1:2] == ["sposta"]:
+        sposta_vendita(*sys.argv[2:5])
     elif sys.argv[1:2] == ["confronta"]:
         confronta_terminale(*(sys.argv[2:4] + ["", ""])[:2])
     elif comando == "elenco scelta":
