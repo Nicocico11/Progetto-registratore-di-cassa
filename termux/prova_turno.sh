@@ -335,6 +335,8 @@ controlla "ricevuta market pos cassa" "2 mars e un red bull pagato in cassa"    
 controlla "pos nero niente ricevuta"  "1 mars sul nero"                               "POS nero"
 controlla "cartissima"                "40 gasolio cartissima"                        "Petrolifere"
 controlla "fax"                       "5 fax"                                        "5 fogli"
+controlla "correggi copie del fax"    "modifica ultima 8"                            "ora:   8 fogli Fax / fotocopie 2.40"
+controlla "copie di nuovo 5"          "correggi ultima 5"                            "ora:   5 fogli Fax / fotocopie 1.50"
 controlla "frase senza importo"       "ciao"                                         "Niente salvato"
 controlla "totali in finestra"        "totali"                                       "Totali sullo schermo"
 python3 $HOME/info_turno.py totali breve | grep "Attesi in cassa" > /dev/null && echo "  ok   testo dei totali" || { echo "  ERRORE testo totali"; ERRORI=$((ERRORI+1)); }

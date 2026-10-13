@@ -836,10 +836,12 @@ def correggi(quale):
     nuovo_carburante = carburante_detto(testo_basso)
     nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     nuova_quantita = None
+    a_pezzi = len(voci) == 1 and voci[0].get('reparto') == 'Market' and voci[0].get('unita', 'pz') == 'pz'
+    a_fogli = len(voci) == 1 and voci[0].get('unita') == 'fogli'
     if (nuovo_importo and numero_in_euro(testo_basso) is None and nuovo_importo == int(nuovo_importo)
-            and len(voci) == 1 and voci[0].get('reparto') == 'Market' and voci[0].get('unita', 'pz') == 'pz'
-            and nuovo_importo < 100):
-        # "correggi ultima 3" dopo "2 red bull" = 3 red bull (per l'importo: "correggi ultima 3 euro")
+            and ((a_pezzi and nuovo_importo < 100) or (a_fogli and nuovo_importo < 1000))):
+        # "correggi ultima 3" dopo "2 red bull" = 3 red bull; dopo "5 fax" = 3 fogli
+        # (per l'importo: "correggi ultima 3 euro")
         nuova_quantita, nuovo_importo = nuovo_importo, None
     # "correggi ultima box acqua": cambia il prodotto del market (uno solo nella vendita, anche se mista)
     nuovo_prodotto = None

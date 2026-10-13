@@ -185,7 +185,8 @@ e gli dai lo stesso importo in contanti)
   quella giusta va in fondo al turno, quella sbagliata viene tolta).
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
-• "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
+• "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull;
+  dopo "5 fax": diventano 3 copie (l'importo si ricalcola).
 • "correggi ultima gasolio": cambia il carburante.
 • "correggi ultima box acqua": cambia il prodotto del market (anche in una vendita con il
   carburante, se il prodotto è uno solo).

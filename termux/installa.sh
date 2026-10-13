@@ -1953,10 +1953,12 @@ def correggi(quale):
     nuovo_carburante = carburante_detto(testo_basso)
     nuovo_importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     nuova_quantita = None
+    a_pezzi = len(voci) == 1 and voci[0].get('reparto') == 'Market' and voci[0].get('unita', 'pz') == 'pz'
+    a_fogli = len(voci) == 1 and voci[0].get('unita') == 'fogli'
     if (nuovo_importo and numero_in_euro(testo_basso) is None and nuovo_importo == int(nuovo_importo)
-            and len(voci) == 1 and voci[0].get('reparto') == 'Market' and voci[0].get('unita', 'pz') == 'pz'
-            and nuovo_importo < 100):
-        # "correggi ultima 3" dopo "2 red bull" = 3 red bull (per l'importo: "correggi ultima 3 euro")
+            and ((a_pezzi and nuovo_importo < 100) or (a_fogli and nuovo_importo < 1000))):
+        # "correggi ultima 3" dopo "2 red bull" = 3 red bull; dopo "5 fax" = 3 fogli
+        # (per l'importo: "correggi ultima 3 euro")
         nuova_quantita, nuovo_importo = nuovo_importo, None
     # "correggi ultima box acqua": cambia il prodotto del market (uno solo nella vendita, anche se mista)
     nuovo_prodotto = None
@@ -11115,7 +11117,8 @@ e gli dai lo stesso importo in contanti)
   quella giusta va in fondo al turno, quella sbagliata viene tolta).
 • "correggi ultima sul bianco": cambia il pagamento.
 • "correggi ultima 25 euro": cambia l'importo (anche "correggi ultima 43 e 25" = 43,25).
-• "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull.
+• "correggi ultima 3" (senza "euro") dopo "2 red bull": diventano 3 red bull;
+  dopo "5 fax": diventano 3 copie (l'importo si ricalcola).
 • "correggi ultima gasolio": cambia il carburante.
 • "correggi ultima box acqua": cambia il prodotto del market (anche in una vendita con il
   carburante, se il prodotto è uno solo).
@@ -11340,4 +11343,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 10/10 05:34"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 14:10"
