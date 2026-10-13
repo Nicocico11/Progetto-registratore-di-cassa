@@ -157,6 +157,12 @@ più una notifica. Con gli altri pagamenti no.
 CREDITI CLIENTI (il cliente prende ora e paga più avanti)
 • "credito cliente Rossi 50 euro"
   → casella CREDITI CLIENTI (nome + importo). Non entra nei contanti.
+• AdBlue, prodotti o carburante presi a credito: dilli insieme
+  "49 litri di adblue a credito cliente Rossi" / "2 red bull a credito cliente Rossi"
+  → litri e prodotti al loro posto nell'Excel, il totale nei CREDITI CLIENTI, niente nei contanti.
+• Se hai già segnato la vendita ("49 litri di adblue") e poi dici "63,70 credito cliente Rossi",
+  compare "📒 Credito di 63,70 €: è l'ultima vendita?": Sì = l'ultima vendita diventa a credito
+  (non incassata); No = credito a parte (es. carburante non segnato).
 
 CREDITI RISCOSSI (il cliente paga un vecchio credito)
 • "credito riscosso Rossi 50 euro"            (contanti)

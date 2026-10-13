@@ -2080,7 +2080,81 @@ def tipo_speciale(testo):
     return None
 
 
+RE_CREDITO = r'\b(?:a\s+)?(?:credito|crediti)\s+(?:al\s+|a\s+)?client\w*|\ba credito\b'
+
+
+def vendita_a_credito():
+    """"49 litri di adblue a credito cliente rossi": la vendita si segna (litri, prodotti, carburante)
+    senza incasso (pagamento "Credito") e il suo totale va nei CREDITI CLIENTI.
+    Falso se prima di "credito cliente" non c'è una vendita (es. "63,70 euro credito cliente rossi")."""
+    m = re.search(RE_CREDITO, testo_basso)
+    prima, dopo = testo_basso[:m.start()].strip(), testo_basso[m.end():]
+    if not prima or not ha_voce(prima):
+        return False
+    pezzi = dividi_in_pezzi(prima)
+    voci = [voce(p) for p in pezzi]
+    if None in voci or AMBIGUI:
+        print(f"❓ Non ho capito la vendita a credito: \"{prima}\". Ripetila con il nome completo. Niente salvato.")
+        sys.exit(1)
+    totale = round(sum(float(v['importo']) for v in voci), 2)
+    cliente = nome_cliente(dopo)
+    for v in voci:              # non incassata: va nei CREDITI CLIENTI dell'Excel con il nome
+        v['metodo_pagamento'], v['cliente'] = 'Credito', cliente or ""
+    salva_voci(voci, pezzi, 'Credito')
+    cosa = " + ".join(descrivi(v) for v in voci)
+    if not cliente:
+        print(f"⚠️ A credito (non pagato): {cosa} · credito {totale:.2f} € SENZA NOME: scrivilo a mano nell'Excel")
+        sys.exit(2)
+    print(f"✅ A credito (non pagato): {cosa} · credito cliente {cliente} {totale:.2f} €")
+    sys.exit(0)
+
+
+def credito_per_ultima_vendita(importo, cliente):
+    """"49 litri di adblue" e poi "63,70 credito cliente rossi": se l'ultima vendita ha lo stesso importo ed è
+    segnata come incassata, si chiede se è quella fatta a credito (sennò i contanti attesi sarebbero sbagliati).
+    Sì = l'ultima vendita passa a "Credito" (non incassata, è lei il credito): True.
+    No o niente da chiedere = credito a parte: False. Annullato: None."""
+    try:
+        with open(csv_file, encoding='utf-8') as f:
+            tutte = list(csv.reader(f))
+    except OSError:
+        return False
+    righe = [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
+    if not righe:
+        return False
+    num = json.loads(righe[-1][1]).get('transazione')
+    ultime = [k for k, r in enumerate(righe) if json.loads(r[1]).get('transazione') == num] if num else [len(righe) - 1]
+    voci = [json.loads(righe[k][1]) for k in ultime]
+    if (any(v.get('reparto') in ('Credito cliente', 'Credito riscosso', 'Anticipo') for v in voci)
+            or all(v.get('metodo_pagamento') == 'Credito' for v in voci)
+            or abs(sum(float(v['importo']) for v in voci) - importo) >= 0.01):
+        return False
+    cosa = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', f'📒 Credito di {importo:.2f} €: è l\'ultima vendita?',
+                            '-v', f'Sì: {cosa} NON pagata,No: credito a parte'],
+                           capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        d = {}
+    scelta = d.get('index') if d.get('code') == -1 else None
+    if scelta == 1:
+        return False
+    if scelta != 0:
+        return None
+    for k, v in zip(ultime, voci):
+        v['metodo_pagamento'], v['cliente'] = 'Credito', cliente or ""
+        v['note'] = (v.get('note', '') + " [a credito]").strip()
+        righe[k] = [righe[k][0], json.dumps(v), float(v['importo'])]
+    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        csv.writer(f).writerows(tutte[:1] + righe)
+    print(f"📒 Ultima vendita a credito (non incassata): {cosa.rsplit(' - ', 1)[0]}")
+    return True
+
+
 def registra_speciale(tipo):
+    if tipo == 'credito':
+        vendita_a_credito()
     importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     if not importo or importo <= 0:
         print(f"❓ Manca l'importo: \"{testo_originale}\". Niente salvato.")
@@ -2099,7 +2173,13 @@ def registra_speciale(tipo):
         # Il cliente non paga ora: nessun incasso
         voce_c = {"categoria": f"Credito cliente {cliente or '?'}", "reparto": "Credito cliente",
                   "cliente": cliente or "", "importo": importo, "metodo_pagamento": "Credito"}
-        salva_voci([voce_c], [testo_basso], 'Credito')
+        esito = credito_per_ultima_vendita(importo, cliente)
+        if esito is None:
+            print("Credito NON salvato: l'ultima vendita resta pagata com'era. Ridillo insieme alla vendita "
+                  "(es. \"49 litri di adblue a credito cliente rossi\"). Niente salvato.")
+            sys.exit(1)
+        if not esito:
+            salva_voci([voce_c], [testo_basso], 'Credito')
         titolo = "Credito cliente"
     else:
         # Il cliente paga un vecchio credito: incasso con il metodo detto (contanti se non detto)
@@ -2874,9 +2954,18 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
 
     # Crediti clienti (non pagati ora) e crediti riscossi (vecchi crediti pagati oggi)
+    # Vendita fatta a credito ("49 litri di adblue a credito cliente rossi"): litri/prodotti al loro posto
+    # e il totale della vendita (una casella per vendita) nei crediti clienti
+    a_credito = {}
+    for v in voci:
+        if v.get('metodo_pagamento') == 'Credito' and v.get('reparto') != 'Credito cliente':
+            c = a_credito.setdefault(v.get('transazione') or id(v), {'importo': 0.0, 'cliente': v.get('cliente')})
+            c['importo'] = round(c['importo'] + imp(v), 2)
     for reparto, caselle, nome in (('Credito cliente', CREDITI_CLIENTI, "CREDITI CLIENTI"),
                                    ('Credito riscosso', CREDITI_RISCOSSI, "CREDITI RISCOSSI")):
         crediti = [v for v in voci if v.get('reparto') == reparto]
+        if reparto == 'Credito cliente':
+            crediti += list(a_credito.values())
         riempi(ws, caselle, [imp(v) for v in crediti], avvisi, nome,
                nomi=[v.get('cliente') or '?' for v in crediti])
 
@@ -3754,7 +3843,9 @@ def notifica_breve(righe):
         parti.append(f"⛽ CARBURANTI: {carburanti:.2f}€")
     for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
                            ("Credito cliente", "📒 CREDITI"), ("Credito riscosso", "💰 RISCOSSI")):
-        val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
+        # Crediti: anche le vendite fatte a credito (AdBlue, prodotti, carburante non pagati)
+        val = sum(v["importo"] for v in vv if (v["metodo"] == "Credito" if reparto == "Credito cliente"
+                                                 else v["reparto"] == reparto))
         if val:
             parti.append(f"{icona}: {val:.2f}€")
     out.append(" | ".join(parti))
@@ -11089,6 +11180,12 @@ più una notifica. Con gli altri pagamenti no.
 CREDITI CLIENTI (il cliente prende ora e paga più avanti)
 • "credito cliente Rossi 50 euro"
   → casella CREDITI CLIENTI (nome + importo). Non entra nei contanti.
+• AdBlue, prodotti o carburante presi a credito: dilli insieme
+  "49 litri di adblue a credito cliente Rossi" / "2 red bull a credito cliente Rossi"
+  → litri e prodotti al loro posto nell'Excel, il totale nei CREDITI CLIENTI, niente nei contanti.
+• Se hai già segnato la vendita ("49 litri di adblue") e poi dici "63,70 credito cliente Rossi",
+  compare "📒 Credito di 63,70 €: è l'ultima vendita?": Sì = l'ultima vendita diventa a credito
+  (non incassata); No = credito a parte (es. carburante non segnato).
 
 CREDITI RISCOSSI (il cliente paga un vecchio credito)
 • "credito riscosso Rossi 50 euro"            (contanti)
@@ -11343,4 +11440,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 14:10"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 16:19"

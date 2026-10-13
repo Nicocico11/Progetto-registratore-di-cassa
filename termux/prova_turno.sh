@@ -21,6 +21,7 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 #!/bin/bash
 # Popup finto: risponde in base al titolo
 case "$*" in
+  *"è l'ultima vendita?"*) echo '{"code": -1, "text": "Sì", "index": 0}' ;;   # credito = l'ultima vendita
   *": quanto?"*) echo '{"code": -1, "text": "83,07 €", "index": 0}' ;;   # "8307": 83,07
   *"Cosa correggo"*) echo '{"code": -1, "text": "sul bianco"}' ;;        # "correggi ultima" detto da solo
   *"Quale vendita"*) echo '{"code": -1, "text": "?", "index": 1}' ;;     # 📋 elenco: la seconda dall'alto
@@ -365,6 +366,10 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "credito riscosso contanti" "credito riscosso verdi 20"                    "(Contanti): Verdi 20.00"
 controlla "credito senza nome"        "credito cliente 15"                           "SENZA NOME"
 controlla "cancella credito"          "cancella ultima"                              "Cancellata"
+controlla "adblue (poi a credito)"    "10 litri di adblue contanti"                  "AdBlue sfuso 13.00 € - Contanti"
+controlla "credito = ultima vendita"  "credito cliente gialli 13"                    "Ultima vendita a credito (non incassata)"
+python3 $HOME/info_turno.py totali breve | grep -q "Crediti clienti: 63.00" && python3 $HOME/info_turno.py totali breve | grep -q "contanti 80.50" && echo "  ok   credito: non nei contanti (50 + 13 = 63)" || { echo "  ERRORE credito dopo la vendita"; python3 $HOME/info_turno.py totali breve; ERRORI=$((ERRORI+1)); }
+controlla "cancella"                  "cancella ultima"                              "Cancellata"
 controlla "anticipo cartissima"       "anticipo cartissima 100"                      "100.00 € tolti dai contanti"
 controlla "carta di credito = vendita" "10 gasolio carta di credito"                 "Gasolio 10.00 € - POS nero"
 grep -q "Gasolio\|gasolio" $D/*/Documenti/*_dati.csv && echo "  ok   copia dati aggiornata in Download" || { echo "  ERRORE copia dati"; ERRORI=$((ERRORI+1)); }
@@ -461,6 +466,8 @@ cmp -s $HOME/stato_cassa.json $HOME/stato_prima.json && echo "  ok   turno di pr
 # Secondo turno di prova con lo stesso nome (cartella …_TEST_HHMM): la mail NON deve andare al lavoro
 controlla "secondo turno di prova"    "apertura turno prova notte"                   "TURNO DI PROVA"
 controlla "vendita"                   "20 gasolio"                                   "Gasolio 20.00"
+controlla "adblue a credito"          "49 litri di adblue a credito cliente rossi"   "A credito (non pagato): 49 l AdBlue sfuso 63.70 € · credito cliente Rossi 63.70 €"
+python3 $HOME/info_turno.py totali breve | grep -q "Crediti clienti: 63.70" && echo "  ok   credito contato una volta sola" || { echo "  ERRORE credito doppio"; python3 $HOME/info_turno.py totali breve; ERRORI=$((ERRORI+1)); }
 touch $HOME/colonnina   # totale carburanti della colonnina scritto nel popup: 20
 CHIUSURA=$(bash $S "chiusura turno" 2>&1)
 rm -f $HOME/colonnina
@@ -469,6 +476,8 @@ python3 -c "
 import openpyxl, glob, sys
 f = [x for x in glob.glob(sys.argv[1] + '/*_Notte_TEST*/Excel/*notte_TEST.xlsx')]
 assert any(openpyxl.load_workbook(x).active['D2'].value == 20 for x in f), f
+ws = [openpyxl.load_workbook(x).active for x in f if openpyxl.load_workbook(x).active['D2'].value == 20][0]
+assert ws['I8'].value == 'Rossi' and ws['L8'].value == 63.7 and ws['I17'].value == 49, (ws['I8'].value, ws['L8'].value, ws['I17'].value)
 " $D && [[ "$CHIUSURA" == *"DIFFERENZA Excel: +0,00 €"* ]] && echo "  ok   totale carburanti colonnina in D2 e differenza" || { echo "  ERRORE totale carburanti colonnina"; ERRORI=$((ERRORI+1)); }
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 

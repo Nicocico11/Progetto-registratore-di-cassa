@@ -150,9 +150,18 @@ def crea_excel(righe, turno, orario_terminale, cartella):
     riempi(ws, ADBLUE_LITRI, litri, avvisi, "ADBLUE")
 
     # Crediti clienti (non pagati ora) e crediti riscossi (vecchi crediti pagati oggi)
+    # Vendita fatta a credito ("49 litri di adblue a credito cliente rossi"): litri/prodotti al loro posto
+    # e il totale della vendita (una casella per vendita) nei crediti clienti
+    a_credito = {}
+    for v in voci:
+        if v.get('metodo_pagamento') == 'Credito' and v.get('reparto') != 'Credito cliente':
+            c = a_credito.setdefault(v.get('transazione') or id(v), {'importo': 0.0, 'cliente': v.get('cliente')})
+            c['importo'] = round(c['importo'] + imp(v), 2)
     for reparto, caselle, nome in (('Credito cliente', CREDITI_CLIENTI, "CREDITI CLIENTI"),
                                    ('Credito riscosso', CREDITI_RISCOSSI, "CREDITI RISCOSSI")):
         crediti = [v for v in voci if v.get('reparto') == reparto]
+        if reparto == 'Credito cliente':
+            crediti += list(a_credito.values())
         riempi(ws, caselle, [imp(v) for v in crediti], avvisi, nome,
                nomi=[v.get('cliente') or '?' for v in crediti])
 

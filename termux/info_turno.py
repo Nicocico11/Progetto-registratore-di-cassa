@@ -748,7 +748,9 @@ def notifica_breve(righe):
         parti.append(f"⛽ CARBURANTI: {carburanti:.2f}€")
     for reparto, icona in (("AdBlue", "🧪 ADBLUE"), ("Fax", "📠 FAX"), ("Market", "🛒 MARKET"), ("Sconto", "🏷️ ABBUONI"), ("Resto lasciato", "🪙 RESTI LASCIATI"),
                            ("Credito cliente", "📒 CREDITI"), ("Credito riscosso", "💰 RISCOSSI")):
-        val = sum(v["importo"] for v in vv if v["reparto"] == reparto)
+        # Crediti: anche le vendite fatte a credito (AdBlue, prodotti, carburante non pagati)
+        val = sum(v["importo"] for v in vv if (v["metodo"] == "Credito" if reparto == "Credito cliente"
+                                                 else v["reparto"] == reparto))
         if val:
             parti.append(f"{icona}: {val:.2f}€")
     out.append(" | ".join(parti))

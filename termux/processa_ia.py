@@ -963,7 +963,81 @@ def tipo_speciale(testo):
     return None
 
 
+RE_CREDITO = r'\b(?:a\s+)?(?:credito|crediti)\s+(?:al\s+|a\s+)?client\w*|\ba credito\b'
+
+
+def vendita_a_credito():
+    """"49 litri di adblue a credito cliente rossi": la vendita si segna (litri, prodotti, carburante)
+    senza incasso (pagamento "Credito") e il suo totale va nei CREDITI CLIENTI.
+    Falso se prima di "credito cliente" non c'è una vendita (es. "63,70 euro credito cliente rossi")."""
+    m = re.search(RE_CREDITO, testo_basso)
+    prima, dopo = testo_basso[:m.start()].strip(), testo_basso[m.end():]
+    if not prima or not ha_voce(prima):
+        return False
+    pezzi = dividi_in_pezzi(prima)
+    voci = [voce(p) for p in pezzi]
+    if None in voci or AMBIGUI:
+        print(f"❓ Non ho capito la vendita a credito: \"{prima}\". Ripetila con il nome completo. Niente salvato.")
+        sys.exit(1)
+    totale = round(sum(float(v['importo']) for v in voci), 2)
+    cliente = nome_cliente(dopo)
+    for v in voci:              # non incassata: va nei CREDITI CLIENTI dell'Excel con il nome
+        v['metodo_pagamento'], v['cliente'] = 'Credito', cliente or ""
+    salva_voci(voci, pezzi, 'Credito')
+    cosa = " + ".join(descrivi(v) for v in voci)
+    if not cliente:
+        print(f"⚠️ A credito (non pagato): {cosa} · credito {totale:.2f} € SENZA NOME: scrivilo a mano nell'Excel")
+        sys.exit(2)
+    print(f"✅ A credito (non pagato): {cosa} · credito cliente {cliente} {totale:.2f} €")
+    sys.exit(0)
+
+
+def credito_per_ultima_vendita(importo, cliente):
+    """"49 litri di adblue" e poi "63,70 credito cliente rossi": se l'ultima vendita ha lo stesso importo ed è
+    segnata come incassata, si chiede se è quella fatta a credito (sennò i contanti attesi sarebbero sbagliati).
+    Sì = l'ultima vendita passa a "Credito" (non incassata, è lei il credito): True.
+    No o niente da chiedere = credito a parte: False. Annullato: None."""
+    try:
+        with open(csv_file, encoding='utf-8') as f:
+            tutte = list(csv.reader(f))
+    except OSError:
+        return False
+    righe = [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
+    if not righe:
+        return False
+    num = json.loads(righe[-1][1]).get('transazione')
+    ultime = [k for k, r in enumerate(righe) if json.loads(r[1]).get('transazione') == num] if num else [len(righe) - 1]
+    voci = [json.loads(righe[k][1]) for k in ultime]
+    if (any(v.get('reparto') in ('Credito cliente', 'Credito riscosso', 'Anticipo') for v in voci)
+            or all(v.get('metodo_pagamento') == 'Credito' for v in voci)
+            or abs(sum(float(v['importo']) for v in voci) - importo) >= 0.01):
+        return False
+    cosa = " + ".join(descrivi(v) for v in voci) + f" - {voci[0].get('metodo_pagamento')}"
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t', f'📒 Credito di {importo:.2f} €: è l\'ultima vendita?',
+                            '-v', f'Sì: {cosa} NON pagata,No: credito a parte'],
+                           capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        d = {}
+    scelta = d.get('index') if d.get('code') == -1 else None
+    if scelta == 1:
+        return False
+    if scelta != 0:
+        return None
+    for k, v in zip(ultime, voci):
+        v['metodo_pagamento'], v['cliente'] = 'Credito', cliente or ""
+        v['note'] = (v.get('note', '') + " [a credito]").strip()
+        righe[k] = [righe[k][0], json.dumps(v), float(v['importo'])]
+    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        csv.writer(f).writerows(tutte[:1] + righe)
+    print(f"📒 Ultima vendita a credito (non incassata): {cosa.rsplit(' - ', 1)[0]}")
+    return True
+
+
 def registra_speciale(tipo):
+    if tipo == 'credito':
+        vendita_a_credito()
     importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     if not importo or importo <= 0:
         print(f"❓ Manca l'importo: \"{testo_originale}\". Niente salvato.")
@@ -982,7 +1056,13 @@ def registra_speciale(tipo):
         # Il cliente non paga ora: nessun incasso
         voce_c = {"categoria": f"Credito cliente {cliente or '?'}", "reparto": "Credito cliente",
                   "cliente": cliente or "", "importo": importo, "metodo_pagamento": "Credito"}
-        salva_voci([voce_c], [testo_basso], 'Credito')
+        esito = credito_per_ultima_vendita(importo, cliente)
+        if esito is None:
+            print("Credito NON salvato: l'ultima vendita resta pagata com'era. Ridillo insieme alla vendita "
+                  "(es. \"49 litri di adblue a credito cliente rossi\"). Niente salvato.")
+            sys.exit(1)
+        if not esito:
+            salva_voci([voce_c], [testo_basso], 'Credito')
         titolo = "Credito cliente"
     else:
         # Il cliente paga un vecchio credito: incasso con il metodo detto (contanti se non detto)
