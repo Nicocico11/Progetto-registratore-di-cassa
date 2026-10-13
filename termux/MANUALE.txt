@@ -261,7 +261,9 @@ Di': "CHIUSURA TURNO". Compaiono questi riquadri:
      altro, proprio quell'importo) si sposta DA SOLA: "🔁 Corretto da solo: 17:24 112,79 € …"
    • se un totale non torna ancora compare l'elenco delle vendite con quel pagamento, con
      l'ora: confrontalo con gli scontrini, premi OK e scegli:
-     🔁 Era quella in contanti delle … (se c'è una vendita in contanti proprio di quell'importo) ·
+     🔁 Era quella in contanti delle … (se c'è una vendita in contanti proprio di quell'importo;
+       se il conta cassa fatto dopo l'ultima vendita dice che in cassa mancano circa quei soldi,
+       ±0,50 €, si sposta DA SOLA) ·
      ➕ Segna la vendita mancante · ✏️ Segna un altro importo · Chiudi senza segnare ·
      ❌ Non chiudere (controllo prima)
    Tutto entra subito nell'Excel della chiusura.

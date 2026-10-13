@@ -548,6 +548,21 @@ import info_turno as i
 assert i.importo_da_testo('1.250') == 1250 and i.importo_da_testo('1.250,50') == 1250.5 and i.importo_da_testo('20.50') == 20.5
 " && echo "  ok   1.250 = milleduecentocinquanta" || { echo "  ERRORE punto migliaia"; ERRORI=$((ERRORI+1)); }
 
+# Chiusura: vendita segnata in contanti ma pagata col POS; il conta cassa dice che mancano proprio quei soldi
+H2=$HOME/cassa2; mkdir -p $H2/storage/downloads; cp $HOME/info_turno.py $HOME/.termux/tasker/numeri.py $H2/
+(
+  export HOME=$H2; cd $H2
+  python3 info_turno.py apri turno 100 "" "" "" "" prova > /dev/null 2>&1
+  printf '%s\n' 'data_ora,dettagli_json,importo' \
+    '2026-10-13 14:00:00,"{""categoria"": ""Carburante"", ""reparto"": ""Carburante"", ""importo"": ""25.50"", ""metodo_pagamento"": ""Contanti"", ""transazione"": ""1""}",25.5' \
+    '2026-10-13 14:05:00,"{""categoria"": ""Carburante"", ""reparto"": ""Carburante"", ""importo"": ""40.00"", ""metodo_pagamento"": ""Petrolifere"", ""transazione"": ""2""}",40' > transazioni_turno.csv
+  python3 info_turno.py contanti_mancanti 25,50 && exit 1          # senza conta cassa: non si sposta da sola
+  python3 info_turno.py contacassa "1x100" "0,03" > /dev/null       # in cassa 100,03: mancano 25,47
+  python3 info_turno.py contanti_mancanti 25,50 | grep -q "25,47" || exit 1
+  python3 info_turno.py contanti_mancanti 30 && exit 1              # ammanco diverso: no
+  exit 0
+) && echo "  ok   contanti / terminale: decide il conta cassa" || { echo "  ERRORE contanti mancanti"; ERRORI=$((ERRORI+1)); }
+
 [ -f $HOME/.cassa_carrello.pid ] && kill "$(cat $HOME/.cassa_carrello.pid)" 2>/dev/null   # ricevitore dello scanner
 [ -n "${TIENI:-}" ] && cp $D/*/Documenti/*.txt /tmp/claude-0/ultimo_doc.txt 2>/dev/null; rm -rf "$HOME"
 if [ $ERRORI -eq 0 ]; then echo "✅ Tutto ok"; else echo "❌ $ERRORI errori"; exit 1; fi

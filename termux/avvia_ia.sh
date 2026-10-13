@@ -137,6 +137,14 @@ case "$FRASE" in
         if [ $? != 2 ]; then echo "$CONFRONTO"; continue; fi
         DIFF=$(tail -1 <<< "$CONFRONTO" | cut -d' ' -f2)
         IN_CONTANTI=$(grep '^CONTANTI ' <<< "$CONFRONTO")
+        # In contanti c'è una vendita proprio di quell'importo e il conta cassa dice che in cassa mancano
+        # circa quei soldi: non era in contanti, si sposta da sola
+        if [ -n "$IN_CONTANTI" ] && CASSA_M=$(python3 ~/info_turno.py contanti_mancanti "$DIFF"); then
+          python3 ~/info_turno.py sposta "$(cut -d' ' -f2 <<< "$IN_CONTANTI")" Contanti "$METODO"
+          echo "🔁 Corretto da solo: $(cut -d' ' -f3 <<< "$IN_CONTANTI") ${DIFF/./,} € ($(cut -d' ' -f4- <<< "$IN_CONTANTI")) era in contanti, è $METODO (conta cassa delle ${CASSA_M% *}: mancavano ${CASSA_M#* } €)"
+          echo "✅ $METODO: ora tornano"
+          continue
+        fi
         RIEPILOGO_M=$(grep -v -e '^DIFF ' -e '^CONTANTI ' <<< "$CONFRONTO")
         termux-dialog confirm -t "🔎 $METODO" -i "$RIEPILOGO_M" > /dev/null 2>&1   # si legge, poi OK
         if [[ "$DIFF" != -* ]]; then

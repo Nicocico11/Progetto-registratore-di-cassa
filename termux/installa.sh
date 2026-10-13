@@ -142,6 +142,14 @@ case "$FRASE" in
         if [ $? != 2 ]; then echo "$CONFRONTO"; continue; fi
         DIFF=$(tail -1 <<< "$CONFRONTO" | cut -d' ' -f2)
         IN_CONTANTI=$(grep '^CONTANTI ' <<< "$CONFRONTO")
+        # In contanti c'è una vendita proprio di quell'importo e il conta cassa dice che in cassa mancano
+        # circa quei soldi: non era in contanti, si sposta da sola
+        if [ -n "$IN_CONTANTI" ] && CASSA_M=$(python3 ~/info_turno.py contanti_mancanti "$DIFF"); then
+          python3 ~/info_turno.py sposta "$(cut -d' ' -f2 <<< "$IN_CONTANTI")" Contanti "$METODO"
+          echo "🔁 Corretto da solo: $(cut -d' ' -f3 <<< "$IN_CONTANTI") ${DIFF/./,} € ($(cut -d' ' -f4- <<< "$IN_CONTANTI")) era in contanti, è $METODO (conta cassa delle ${CASSA_M% *}: mancavano ${CASSA_M#* } €)"
+          echo "✅ $METODO: ora tornano"
+          continue
+        fi
         RIEPILOGO_M=$(grep -v -e '^DIFF ' -e '^CONTANTI ' <<< "$CONFRONTO")
         termux-dialog confirm -t "🔎 $METODO" -i "$RIEPILOGO_M" > /dev/null 2>&1   # si legge, poi OK
         if [[ "$DIFF" != -* ]]; then
@@ -3492,7 +3500,8 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
     non_spiegati = round(contati - attesi, 2)
     differenza_excel = round(non_spiegati + centesimi, 2)
     t["conteggio"] = {"banconote": {str(k): n for k, n in banconote.items()}, "cassetto": cassetto, "borsa": borsa,
-                      "totale": contati, "ora": datetime.now().strftime("%H:%M"), "firma": firma_vendite(righe, t)}
+                      "totale": contati, "attesi": attesi, "ora": datetime.now().strftime("%H:%M"),
+                      "firma": firma_vendite(righe, t)}
     salva_turno(t)
     segno = lambda x: f"{'+' if x > 0 else ''}{x:.2f} €".replace(".", ",")
     out = [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
@@ -4095,6 +4104,22 @@ def sposta_vendita(posizione, da, a):
         salva_copia()
 
 
+def contanti_mancanti(importo_testo):
+    """Chiusura: una vendita in contanti ha proprio l'importo che manca a un terminale. Se il conta cassa
+    (fatto dopo l'ultima vendita) dice che in cassa mancano circa quei soldi (±0,50 €), quella vendita
+    non era in contanti: esce con 0 e scrive ora e ammanco del conteggio. Altrimenti esce con 1."""
+    importo = importo_da_testo(importo_testo)
+    t = leggi_turno() or {}
+    c = t.get("conteggio") or {}
+    if importo is None or "attesi" not in c or c.get("firma") != firma_vendite(leggi_csv(), t):
+        sys.exit(1)
+    mancano = round(c["attesi"] - c["totale"], 2)
+    if abs(mancano - importo) > 0.5:
+        sys.exit(1)
+    print(f"{c['ora']} {mancano:.2f}".replace(".", ","))
+    sys.exit(0)
+
+
 def scambi_terminali(*coppie):
     """Chiusura: "Petrolifere=1458,46" "POS nero=653,18"... Se a un terminale manca un importo che su un altro
     è in più, ed è proprio una vendita segnata là, la vendita è stata messa sul pagamento sbagliato:
@@ -4268,6 +4293,8 @@ def main():
         conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
+    elif sys.argv[1:2] == ["contanti_mancanti"]:
+        contanti_mancanti((sys.argv[2:3] + [""])[0])
     elif sys.argv[1:2] == ["scambi"]:
         scambi_terminali(*sys.argv[2:])
     elif sys.argv[1:2] == ["sposta"]:
@@ -11449,7 +11476,9 @@ Di': "CHIUSURA TURNO". Compaiono questi riquadri:
      altro, proprio quell'importo) si sposta DA SOLA: "🔁 Corretto da solo: 17:24 112,79 € …"
    • se un totale non torna ancora compare l'elenco delle vendite con quel pagamento, con
      l'ora: confrontalo con gli scontrini, premi OK e scegli:
-     🔁 Era quella in contanti delle … (se c'è una vendita in contanti proprio di quell'importo) ·
+     🔁 Era quella in contanti delle … (se c'è una vendita in contanti proprio di quell'importo;
+       se il conta cassa fatto dopo l'ultima vendita dice che in cassa mancano circa quei soldi,
+       ±0,50 €, si sposta DA SOLA) ·
      ➕ Segna la vendita mancante · ✏️ Segna un altro importo · Chiudi senza segnare ·
      ❌ Non chiudere (controllo prima)
    Tutto entra subito nell'Excel della chiusura.
@@ -11618,4 +11647,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 22:31"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 22:39"
