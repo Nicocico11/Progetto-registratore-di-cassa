@@ -81,7 +81,7 @@ case "$FRASE" in
     # Qualsiasi frase con "turno" è un comando, mai una vendita
     if [[ "$FRASE" =~ ripristin ]]; then
       python3 ~/info_turno.py ripristina
-    elif [[ "$FRASE" =~ (apri|apertura|inizio|inizia|avvia|comincia) ]]; then
+    elif [[ "$FRASE" =~ (apri|apertura|addirittura|inizio|inizia|avvia|comincia) ]]; then
       AVANZO=""; ORA_PREC=""; CONTATORE=""; TANICHE=""
       if ! python3 ~/info_turno.py aperto; then
         # Valori del turno PRECEDENTE (di un altro operatore): si scrivono sempre a mano,

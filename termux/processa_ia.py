@@ -113,7 +113,7 @@ testo_basso = senza_accenti(in_cifre(testo_basso))                              
 # Errori tipici del riconoscimento vocale
 testo_basso = re.sub(r'(?<=\d)\.(?=\d{3}(?!\d))', '', testo_basso)                     # "1.250" = 1250 (migliaia)
 testo_basso = re.sub(r'\b(\d+):(\d{2})\b', r'\1.\2', testo_basso)                   # "20:10" -> 20.10
-testo_basso = re.sub(r'(?<![\w.,])(\d{1,3})-(\d{2})\b', r'\1.\2', testo_basso)          # "70-95" -> 70.95
+testo_basso = re.sub(r'(?<![\w.,])(\d{1,3})[-/](\d{2})\b', r'\1.\2', testo_basso)       # "70-95", "45/92" -> 70.95
 # "20 10 di gasolio", "70 07 nero", "83 39": due numeri attaccati, il secondo di 2 cifre = centesimi
 testo_basso = re.sub(r'\b(\d+)\s+(\d{2})\b(?!\s*(?:litri|litro|l\b|fogli|foglio|pezzi|tanich|tanica|x\b|euro))',
                      r'\1.\2', testo_basso)
@@ -125,7 +125,11 @@ testo_basso = re.sub(r'\b(?:o\s*\.?\s*p\s*\.?\s*t|otp|o\s+pi\s+ti|opiti|oppiti|o
                      testo_basso)                                                      # "o p t", "otp" -> opt
 testo_basso = re.sub(r'\b(?:g\s*\.?\s*p\s*\.?\s*l|gi\s*pi\s*elle|g\s*p\s*elle|gipielle|gpl\w*|gielle)\b', 'gpl',
                      testo_basso)                                                      # "g p l", "gi pi elle" -> gpl
-testo_basso = re.sub(r'\bc[ao]rtissim\w*', 'cartissima', testo_basso)                   # "cortissima", "cartissimi"
+testo_basso = re.sub(r'\b(?:c[ao]rtissim\w*|cattivissim\w*|cartina)\b', 'cartissima', testo_basso)  # "cortissima", "cattivissimo"
+testo_basso = re.sub(r'\bcon\s+tanti\b', 'contanti', testo_basso)                        # "cinquanta con tanti"
+testo_basso = re.sub(r'\bpost\s*cassa\b', 'pos cassa', testo_basso)                       # "twix post cassa"
+testo_basso = re.sub(r'\bcredo\s+(client)', r'credito \1', testo_basso)                  # "credo cliente"
+testo_basso = re.sub(r'\bpresto(?=\s+\d+(?:[.,]\d+)?\s*(?:centesim|cent\b|euro\b))', 'resto', testo_basso)  # "presto 10 centesimi"
 testo_basso = re.sub(r'\bmarzo\b', 'mars', testo_basso)                              # "2 marzo"
 testo_basso = re.sub(r'\ba\s+buono\b|\babbono\b', 'abbuono', testo_basso)             # "a buono"
 testo_basso = re.sub(r'\b(?:ad|add|a\s?d)\s?blu(?:e)?\b', 'adblue', testo_basso)       # "ad blu", "adblu"
@@ -1036,8 +1040,12 @@ def credito_per_ultima_vendita(importo, cliente):
 
 
 def registra_speciale(tipo):
+    global testo_basso
     if tipo == 'credito':
         vendita_a_credito()
+    # Centesimi come nelle vendite: "63 e 70 credito cliente" = 63,70 (non 63)
+    testo_basso = re.sub(r'(\d+)\s*(?:euro\s+)?e\s+(\d{2})\b(?!\s*(?:litri|litro|pezzi|fogli|x\b))', r'\1.\2',
+                         re.sub(r'(\d+)\s*virgola\s*(\d+)', r'\1.\2', testo_basso))
     importo = numero_in_euro(testo_basso) or primo_numero(testo_basso)
     if not importo or importo <= 0:
         print(f"❓ Manca l'importo: \"{testo_originale}\". Niente salvato.")
