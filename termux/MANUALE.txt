@@ -226,7 +226,8 @@ VERSAMENTI
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
 • "archivio": i turni passati.
 • "CONTA CASSA" (o pulsante 08): FACOLTATIVO, come il riquadro CALCOLO AVANZO CASSA dell'Excel.
-  1) banconote nella borsa: "50x2 20x2 10x7 5x13" (oppure "2x50", "2 da 50": va bene in tutti e due gli ordini)
+  1) banconote nella borsa: "50x2 20x2 10x7 5x13" = PRIMA IL TAGLIO, poi quante
+     (anche "2 da 50"; "10x20" = 20 banconote da 10)
   2) spiccioli del cassetto, in euro: "54,62"
   3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
   Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:

@@ -515,7 +515,8 @@ PYTHONPATH=$HOME python3 -c "
 import info_turno as i
 assert i.leggi_monete('0,2×9 0,05×8') == 2.2 and i.leggi_monete('0,2x9 0,05x8') == 2.2
 assert i.leggi_banconote('50×3 20x8') == {50: 3, 20: 8}, i.leggi_banconote('50×3 20x8')
-" && echo "  ok   conta cassa: × come x" || { echo "  ERRORE conta cassa ×"; ERRORI=$((ERRORI+1)); }
+assert i.leggi_banconote('50x3 20x13 10x20 5x4') == {50: 3, 20: 13, 10: 20, 5: 4}, i.leggi_banconote('50x3 20x13 10x20 5x4')
+" && echo "  ok   conta cassa: × come x, 10x20 = 20 da 10" || { echo "  ERRORE conta cassa ×"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py contacassa "100" "0,50" "25x2" | grep -q "La cassa torna" && echo "  ok   conta cassa: monete della borsa a pezzi" || { echo "  ERRORE monete borsa"; ERRORI=$((ERRORI+1)); }
 python3 $HOME/info_turno.py versamento "versamento 600" "50x12" | grep -q "12×50" && echo "  ok   versamento 50x12 = 12 da 50" || { echo "  ERRORE versamento 50x12"; ERRORI=$((ERRORI+1)); }
 controlla "cancella versamento 600"   "cancella versamento"                          "cancellato"

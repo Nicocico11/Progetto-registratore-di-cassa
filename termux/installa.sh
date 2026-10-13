@@ -3402,8 +3402,8 @@ def leggi_banconote(testo):
     for a, segno, b in re.findall(r'(\d+)\s*(x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', testo):
         a, b = int(a), int(b)
         n, taglio = a, b                     # "3 da 50", "3x50": 3 banconote da 50
-        if segno in ('x', '*', 'per') and (b not in TAGLI or (a in TAGLI and a > b)):
-            n, taglio = b, a                 # "50x12": 12 da 50 (nell'ordine che viene; il taglio è il numero grande)
+        if segno in ('x', '*', 'per') and a in TAGLI:
+            n, taglio = b, a                 # "50x12", "10x20": prima il taglio (come nell'esempio "50x2 20x2 10x7")
         if taglio in TAGLI:
             conta[taglio] = conta.get(taglio, 0) + n
     testo = re.sub(r'(\d+)\s*(?:x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', ' ', testo)
@@ -11264,7 +11264,8 @@ VERSAMENTI
 • "erogazioni": AdBlue erogato (litri sfuso e taniche).
 • "archivio": i turni passati.
 • "CONTA CASSA" (o pulsante 08): FACOLTATIVO, come il riquadro CALCOLO AVANZO CASSA dell'Excel.
-  1) banconote nella borsa: "50x2 20x2 10x7 5x13" (oppure "2x50", "2 da 50": va bene in tutti e due gli ordini)
+  1) banconote nella borsa: "50x2 20x2 10x7 5x13" = PRIMA IL TAGLIO, poi quante
+     (anche "2 da 50"; "10x20" = 20 banconote da 10)
   2) spiccioli del cassetto, in euro: "54,62"
   3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
   Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
@@ -11457,4 +11458,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 21:50"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 22:00"

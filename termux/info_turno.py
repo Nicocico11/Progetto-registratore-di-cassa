@@ -292,8 +292,8 @@ def leggi_banconote(testo):
     for a, segno, b in re.findall(r'(\d+)\s*(x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', testo):
         a, b = int(a), int(b)
         n, taglio = a, b                     # "3 da 50", "3x50": 3 banconote da 50
-        if segno in ('x', '*', 'per') and (b not in TAGLI or (a in TAGLI and a > b)):
-            n, taglio = b, a                 # "50x12": 12 da 50 (nell'ordine che viene; il taglio è il numero grande)
+        if segno in ('x', '*', 'per') and a in TAGLI:
+            n, taglio = b, a                 # "50x12", "10x20": prima il taglio (come nell'esempio "50x2 20x2 10x7")
         if taglio in TAGLI:
             conta[taglio] = conta.get(taglio, 0) + n
     testo = re.sub(r'(\d+)\s*(?:x|\*|da|per|banconot[ae] da|pezzi da)\s*(\d+)', ' ', testo)
