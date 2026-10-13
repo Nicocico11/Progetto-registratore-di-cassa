@@ -5,5 +5,5 @@ if ! conferma "🔴 Chiudere il turno?" ""; then
   messaggio "Turno NON chiuso"; casa
 fi
 RISULTATO=$(bash $CASSA "chiusura turno")
-messaggio "$(grep -m4 -E '🔴|🎯|📧|⚠️' <<< "$RISULTATO")"
+messaggio "$(grep -m5 -E '🔴|❌|➕|🎯|📧|⚠️' <<< "$RISULTATO")"
 casa

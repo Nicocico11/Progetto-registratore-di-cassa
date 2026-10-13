@@ -32,7 +32,9 @@ case "$*" in
   *Avanzo*)   echo '{"code": -1, "text": "150,50"}' ;;
   *"Ora chiusura"*) echo '{"code": -1, "text": "130000"}' ;;
   *Orario*)   echo '{"code": -1, "text": "140532"}' ;;
-  *"Totale carburanti colonnina"*) [ -f ~/colonnina ] && echo '{"code": -1, "text": "20"}' || echo '{"code": -2, "text": ""}' ;;
+  *"Totale carburanti colonnina"*) [ -f ~/colonnina ] && echo "{\"code\": -1, \"text\": \"$(cat ~/colonnina)\"}" || echo '{"code": -2, "text": ""}' ;;
+  *"Totale PAX petrolifere"*) [ -f ~/pax ] && echo "{\"code\": -1, \"text\": \"$(cat ~/pax)\"}" || echo '{"code": -2, "text": ""}' ;;
+  *"Segna la vendita mancante"*) [ "$(cat ~/scelta_m)" = segna ] && echo '{"code": -1, "text": "➕ Segna la vendita mancante", "index": 0}' || echo '{"code": -1, "text": "❌ Non chiudere (controllo prima)", "index": 3}' ;;
   *"🔒 Cassaforte"*) echo '{"code": -1, "text": ""}' ;;                  # conta cassa: niente in cassaforte
   *assaforte*) echo '{"code": -1, "text": "20"}' ;;
   *"Non capito"*xyz*) echo '{"code": -1, "text": "1 mars"}' ;;               # frase scritta a mano
@@ -483,17 +485,24 @@ controlla "secondo turno di prova"    "apertura turno prova notte"              
 controlla "vendita"                   "20 gasolio"                                   "Gasolio 20.00"
 controlla "adblue a credito"          "49 litri di adblue a credito cliente rossi"   "A credito (non pagato): 49 l AdBlue sfuso 63.70 € · credito cliente Rossi 63.70 €"
 python3 $HOME/info_turno.py totali breve | grep -q "Crediti clienti: 63.70" && echo "  ok   credito contato una volta sola" || { echo "  ERRORE credito doppio"; python3 $HOME/info_turno.py totali breve; ERRORI=$((ERRORI+1)); }
-touch $HOME/colonnina   # totale carburanti della colonnina scritto nel popup: 20
+echo 45,50 > $HOME/colonnina   # totale carburanti della colonnina: 20 segnati + 25,50 dimenticati
+echo 25,50 > $HOME/pax         # PAX petrolifere: 25,50, sul telefono non segnati
+echo no > $HOME/scelta_m
 CHIUSURA=$(bash $S "chiusura turno" 2>&1)
-rm -f $HOME/colonnina
+[[ "$CHIUSURA" == *"MANCANO 25,50"* && "$CHIUSURA" == *"Turno NON chiuso"* ]] && python3 $HOME/info_turno.py aperto && echo "  ok   PAX non torna: si può non chiudere" || { echo "  ERRORE PAX non chiudere"; echo "$CHIUSURA" | sed 's/^/         /'; ERRORI=$((ERRORI+1)); }
+echo segna > $HOME/scelta_m
+CHIUSURA=$(bash $S "chiusura turno" 2>&1)
+rm -f $HOME/colonnina $HOME/pax $HOME/scelta_m
+[[ "$CHIUSURA" == *"➕ Mancante: ✅ Vendita salvata: Carburante 25.50 € - Petrolifere"* ]] && echo "  ok   PAX: vendita mancante segnata alla chiusura" || { echo "  ERRORE PAX segna mancante"; echo "$CHIUSURA" | sed 's/^/         /'; ERRORI=$((ERRORI+1)); }
 [[ "$CHIUSURA" == *"Mail inviata a prova@gmail.com"* ]] && echo "  ok   chiusura secondo prova" || { echo "  ERRORE chiusura secondo prova"; echo "$CHIUSURA" | sed 's/^/         /'; ERRORI=$((ERRORI+1)); }
 python3 -c "
 import openpyxl, glob, sys
 f = [x for x in glob.glob(sys.argv[1] + '/*_Notte_TEST*/Excel/*notte_TEST.xlsx')]
-assert any(openpyxl.load_workbook(x).active['D2'].value == 20 for x in f), f
-ws = [openpyxl.load_workbook(x).active for x in f if openpyxl.load_workbook(x).active['D2'].value == 20][0]
+assert any(openpyxl.load_workbook(x).active['D2'].value == 45.5 for x in f), f
+ws = [openpyxl.load_workbook(x).active for x in f if openpyxl.load_workbook(x).active['D2'].value == 45.5][0]
 assert ws['I8'].value == 'Rossi' and ws['L8'].value == 63.7 and ws['I17'].value == 49, (ws['I8'].value, ws['L8'].value, ws['I17'].value)
-" $D && [[ "$CHIUSURA" == *"DIFFERENZA Excel: +0,00 €"* ]] && echo "  ok   totale carburanti colonnina in D2 e differenza" || { echo "  ERRORE totale carburanti colonnina"; ERRORI=$((ERRORI+1)); }
+assert ws['D9'].value == 25.5, ws['D9'].value
+" $D && [[ "$CHIUSURA" == *"DIFFERENZA Excel: +0,00 €"* ]] && echo "  ok   colonnina in D2, PAX in D9, differenza 0" || { echo "  ERRORE totale carburanti colonnina"; ERRORI=$((ERRORI+1)); }
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 
 # Turno senza vendite (solo avanzo): la chiusura fa lo stesso l'Excel; punto delle migliaia

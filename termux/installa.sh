@@ -123,9 +123,50 @@ case "$FRASE" in
       CASSAFORTE=$(chiedi_ok "Cassaforte (€)" "vuoto = niente")
       # Totale della colonnina: nell'Excel (TOTALE CARBURANTI) e per la differenza; vuoto = lo scrivi sul computer
       CARBURANTI_COLONNINA=$(chiedi_ok "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
-      echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
-      spegni_ia
+      # Totali delle chiusure dei terminali: se non tornano con le vendite segnate si vede quali ci sono
+      # (con l'ora) e la vendita mancante si segna subito, così entra nell'Excel della chiusura
+      NON_CHIUDERE=""
+      for TERMINALE in "Petrolifere|💳 Totale PAX petrolifere (€)|petrolifere" \
+                       "POS nero|⚫ Totale POS nero (€)|sul nero" "POS bianco|⚪ Totale POS bianco (€)|sul bianco"; do
+        [ -n "$NON_CHIUDERE" ] && break
+        IFS='|' read -r METODO TITOLO DETTO <<< "$TERMINALE"
+        TOT_TERMINALE=$(chiedi_ok "$TITOLO" "vuoto = non controllo") || TOT_TERMINALE=""
+        [ -z "$TOT_TERMINALE" ] && continue
+        CONFRONTO=$(python3 ~/info_turno.py confronta "$METODO" "$TOT_TERMINALE")
+        if [ $? != 2 ]; then echo "$CONFRONTO"; continue; fi
+        DIFF=$(tail -1 <<< "$CONFRONTO" | cut -d' ' -f2)
+        RIEPILOGO_M=$(sed '$d' <<< "$CONFRONTO")
+        termux-dialog confirm -t "🔎 $METODO" -i "$RIEPILOGO_M" > /dev/null 2>&1   # si legge, poi OK
+        if [[ "$DIFF" != -* ]]; then
+          VOCI_M="➕ Segna la vendita mancante (${DIFF/./,} €),✏️ Segna un altro importo,Chiudi senza segnare,❌ Non chiudere (controllo prima)"
+        else
+          VOCI_M="Chiudi lo stesso,❌ Non chiudere (controllo prima)"
+        fi
+        SCELTA_M=$(termux-dialog radio -t "$(head -1 <<< "$RIEPILOGO_M")" -v "$VOCI_M" 2>/dev/null | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+        MANCANTE=""
+        head -1 <<< "$RIEPILOGO_M"
+        case "$SCELTA_M" in
+          ➕*) MANCANTE="$DIFF" ;;
+          ✏️*) MANCANTE=$(chiedi_ok "✏️ Importo mancante ($METODO)" "${DIFF/./,}") || MANCANTE="" ;;
+          Chiudi*) ;;
+          *) NON_CHIUDERE=1 ;;     # anche riquadro annullato: meglio non chiudere che chiudere sbagliato
+        esac
+        if [ -n "$MANCANTE" ]; then
+          python3 $CARTELLA/processa_ia.py "$MANCANTE euro $DETTO" | grep -m1 -E '✅|⚠️|❌|❓' | sed 's/^/➕ Mancante: /'
+        fi
+      done
+      if [ -n "$NON_CHIUDERE" ]; then
+        echo "❌ Turno NON chiuso: controlla le vendite (pulsante 05 → 📋 elenco), poi richiudi"
+        ESITO=1
+      else
+        echo "🔴 TURNO CHIUSO - IA spenta"
+        python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
+        spegni_ia
+      fi
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1
@@ -4014,6 +4055,37 @@ def cancella_scelta(pos_testo, etichetta):
     notifica_breve(righe_aggiornate)
 
 
+def confronta_terminale(metodo, totale_testo):
+    """Chiusura: totale letto sulla chiusura del terminale (PAX petrolifere, POS nero, POS bianco)
+    confrontato con le vendite segnate con quel pagamento. Prima riga: l'esito; poi le vendite con l'ora
+    (per trovare quella mancante); ultima riga "DIFF x" (terminale - segnate). Esce con 0 se tornano, 2 se no."""
+    terminale = importo_da_testo(totale_testo)
+    if terminale is None:
+        print(f"⚠️ {metodo}: totale \"{totale_testo}\" non capito, controllo saltato")
+        sys.exit(1)
+    righe = []
+    for gruppo in transazioni(leggi_csv()):
+        vv = [v for v in (vendita(r) for r in gruppo) if v and v["metodo"] == metodo]
+        if vv:
+            cosa = " + ".join(voce_breve(v) for v in vv if v["reparto"] not in ("Sconto", "Resto lasciato"))
+            righe.append((vv[0]["ora"], round(sum(v["importo"] for v in vv), 2), cosa))
+    segnate = round(sum(i for _, i, _ in righe), 2)
+    diff = round(terminale - segnate, 2)
+    e = lambda x: f"{x:.2f} €".replace(".", ",")
+    if abs(diff) < 0.005:
+        print(f"✅ {metodo}: tornano ({e(terminale)})")
+        sys.exit(0)
+    if diff > 0:
+        print(f"⚠️ {metodo}: terminale {e(terminale)} · segnate {e(segnate)} → MANCANO {e(diff)}")
+    else:
+        print(f"⚠️ {metodo}: terminale {e(terminale)} · segnate {e(segnate)} → {e(-diff)} IN PIÙ sul telefono")
+    print(f"{len(righe)} vendite {metodo} segnate (confrontale con gli scontrini):")
+    for ora, imp, cosa in righe:
+        print(f"  {ora}  {e(imp)}  {cosa}")
+    print(f"DIFF {diff:.2f}")
+    sys.exit(2)
+
+
 def cancella_penultima():
     gruppi = transazioni(leggi_csv())
     if len(gruppi) < 2:
@@ -4124,6 +4196,8 @@ def main():
         conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
+    elif sys.argv[1:2] == ["confronta"]:
+        confronta_terminale(*(sys.argv[2:4] + ["", ""])[:2])
     elif comando == "elenco scelta":
         elenco_scelta()
     elif sys.argv[1:2] == ["cancellascelta"]:
@@ -9938,7 +10012,7 @@ if ! conferma "🔴 Chiudere il turno?" ""; then
   messaggio "Turno NON chiuso"; casa
 fi
 RISULTATO=$(bash $CASSA "chiusura turno")
-messaggio "$(grep -m4 -E '🔴|🎯|📧|⚠️' <<< "$RISULTATO")"
+messaggio "$(grep -m5 -E '🔴|❌|➕|🎯|📧|⚠️' <<< "$RISULTATO")"
 casa
 FINE_FILE
 rmdir ~/.shortcuts/tasks 2>/dev/null; chmod +x ~/.shortcuts/*
@@ -11286,13 +11360,20 @@ Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 ━━━━━━━━━━━━━━━━━━━━━━━━
 6. FINE TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "CHIUSURA TURNO". Compaiono tre riquadri:
+Di': "CHIUSURA TURNO". Compaiono questi riquadri:
 1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
    140532 = 14:05:32
 2) IN CASSAFORTE (vuoto se non c'è niente)
 3) ⛽ TOTALE CARBURANTI COLONNINA: il totale letto sulla colonnina.
    Va nell'Excel (TOTALE CARBURANTI) e nel messaggio di chiusura compare
    subito la DIFFERENZA dell'Excel. Vuoto = lo scrivi tu sul computer.
+4) 💳 TOTALE PAX PETROLIFERE, ⚫ TOTALE POS NERO, ⚪ TOTALE POS BIANCO: i totali delle
+   chiusure dei terminali (vuoto = quel controllo si salta). Se non tornano con le vendite
+   segnate compare l'elenco delle vendite con quel pagamento, con l'ora: confrontalo con gli
+   scontrini, premi OK e scegli:
+   ➕ Segna la vendita mancante (l'importo che manca) · ✏️ Segna un altro importo ·
+   Chiudi senza segnare · ❌ Non chiudere (controllo prima)
+   La vendita segnata entra subito nell'Excel della chiusura.
 I contanti non si contano: li calcola il telefono dalle vendite
 (avanzo + vendite in contanti - versamenti).
 
@@ -11458,4 +11539,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 22:00"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 22:14"

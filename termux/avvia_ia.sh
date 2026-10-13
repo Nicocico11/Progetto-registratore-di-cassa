@@ -118,9 +118,50 @@ case "$FRASE" in
       CASSAFORTE=$(chiedi_ok "Cassaforte (€)" "vuoto = niente")
       # Totale della colonnina: nell'Excel (TOTALE CARBURANTI) e per la differenza; vuoto = lo scrivi sul computer
       CARBURANTI_COLONNINA=$(chiedi_ok "⛽ Totale carburanti colonnina (€)" "vuoto = lo scrivo dopo")
-      echo "🔴 TURNO CHIUSO - IA spenta"
-      python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
-      spegni_ia
+      # Totali delle chiusure dei terminali: se non tornano con le vendite segnate si vede quali ci sono
+      # (con l'ora) e la vendita mancante si segna subito, così entra nell'Excel della chiusura
+      NON_CHIUDERE=""
+      for TERMINALE in "Petrolifere|💳 Totale PAX petrolifere (€)|petrolifere" \
+                       "POS nero|⚫ Totale POS nero (€)|sul nero" "POS bianco|⚪ Totale POS bianco (€)|sul bianco"; do
+        [ -n "$NON_CHIUDERE" ] && break
+        IFS='|' read -r METODO TITOLO DETTO <<< "$TERMINALE"
+        TOT_TERMINALE=$(chiedi_ok "$TITOLO" "vuoto = non controllo") || TOT_TERMINALE=""
+        [ -z "$TOT_TERMINALE" ] && continue
+        CONFRONTO=$(python3 ~/info_turno.py confronta "$METODO" "$TOT_TERMINALE")
+        if [ $? != 2 ]; then echo "$CONFRONTO"; continue; fi
+        DIFF=$(tail -1 <<< "$CONFRONTO" | cut -d' ' -f2)
+        RIEPILOGO_M=$(sed '$d' <<< "$CONFRONTO")
+        termux-dialog confirm -t "🔎 $METODO" -i "$RIEPILOGO_M" > /dev/null 2>&1   # si legge, poi OK
+        if [[ "$DIFF" != -* ]]; then
+          VOCI_M="➕ Segna la vendita mancante (${DIFF/./,} €),✏️ Segna un altro importo,Chiudi senza segnare,❌ Non chiudere (controllo prima)"
+        else
+          VOCI_M="Chiudi lo stesso,❌ Non chiudere (controllo prima)"
+        fi
+        SCELTA_M=$(termux-dialog radio -t "$(head -1 <<< "$RIEPILOGO_M")" -v "$VOCI_M" 2>/dev/null | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin); print(d.get("text", "") if d.get("code") == -1 else "")
+except Exception:
+    pass')
+        MANCANTE=""
+        head -1 <<< "$RIEPILOGO_M"
+        case "$SCELTA_M" in
+          ➕*) MANCANTE="$DIFF" ;;
+          ✏️*) MANCANTE=$(chiedi_ok "✏️ Importo mancante ($METODO)" "${DIFF/./,}") || MANCANTE="" ;;
+          Chiudi*) ;;
+          *) NON_CHIUDERE=1 ;;     # anche riquadro annullato: meglio non chiudere che chiudere sbagliato
+        esac
+        if [ -n "$MANCANTE" ]; then
+          python3 $CARTELLA/processa_ia.py "$MANCANTE euro $DETTO" | grep -m1 -E '✅|⚠️|❌|❓' | sed 's/^/➕ Mancante: /'
+        fi
+      done
+      if [ -n "$NON_CHIUDERE" ]; then
+        echo "❌ Turno NON chiuso: controlla le vendite (pulsante 05 → 📋 elenco), poi richiudi"
+        ESITO=1
+      else
+        echo "🔴 TURNO CHIUSO - IA spenta"
+        python3 ~/info_turno.py "chiudi turno" "$ORARIO" "" "$CASSAFORTE" "$CARBURANTI_COLONNINA"
+        spegni_ia
+      fi
     else
       echo "❓ Comando turno non capito: \"$TESTO\" (di' \"apri turno\" o \"chiudi turno\")"
       ESITO=1

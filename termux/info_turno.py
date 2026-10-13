@@ -904,6 +904,37 @@ def cancella_scelta(pos_testo, etichetta):
     notifica_breve(righe_aggiornate)
 
 
+def confronta_terminale(metodo, totale_testo):
+    """Chiusura: totale letto sulla chiusura del terminale (PAX petrolifere, POS nero, POS bianco)
+    confrontato con le vendite segnate con quel pagamento. Prima riga: l'esito; poi le vendite con l'ora
+    (per trovare quella mancante); ultima riga "DIFF x" (terminale - segnate). Esce con 0 se tornano, 2 se no."""
+    terminale = importo_da_testo(totale_testo)
+    if terminale is None:
+        print(f"⚠️ {metodo}: totale \"{totale_testo}\" non capito, controllo saltato")
+        sys.exit(1)
+    righe = []
+    for gruppo in transazioni(leggi_csv()):
+        vv = [v for v in (vendita(r) for r in gruppo) if v and v["metodo"] == metodo]
+        if vv:
+            cosa = " + ".join(voce_breve(v) for v in vv if v["reparto"] not in ("Sconto", "Resto lasciato"))
+            righe.append((vv[0]["ora"], round(sum(v["importo"] for v in vv), 2), cosa))
+    segnate = round(sum(i for _, i, _ in righe), 2)
+    diff = round(terminale - segnate, 2)
+    e = lambda x: f"{x:.2f} €".replace(".", ",")
+    if abs(diff) < 0.005:
+        print(f"✅ {metodo}: tornano ({e(terminale)})")
+        sys.exit(0)
+    if diff > 0:
+        print(f"⚠️ {metodo}: terminale {e(terminale)} · segnate {e(segnate)} → MANCANO {e(diff)}")
+    else:
+        print(f"⚠️ {metodo}: terminale {e(terminale)} · segnate {e(segnate)} → {e(-diff)} IN PIÙ sul telefono")
+    print(f"{len(righe)} vendite {metodo} segnate (confrontale con gli scontrini):")
+    for ora, imp, cosa in righe:
+        print(f"  {ora}  {e(imp)}  {cosa}")
+    print(f"DIFF {diff:.2f}")
+    sys.exit(2)
+
+
 def cancella_penultima():
     gruppi = transazioni(leggi_csv())
     if len(gruppi) < 2:
@@ -1014,6 +1045,8 @@ def main():
         conta_cassa(*argomenti[:4])
     elif "cancella ultima" in comando or "elimina ultima" in comando:
         cancella_ultima(sys.argv[2] if len(sys.argv) > 2 else "")
+    elif sys.argv[1:2] == ["confronta"]:
+        confronta_terminale(*(sys.argv[2:4] + ["", ""])[:2])
     elif comando == "elenco scelta":
         elenco_scelta()
     elif sys.argv[1:2] == ["cancellascelta"]:

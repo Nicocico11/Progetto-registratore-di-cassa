@@ -248,13 +248,20 @@ Il riepilogo è sempre visibile anche nella notifica "Stato Turno".
 ━━━━━━━━━━━━━━━━━━━━━━━━
 6. FINE TURNO
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Di': "CHIUSURA TURNO". Compaiono tre riquadri:
+Di': "CHIUSURA TURNO". Compaiono questi riquadri:
 1) ORARIO DEL TERMINALE POMPE, con i secondi, tutto attaccato:
    140532 = 14:05:32
 2) IN CASSAFORTE (vuoto se non c'è niente)
 3) ⛽ TOTALE CARBURANTI COLONNINA: il totale letto sulla colonnina.
    Va nell'Excel (TOTALE CARBURANTI) e nel messaggio di chiusura compare
    subito la DIFFERENZA dell'Excel. Vuoto = lo scrivi tu sul computer.
+4) 💳 TOTALE PAX PETROLIFERE, ⚫ TOTALE POS NERO, ⚪ TOTALE POS BIANCO: i totali delle
+   chiusure dei terminali (vuoto = quel controllo si salta). Se non tornano con le vendite
+   segnate compare l'elenco delle vendite con quel pagamento, con l'ora: confrontalo con gli
+   scontrini, premi OK e scegli:
+   ➕ Segna la vendita mancante (l'importo che manca) · ✏️ Segna un altro importo ·
+   Chiudi senza segnare · ❌ Non chiudere (controllo prima)
+   La vendita segnata entra subito nell'Excel della chiusura.
 I contanti non si contano: li calcola il telefono dalle vendite
 (avanzo + vendite in contanti - versamenti).
 
