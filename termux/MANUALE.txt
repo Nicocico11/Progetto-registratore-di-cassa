@@ -230,6 +230,8 @@ VERSAMENTI
      (anche "2 da 50"; "10x20" = 20 banconote da 10)
   2) spiccioli del cassetto, in euro: "54,62"
   3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
+  Se banconote e monete finiscono nei riquadri scambiati, la cassa se ne accorge e li inverte;
+  monete scritte tra le banconote ("0,05x7", "2x1") vengono contate nella borsa.
   Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
   ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
   ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (le vendite non cambiano).

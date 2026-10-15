@@ -3485,16 +3485,40 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
     confronta i contanti contati con quelli attesi e mostra la DIFFERENZA che uscirà nell'Excel."""
     righe = leggi_csv()
     t = turno_attuale(righe)
-    banconote = leggi_banconote(banconote_testo)
     cassetto = importo_da_testo(cassetto_testo) or 0.0
-    borsa = leggi_monete(borsa_testo)       # monete della borsa contate a pezzi ("3x2 5x1 4x0,50")
     if (cassaforte_testo or "").strip():
         t["cassaforte"] = importo_da_testo(cassaforte_testo)   # soldi in cassaforte: non sono nel cassetto
-    in_banconote = sum(taglio * n for taglio, n in banconote.items())
-    contati = round(in_banconote + cassetto + borsa, 2)
     vv = vendite(righe)
     contanti = totali_per(vv, "metodo").get("Contanti", 0.0)
     attesi = round((t.get("avanzo") or 0.0) + contanti - (t.get("versamento") or 0.0) - (t.get("cassaforte") or 0.0), 2)
+    correzioni = []
+
+    def leggi(testo_banconote, testo_monete):
+        # Nel riquadro delle banconote i numeri con i centesimi ("0,05x7", "2,20") sono monete: vanno nella borsa
+        coppia = r'\d+(?:[.,]\d+)?\s*(?:x|\*|×|da|per)\s*\d+(?:[.,]\d+)?'
+        # (anche "2x1": nessuno dei due numeri è un taglio di banconota, sono monete da 1 o 2 €)
+        monete_qui = [m for m in re.findall(coppia + r'|\d+[.,]\d+', testo_banconote or "")
+                      if re.search(r'[.,]', m) or not set(map(int, re.findall(r'\d+', m))) & set(TAGLI)]
+        solo_banconote = testo_banconote or ""
+        for m in monete_qui:
+            solo_banconote = solo_banconote.replace(m, " ", 1)
+        b = leggi_banconote(solo_banconote)
+        m = round(leggi_monete(testo_monete) + leggi_monete(" ".join(monete_qui)), 2)
+        return b, m, monete_qui
+
+    banconote, borsa, monete_qui = leggi(banconote_testo, borsa_testo)
+    contati = round(sum(k * n for k, n in banconote.items()) + cassetto + borsa, 2)
+    # Banconote e monete della borsa scritte nei riquadri scambiati: nel riquadro delle monete ci sono 50 € o più
+    # e sono tutte banconote ("50x6 20x12 10x22 5x2") → si invertono da sole
+    b2, m2, monete2 = leggi(borsa_testo, banconote_testo)
+    contati2 = round(sum(k * n for k, n in b2.items()) + cassetto + m2, 2)
+    nella_borsa = leggi_monete(borsa_testo)
+    if nella_borsa >= 50 and abs(sum(k * n for k, n in leggi_banconote(borsa_testo).items()) - nella_borsa) < 0.01:
+        banconote, borsa, monete_qui, contati = b2, m2, monete2, contati2
+        correzioni.append("🔁 Banconote e monete della borsa erano nei riquadri scambiati: corretto da solo")
+    elif monete_qui:
+        correzioni.append(f"🪙 \"{' '.join(monete_qui)}\" scritto tra le banconote: contato come monete della borsa")
+    in_banconote = sum(taglio * n for taglio, n in banconote.items())
     # Resti e abbuoni segnati: l'Excel non li conosce, finiscono nella sua DIFFERENZA
     centesimi = round(sum(v["importo"] for v in vv if v["reparto"] in ("Sconto", "Resto lasciato")), 2)
     non_spiegati = round(contati - attesi, 2)
@@ -3504,7 +3528,7 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
                       "firma": firma_vendite(righe, t)}
     salva_turno(t)
     segno = lambda x: f"{'+' if x > 0 else ''}{x:.2f} €".replace(".", ",")
-    out = [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
+    out = correzioni + [f"🧮 Contati: {euro(contati)}   (banconote {euro(in_banconote)} + spiccioli {euro(cassetto + borsa)})",
            f"💶 Attesi:  {euro(attesi)}",
            f"🎯 DIFFERENZA Excel: {segno(differenza_excel)}"]
     if non_spiegati == 0:
@@ -3522,7 +3546,7 @@ def conta_cassa(banconote_testo, cassetto_testo="", borsa_testo="", cassaforte_t
         det.append(f"  {banconote[taglio]} × {taglio} € = {banconote[taglio] * taglio:.2f} €")
     det.append(r("= banconote", in_banconote))
     det.append(r("+ spiccioli cassetto", cassetto))
-    det.append(r("+ monete borsa", borsa) + (f"  ({borsa_testo.strip()})" if borsa else ""))
+    det.append(r("+ monete borsa", borsa))
     det.append(r("= CONTATI", contati))
     det.append("ATTESI")
     det.append(r("avanzo inizio turno", t.get("avanzo") or 0.0))
@@ -11445,6 +11469,8 @@ VERSAMENTI
      (anche "2 da 50"; "10x20" = 20 banconote da 10)
   2) spiccioli del cassetto, in euro: "54,62"
   3) monete nella borsa, a pezzi: "2x3 1x5 0,50x4" (nell'Excel va solo il totale)
+  Se banconote e monete finiscono nei riquadri scambiati, la cassa se ne accorge e li inverte;
+  monete scritte tra le banconote ("0,05x7", "2x1") vengono contate nella borsa.
   Risponde con contati, attesi e la DIFFERENZA che uscirà nell'Excel:
   ✅ "la cassa torna" (la differenza sono solo resti e abbuoni segnati) oppure
   ⚠️ "mancano / ci sono in più X €" rispetto alle vendite segnate (le vendite non cambiano).
@@ -11647,4 +11673,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 13/10 22:39"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 15/10 05:33"
