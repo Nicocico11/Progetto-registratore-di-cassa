@@ -12,14 +12,17 @@ ESCLUSE = {'CARBURANTI'}  # i carburanti si dettano come "20 di gasolio", non da
 # Nome Danea -> nomi detti a voce in più
 ALIAS_EXTRA = {
     'RED BULL': ['red bull', 'redbull'],
-    'ACQUA BOTT 0,500': ['acqua piccola', 'acqua naturale', 'bottiglietta acqua', 'acqua'],
+    'ACQUA BOTT 0,500': ['acqua piccola', 'acqua naturale', 'bottiglietta acqua', 'acqua', 'acque'],
     'ACQUA CONFEZ.1,5 LITRI': ['acqua grande', 'acqua big', 'acqua 1 litro e mezzo'],
     'BOX 6 BOTTIGLIE ACQUA': ['box acqua', 'confezione acqua'],
     'TUC MINI': ['tuc'],
     'COCA COLA BOTT 400': ['coca', 'coca cola', 'cocacola'],
     'FANTA 0,400 CL': ['fanta'],
-    'ESTATHE BRICK': ['estathe', 'estate', 'the brick'],
-    'ESTA THE LIMONE PESCA': ['estathe bottiglia', 'the limone', 'the pesca'],
+    'ESTATHE BRICK': ['estathe', 'estate', 'the brick', 'estathe brick', 'estate brick'],
+    # "estathe" da solo vale per tutti e due (prezzi diversi): si sceglie dalla lista
+    'ESTA THE LIMONE PESCA': ['estathe bottiglia', 'the limone', 'the pesca', 'estate', 'estathe', 'esta the',
+                             'estathe limone pesca', 'estate limone pesca', 'estathe limone', 'estate limone',
+                             'estathe pesca', 'estate pesca'],
     'GHIACCIOLO': ['ghiaccioli', 'ghiacciolo'],
     'SNIKERS': ['snickers'],
     'M E MS': ['m&m', 'emmenems', 'm and m'],

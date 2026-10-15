@@ -127,6 +127,7 @@ testo_basso = re.sub(r'\b(?:g\s*\.?\s*p\s*\.?\s*l|gi\s*pi\s*elle|g\s*p\s*elle|gi
                      testo_basso)                                                      # "g p l", "gi pi elle" -> gpl
 testo_basso = re.sub(r'\b(?:c[ao]rtissim\w*|cattivissim\w*|cartina)\b', 'cartissima', testo_basso)  # "cortissima", "cattivissimo"
 testo_basso = re.sub(r'\bcon\s+tanti\b', 'contanti', testo_basso)                        # "cinquanta con tanti"
+testo_basso = re.sub(r'\be\s+stat[ae]\b', 'esta the', testo_basso)                        # "è stata 3 euro" = esta the
 testo_basso = re.sub(r'\bpost\s*cassa\b', 'pos cassa', testo_basso)                       # "twix post cassa"
 testo_basso = re.sub(r'\bcredo\s+(client)', r'credito \1', testo_basso)                  # "credo cliente"
 testo_basso = re.sub(r'\bpresto(?=\s+\d+(?:[.,]\d+)?\s*(?:centesim|cent\b|euro\b))', 'resto', testo_basso)  # "presto 10 centesimi"
@@ -842,6 +843,10 @@ def correggi(quale):
     nuova_quantita = None
     a_pezzi = len(voci) == 1 and voci[0].get('reparto') == 'Market' and voci[0].get('unita', 'pz') == 'pz'
     a_fogli = len(voci) == 1 and voci[0].get('unita') == 'fogli'
+    if (a_pezzi and nuovo_importo and nuovo_importo >= 100 and nuovo_importo == int(nuovo_importo)
+            and not re.search(r'\beuro\b|€', testo_basso) and float(voci[0].get('prezzo_unitario') or 0) < 50):
+        # "modifica ultima 250" dopo una bomboletta: 2,50 € (AutoVoice ha perso la virgola), non 250 €
+        nuovo_importo = round(nuovo_importo / 100, 2)
     if (nuovo_importo and numero_in_euro(testo_basso) is None and nuovo_importo == int(nuovo_importo)
             and ((a_pezzi and nuovo_importo < 100) or (a_fogli and nuovo_importo < 1000))):
         # "correggi ultima 3" dopo "2 red bull" = 3 red bull; dopo "5 fax" = 3 fogli
@@ -852,11 +857,23 @@ def correggi(quale):
     market = [v for v in voci if v.get('reparto') == 'Market']
     parole = parole_libere(re.sub(r'\b(?:correggi\w*|corregg\w*|modific\w*|ultim[ao]|penultim[ao]|la|il|lo|con|in)\b',
                                   ' ', testo_basso), togli_prodotti=False)
-    if len(market) == 1 and parole and not nuovo_carburante:
+    if market and parole and not nuovo_carburante:
         AMBIGUI.clear()
         trovato = trova_prodotto_listino(" ".join(parole))
+        candidati = list(AMBIGUI)
         AMBIGUI.clear()
-        if trovato and listino[trovato].get('reparto', 'Market') == 'Market' and trovato != market[0].get('prodotto'):
+        if len(market) > 1:
+            # Più prodotti: si cambia quello che ha un nome in comune con il nuovo
+            # ("estathe brick + yoga", "correggi ultima estathe limone pesca" -> cambia l'estathe)
+            def nomi(n):
+                return {senza_accenti(a.lower()) for a in listino.get(n, {}).get('alias', [])} | set(n.lower().split())
+            nuovo = trovato or (candidati[0] if candidati else None)
+            simili = [v for v in market if nuovo and nomi(v.get('prodotto', '')) & nomi(nuovo)]
+            market = simili[:1] if len(simili) == 1 else []
+            if candidati and not trovato and market:
+                trovato = next((c for c in candidati if c != market[0].get('prodotto')), None)
+        if (market and trovato and listino[trovato].get('reparto', 'Market') == 'Market'
+                and trovato != market[0].get('prodotto')):
             nuovo_prodotto = trovato
     if not (nuovo_metodo or nuovo_carburante or nuovo_importo or nuova_quantita or nuovo_prodotto):
         print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "

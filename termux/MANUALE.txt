@@ -197,7 +197,8 @@ e gli dai lo stesso importo in contanti)
   dopo "5 fax": diventano 3 copie (l'importo si ricalcola).
 • "correggi ultima gasolio": cambia il carburante.
 • "correggi ultima box acqua": cambia il prodotto del market (anche in una vendita con il
-  carburante, se il prodotto è uno solo).
+  carburante; con più prodotti cambia quello dal nome simile, es. estathe brick → estathe bottiglia).
+• "modifica ultimo 250" dopo un prodotto del market: 2,50 € (la virgola persa da AutoVoice).
 • Detto solo "correggi ultima": compare un riquadro dove scrivi cosa cambiare (83,07 / sul nero…).
 • Al posto di "ultima" puoi dire "penultima". Al posto di "correggi" puoi dire "modifica".
 • Nelle vendite con più cose si possono correggere il pagamento e il prodotto del market:
