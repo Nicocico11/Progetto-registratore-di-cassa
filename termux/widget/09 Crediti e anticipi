@@ -1,0 +1,20 @@
+#!/bin/bash
+# Pulsante: credito cliente, credito riscosso, anticipo Cartissima
+. ~/.termux/tasker/widget_comune.sh
+QUALE="${SCELTA_DIRETTA:-$(scegli "💳 Crediti e anticipi" "📒 Credito cliente,💰 Credito riscosso,💳 Anticipo Cartissima")}"
+case "$QUALE" in
+  *"Credito cliente")
+    NOME=$(testo "📒 Credito: nome" "Rossi"); [ -z "$NOME" ] && annullato
+    IMPORTO=$(numero "📒 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
+    esito "$(bash $CASSA "credito cliente $NOME $IMPORTO euro")" ;;
+  *"Credito riscosso")
+    NOME=$(testo "💰 Riscosso: nome" "Rossi"); [ -z "$NOME" ] && annullato
+    IMPORTO=$(numero "💰 $NOME (€)" "50"); [ -z "$IMPORTO" ] && annullato
+    PAGATO=$(pagamento "💳 Come paga $NOME?"); [ -z "$PAGATO" ] && annullato
+    esito "$(bash $CASSA "credito riscosso $NOME $IMPORTO euro $PAGATO")" ;;
+  *"Anticipo Cartissima")
+    IMPORTO=$(numero "💳 Anticipo Cartissima (€)" "100"); [ -z "$IMPORTO" ] && annullato
+    esito "$(bash $CASSA "anticipo cartissima $IMPORTO euro")" ;;
+  *) annullato ;;
+esac
+casa
