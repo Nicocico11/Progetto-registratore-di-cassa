@@ -1056,6 +1056,45 @@ def credito_per_ultima_vendita(importo, cliente):
     return True
 
 
+def merce_del_credito(importo):
+    """"credito cliente rossi 53,43" (e magari "credito riscosso…") detti PRIMA, poi "41,10 litri di adblue":
+    se c'è un credito cliente senza merce proprio di quell'importo, si chiede se è la sua merce.
+    Sì = la merce è a credito (non incassata) e prende il posto di quel credito (che sennò sarebbe doppio):
+    restituisce il nome del cliente. No o niente da chiedere: None. Annullato: niente salvato."""
+    try:
+        with open(csv_file, encoding='utf-8') as f:
+            tutte = list(csv.reader(f))
+    except OSError:
+        return None
+    righe = [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
+    crediti = [k for k, r in enumerate(righe) if json.loads(r[1]).get('reparto') == 'Credito cliente'
+               and abs(float(json.loads(r[1]).get('importo', 0)) - importo) < 0.01]
+    if not crediti:
+        return None
+    k = crediti[-1]
+    credito = json.loads(righe[k][1])
+    cliente = credito.get('cliente') or ""
+    try:
+        r = subprocess.run(['termux-dialog', 'radio', '-t',
+                            f'📒 È la merce del credito di {cliente or "?"} ({importo:.2f} €)?'.replace('.', ','),
+                            '-v', 'Sì: non pagata (è il credito),No: pagata in contanti'],
+                           capture_output=True, text=True, timeout=110)
+        d = json.loads(r.stdout or '{}')
+    except Exception:
+        d = {}
+    scelta = d.get('index') if d.get('code') == -1 else None
+    if scelta == 1:
+        return None
+    if scelta != 0:
+        print("❌ Pagamento non scelto. Niente salvato: ridilla dicendo il pagamento "
+              "(es. \"… contanti\" o \"… a credito cliente rossi\").")
+        sys.exit(1)
+    del righe[k]
+    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        csv.writer(f).writerows(tutte[:1] + righe)
+    return cliente
+
+
 def registra_speciale(tipo):
     global testo_basso
     if tipo == 'credito':
@@ -1205,8 +1244,17 @@ else:
 if metodo == 'POS cassa' and any(v['reparto'] == 'Carburante' for v in voci):
     print(CARBURANTE_IN_CASSA)
     sys.exit(1)
+CREDITO_ABBINATO = None
+if metodo == 'Contanti' and pagamento_detto(testo_basso) is None:
+    CREDITO_ABBINATO = merce_del_credito(round(sum(float(v['importo']) for v in voci), 2))
+    if CREDITO_ABBINATO is not None:
+        metodo = 'Credito'
+        for v in voci:
+            v['metodo_pagamento'], v['cliente'] = 'Credito', CREDITO_ABBINATO
 salva_voci(voci, pezzi, metodo)
 totale = sum(float(v['importo']) for v in voci)
+if CREDITO_ABBINATO is not None:
+    print(f"📒 È la merce del credito di {CREDITO_ABBINATO or '?'}: non incassata (il credito resta uno solo)")
 
 # Cose da controllare: si scrivono PRIMA della vendita, così si leggono anche nel messaggio corto a schermo
 if any(v.get('reparto') == 'Carburante' and float(v['importo']) < 5 for v in voci):

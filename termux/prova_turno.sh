@@ -21,6 +21,7 @@ cat > $HOME/bin/termux-dialog <<'EOF'
 #!/bin/bash
 # Popup finto: risponde in base al titolo
 case "$*" in
+  *"merce del credito"*) echo '{"code": -1, "text": "Sì", "index": 0}' ;;   # credito detto prima della merce
   *"è l'ultima vendita?"*) echo '{"code": -1, "text": "Sì", "index": 0}' ;;   # credito = l'ultima vendita
   *": quanto?"*) echo '{"code": -1, "text": "83,07 €", "index": 0}' ;;   # "8307": 83,07
   *"Cosa correggo"*) echo '{"code": -1, "text": "sul bianco"}' ;;        # "correggi ultima" detto da solo
@@ -387,6 +388,12 @@ controlla "cancella"                  "cancella ultima"                         
 controlla "credito riscosso contanti" "credito riscosso verdi 20"                    "(Contanti): Verdi 20.00"
 controlla "credito senza nome"        "credito cliente 15"                           "SENZA NOME"
 controlla "cancella credito"          "cancella ultima"                              "Cancellata"
+controlla "credito prima della merce" "credito cliente blu 26"                       "Credito cliente: Blu 26.00"
+controlla "riscossione subito"        "credito riscosso blu 26 sul nero"             "Credito riscosso (POS nero): Blu 26.00"
+controlla "poi la merce: a credito"   "tanica di adblue"                             "È la merce del credito di Blu"
+python3 $HOME/info_turno.py totali breve | grep -q "Crediti clienti: 76.00" && echo "  ok   merce dopo il credito: credito una volta, niente contanti" || { echo "  ERRORE merce dopo il credito"; python3 $HOME/info_turno.py totali breve; ERRORI=$((ERRORI+1)); }
+controlla "cancella merce"            "cancella ultima"                              "Cancellata"
+controlla "cancella riscossione"      "cancella ultima"                              "Cancellata"
 controlla "adblue (poi a credito)"    "10 litri di adblue contanti"                  "AdBlue sfuso 13.00 € - Contanti"
 controlla "credito = ultima vendita"  "credito cliente gialli 13"                    "Ultima vendita a credito (non incassata)"
 python3 $HOME/info_turno.py totali breve | grep -q "Crediti clienti: 63.00" && python3 $HOME/info_turno.py totali breve | grep -q "contanti 80.50" && echo "  ok   credito: non nei contanti (50 + 13 = 63)" || { echo "  ERRORE credito dopo la vendita"; python3 $HOME/info_turno.py totali breve; ERRORI=$((ERRORI+1)); }

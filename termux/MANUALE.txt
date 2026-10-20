@@ -165,6 +165,10 @@ CREDITI CLIENTI (il cliente prende ora e paga più avanti)
 • Se hai già segnato la vendita ("49 litri di adblue") e poi dici "63,70 credito cliente Rossi",
   compare "📒 Credito di 63,70 €: è l'ultima vendita?": Sì = l'ultima vendita diventa a credito
   (non incassata); No = credito a parte (es. carburante non segnato).
+• Anche al contrario: prima "credito cliente Rossi 53,43" (ed eventualmente "credito riscosso
+  Rossi 53,43 sul nero"), poi "41,10 litri di adblue" senza dire il pagamento → compare
+  "📒 È la merce del credito di Rossi?": Sì = l'AdBlue è a credito, il credito resta uno solo e
+  niente va nei contanti; No = pagata in contanti.
 
 CREDITI RISCOSSI (il cliente paga un vecchio credito)
 • "credito riscosso Rossi 50 euro"            (contanti)
