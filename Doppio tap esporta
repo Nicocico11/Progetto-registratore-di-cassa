@@ -1,0 +1,103 @@
+<TaskerData sr="" dvi="1" tv="6.6.20">
+	<Profile sr="prof9" ve="2">
+		<cdate>1790815739647</cdate>
+		<edate>1790926250513</edate>
+		<flags>8</flags>
+		<id>9</id>
+		<mid0>2</mid0>
+		<nme>Doppio Tap</nme>
+		<Event sr="con0" ve="2">
+			<cname>Doppio Tap</cname>
+			<code>2077</code>
+			<pri>0</pri>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES>&lt;StringArray sr=""&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;%sa_action
+Azione
+L'azione dell'intent che ha aperto l'app secondaria. Può essere vuoto.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES0&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;%sa_category
+Categoria
+La categoria dell'intent che ha aperto l'app secondaria. Può essere vuota.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES1&gt;&lt;_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;%sa_extras
+Extra
+La categoria dell'intent che ha aperto l'app secondaria. Può essere vuota.&lt;/_array_net.dinglisch.android.tasker.RELEVANT_VARIABLES2&gt;&lt;/StringArray&gt;</net.dinglisch.android.tasker.RELEVANT_VARIABLES>
+					<net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>[Ljava.lang.String;</net.dinglisch.android.tasker.RELEVANT_VARIABLES-type>
+				</Vals>
+			</Bundle>
+		</Event>
+	</Profile>
+	<Task sr="task2">
+		<cdate>1790342649048</cdate>
+		<edate>1790926250513</edate>
+		<id>2</id>
+		<nme>Registra Cassa</nme>
+		<pri>6</pri>
+		<Action sr="act0" ve="7">
+			<code>1754437993</code>
+			<Bundle sr="arg0">
+				<Vals sr="val">
+					<Contains>false</Contains>
+					<Contains-type>java.lang.Boolean</Contains-type>
+					<DontTriggerConditions>false</DontTriggerConditions>
+					<DontTriggerConditions-type>java.lang.Boolean</DontTriggerConditions-type>
+					<ErrorOnNoMatch>false</ErrorOnNoMatch>
+					<ErrorOnNoMatch-type>java.lang.Boolean</ErrorOnNoMatch-type>
+					<ErrorOnRecognitionError>false</ErrorOnRecognitionError>
+					<ErrorOnRecognitionError-type>java.lang.Boolean</ErrorOnRecognitionError-type>
+					<LanguageCode>&lt;null&gt;</LanguageCode>
+					<LanguageCode-type>java.lang.String</LanguageCode-type>
+					<LanguageModel>&lt;null&gt;</LanguageModel>
+					<LanguageModel-type>java.lang.String</LanguageModel-type>
+					<NoPopup>true</NoPopup>
+					<NoPopup-type>java.lang.Boolean</NoPopup-type>
+					<OfflineMode>false</OfflineMode>
+					<OfflineMode-type>java.lang.Boolean</OfflineMode-type>
+					<Precision>&lt;null&gt;</Precision>
+					<Precision-type>java.lang.String</Precision-type>
+					<ProcessNaturalLanguage>false</ProcessNaturalLanguage>
+					<ProcessNaturalLanguage-type>java.lang.Boolean</ProcessNaturalLanguage-type>
+					<PromptText>Q8 Cassa
+</PromptText>
+					<PromptText-type>java.lang.String</PromptText-type>
+					<RecognitionTimeout>&lt;null&gt;</RecognitionTimeout>
+					<RecognitionTimeout-type>java.lang.String</RecognitionTimeout-type>
+					<RemoteDevices>&lt;StringArray sr=""/&gt;</RemoteDevices>
+					<RemoteDevices-type>[Ljava.lang.String;</RemoteDevices-type>
+					<ReplacementsRegex>false</ReplacementsRegex>
+					<ReplacementsRegex-type>java.lang.Boolean</ReplacementsRegex-type>
+					<Substitutions>&lt;null&gt;</Substitutions>
+					<Substitutions-type>java.lang.String</Substitutions-type>
+					<com.twofortyfouram.locale.intent.extra.BLURB>Hide Dialog: true
+
+Prompt Text: Q8 Cassa
+
+Voice command without headset
+Command: "all"</com.twofortyfouram.locale.intent.extra.BLURB>
+					<com.twofortyfouram.locale.intent.extra.BLURB-type>java.lang.String</com.twofortyfouram.locale.intent.extra.BLURB-type>
+					<configcommand>&lt;null&gt;</configcommand>
+					<configcommand-type>java.lang.String</configcommand-type>
+					<configcommandinvert>false</configcommandinvert>
+					<configcommandinvert-type>java.lang.Boolean</configcommandinvert-type>
+					<configexactsub>false</configexactsub>
+					<configexactsub-type>java.lang.Boolean</configexactsub-type>
+					<configregexsub>false</configregexsub>
+					<configregexsub-type>java.lang.Boolean</configregexsub-type>
+					<configuseheadset>false</configuseheadset>
+					<configuseheadset-type>java.lang.Boolean</configuseheadset-type>
+					<configuseheadsetiflast>false</configuseheadsetiflast>
+					<configuseheadsetiflast-type>java.lang.Boolean</configuseheadsetiflast-type>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>PromptText plugininstanceid plugintypeid </net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS>
+					<net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>java.lang.String</net.dinglisch.android.tasker.extras.VARIABLE_REPLACE_KEYS-type>
+					<net.dinglisch.android.tasker.subbundled>true</net.dinglisch.android.tasker.subbundled>
+					<net.dinglisch.android.tasker.subbundled-type>java.lang.Boolean</net.dinglisch.android.tasker.subbundled-type>
+					<plugininstanceid>2409900d-2f11-45c2-933c-19678fb79621</plugininstanceid>
+					<plugininstanceid-type>java.lang.String</plugininstanceid-type>
+					<plugintypeid>com.joaomgcd.autovoice.intent.IntentGetVoice</plugintypeid>
+					<plugintypeid-type>java.lang.String</plugintypeid-type>
+				</Vals>
+			</Bundle>
+			<Str sr="arg1" ve="3">com.joaomgcd.autovoice</Str>
+			<Str sr="arg2" ve="3">com.joaomgcd.autovoice.activity.ActivityConfigGetVoice</Str>
+			<Int sr="arg3" val="30"/>
+			<Int sr="arg4" val="1"/>
+		</Action>
+	</Task>
+</TaskerData>

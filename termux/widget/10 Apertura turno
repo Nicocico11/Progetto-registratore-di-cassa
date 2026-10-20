@@ -1,0 +1,11 @@
+#!/bin/bash
+# Pulsante: apertura turno (vero o di prova); poi i 4 riquadri dei valori del collega
+. ~/.termux/tasker/widget_comune.sh
+TIPO=$(scegli "🟢 Apertura turno" "Turno vero,Turno di PROVA")
+[ -z "$TIPO" ] && annullato
+case "$TIPO" in
+  *PROVA*) FRASE="apertura turno prova" ;;
+  *)       FRASE="apertura turno" ;;
+esac
+esito "$(bash $CASSA "$FRASE")"
+casa

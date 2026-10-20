@@ -1,0 +1,547 @@
+===== /data/data/com.termux/files/home/info_turno.py =====
+import csv
+import json
+import os
+import sys
+from datetime import datetime
+import shutil
+import glob
+
+PATH_CSV = os.path.expanduser("~/transazioni_turno.csv")
+
+def leggi_csv():
+    if not os.path.exists(PATH_CSV):
+        return []
+    righe = []
+    with open(PATH_CSV, mode='r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        for r in reader:
+            if len(r) >= 2 and r[1].strip():
+                righe.append(r)
+    return righe
+
+def notifica_breve(righe):
+    if not righe:
+        print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nNessuna transazione registrata.")
+        return
+
+    totale = 0.0
+    conteggio = len(righe)
+    totali_categoria = {}
+
+    for r in righe:
+        try:
+            data = json.loads(r[1])
+            imp = float(data.get("importo", 0.0))
+            totale += imp
+            cat = data.get("categoria", "altro").replace("_", " ").upper()
+            totali_categoria[cat] = totali_categoria.get(cat, 0.0) + imp
+        except Exception:
+            pass
+
+    # Costruisce la testata con totale e categorie
+    out = [f"📊 Tot: {totale:.2f} € ({conteggio} vendite)"]
+    
+    cats_str = " | ".join([f"{cat}: {val:.2f}€" for cat, val in totali_categoria.items()])
+    if cats_str:
+        out.append(f"⛽ {cats_str}")
+
+    out.append("────────────────")
+    out.append("🔍 Ultime transazioni:")
+
+    # Prende le ultime 5 transazioni invertite (la più recente in cima)
+    ultime = righe[-5:]
+    for r in reversed(ultime):
+        ora = r[0].split()[-1] if " " in r[0] else r[0]
+        # Taglia i secondi per risparmiare spazio (es. 05:30:22 -> 05:30)
+        ora_breve = ora[:5] if len(ora) >= 5 else ora
+        try:
+            data = json.loads(r[1])
+            imp = float(data.get("importo", 0.0))
+            metodo = data.get("metodo_pagamento", "altro")[:3].upper()
+            note = data.get("note", "").strip()
+            # Formato compatto per riga
+            riga_txt = f"• {ora_breve} | {imp:.2f}€ ({metodo})"
+            if note:
+                riga_txt += f" {note}"
+            out.append(riga_txt)
+        except Exception:
+            out.append(f"• {ora_breve} | {r[2]}")
+
+    print("\n".join(out))
+
+def mostra_ultimi(righe, n=5):
+    notifica_breve(righe)
+
+def mostra_totali(righe):
+    notifica_breve(righe)
+
+def mostra_archivio():
+    pattern = os.path.expanduser("~/turno_archivio_*.csv")
+    file_archiviati = sorted(glob.glob(pattern), reverse=True)
+    
+    if not file_archiviati:
+        print("📭 Nessun turno precedente archiviato.")
+        return
+        
+    out = ["📂 STORICO TURNI ARCHIVIATI:", "─────────────────────────"]
+    for path_arc in file_archiviati:
+        nome_file = os.path.basename(path_arc)
+        data_str = nome_file.replace("turno_archivio_", "").replace(".csv", "").replace("_", " ")
+        
+        totale_turno = 0.0
+        num_vendite = 0
+        try:
+            with open(path_arc, mode='r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for r in reader:
+                    if len(r) >= 2 and r[1].strip():
+                        data_trans = json.loads(r[1])
+                        totale_turno += float(data_trans.get("importo", 0.0))
+                        num_vendite += 1
+        except Exception:
+            pass
+            
+        out.append(f"• 📅 {data_str} | 💰 {totale_turno:.2f} € ({num_vendite} vendite)")
+        
+    print("\n".join(out))
+
+def cancella_ultima():
+    if not os.path.exists(PATH_CSV):
+        print("Totale: 0.00 € | Vendite: 0\nNessun file trovato.")
+        return
+
+    with open(PATH_CSV, mode='r', encoding='utf-8') as f:
+        reader = list(csv.reader(f))
+
+    if not reader:
+        print("Totale: 0.00 € | Vendite: 0\nFile vuoto.")
+        return
+
+    header = reader[0]
+    righe = reader[1:]
+
+    if not righe:
+        print("Totale: 0.00 € | Vendite: 0\nNessuna transazione da cancellare.")
+        return
+
+    righe_aggiornate = righe[:-1]
+
+    with open(PATH_CSV, mode='w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(righe_aggiornate)
+
+    notifica_breve(righe_aggiornate)
+
+def cancella_penultima():
+    if not os.path.exists(PATH_CSV):
+        print("Totale: 0.00 € | Vendite: 0\nNessun file trovato.")
+        return
+
+    with open(PATH_CSV, mode='r', encoding='utf-8') as f:
+        reader = list(csv.reader(f))
+
+    if not reader:
+        print("Totale: 0.00 € | Vendite: 0\nFile vuoto.")
+        return
+
+    header = reader[0]
+    righe = reader[1:]
+
+    if len(righe) < 2:
+        print("Totale: 0.00 € | Vendite: 0\nServono almeno 2 transazioni.")
+        return
+
+    righe_aggiornate = righe[:-2] + [righe[-1]]
+
+    with open(PATH_CSV, mode='w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(righe_aggiornate)
+
+    notifica_breve(righe_aggiornate)
+
+def chiudi_turno():
+    if os.path.exists(PATH_CSV):
+        timestamp_backup = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        path_backup = os.path.expanduser(f"~/turno_archivio_{timestamp_backup}.csv")
+        shutil.copy(PATH_CSV, path_backup)
+
+        with open(PATH_CSV, mode='w', encoding='utf-8', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "dati"])
+
+    print("📊 Totale: 0.00 € | Vendite: 0\n────────────────\nTurno chiuso e archiviato con successo.")
+
+def main():
+    comando = sys.argv[1].lower() if len(sys.argv) > 1 else "notifica"
+
+    if "cancella ultima" in comando or "elimina ultima" in comando:
+        cancella_ultima()
+    elif "cancella penultima" in comando or "penultima" in comando:
+        cancella_penultima()
+    elif "chiudi turno" in comando or "fine turno" in comando or "azzera" in comando:
+        chiudi_turno()
+    elif "archivio" in comando or "storico" in comando:
+        mostra_archivio()
+    else:
+        righe = leggi_csv()
+        if comando == "ultimi":
+            mostra_ultimi(righe)
+        elif comando == "totali":
+            mostra_totali(righe)
+        else:
+            notifica_breve(righe)
+
+if __name__ == "__main__":
+    main()
+
+===== /data/data/com.termux/files/home/.termux/tasker/processa_ia.py =====
+import json, re, csv, datetime, os, sys, urllib.request
+
+# Uso: python3 processa_ia.py "20 euro di gasolio con carta"
+# 1) Prova a capire la frase con le regole (istantaneo).
+# 2) Solo se non ci riesce chiede all'IA (llama-server sulla porta 8080).
+# 3) Applica il listino prezzi.json e salva su transazioni_turno.csv.
+
+SERVER_URL = 'http://127.0.0.1:8080/completion'
+output_path = os.path.expanduser('~/.termux/tasker/output_ia.txt')
+prezzi_path = os.path.expanduser('~/prezzi.json')
+csv_file = os.path.expanduser('~/transazioni_turno.csv')
+
+testo_originale = sys.argv[1] if len(sys.argv) > 1 else ""
+if not testo_originale.strip():
+    print("❌ Nessuna frase ricevuta.")
+    sys.exit(1)
+testo_basso = testo_originale.lower()
+
+
+def numeri_in_lettere():
+    # Costruisce {"venti": 20, "trentacinque": 35, "centoventi": 120, ...} da 1 a 999
+    unita = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove']
+    dieci_19 = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici',
+                'sedici', 'diciassette', 'diciotto', 'diciannove']
+    decine = ['venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta']
+    parole = {}
+    for n in range(1, 100):
+        if n < 10:
+            nomi = [unita[n]]
+        elif n < 20:
+            nomi = [dieci_19[n - 10]]
+        else:
+            d, u = decine[n // 10 - 2], unita[n % 10]
+            nomi = [d[:-1] + u if u in ('uno', 'otto') else d + u]
+            if u == 'tre':
+                nomi.append(d + 'tré')
+        for nome in nomi:
+            parole[nome] = n
+    for c in range(1, 10):
+        cento = 'cento' if c == 1 else unita[c] + 'cento'
+        parole[cento] = c * 100
+        for nome, n in list(parole.items()):
+            if n < 100:
+                parole[cento + nome] = c * 100 + n
+                if nome.startswith('o'):
+                    parole[cento[:-1] + nome] = c * 100 + n  # centotto
+    return parole
+
+
+# "trentacinque di verde" -> "35 di verde", così le regole la capiscono senza IA
+_NUMERI = numeri_in_lettere()
+testo_basso = re.sub(r'\b(' + '|'.join(sorted(_NUMERI, key=len, reverse=True)) + r')\b',
+                     lambda m: str(_NUMERI[m.group(1)]), testo_basso)
+
+# Parole che identificano carburanti e metodi di pagamento
+CARBURANTI = {
+    'Gasolio': ['gasolio', 'diesel'],
+    'Benzina': ['benzina', 'verde', 'senza piombo'],
+    'AdBlue': ['adblue', 'ad blue'],
+}
+PAGAMENTI = {
+    'Carta': ['carta', 'credito'],
+    'POS': ['pos'],
+    'Bancomat': ['bancomat'],
+    'Contanti': ['contanti', 'cash'],
+}
+
+listino = {}
+if os.path.exists(prezzi_path):
+    try:
+        with open(prezzi_path, 'r', encoding='utf-8') as pf:
+            listino = json.load(pf)
+    except Exception as e:
+        print(f"⚠️ Errore lettura prezzi.json: {e}")
+
+
+def contiene(parola):
+    return re.search(r'\b' + re.escape(parola) + r'\b', testo_basso) is not None
+
+
+def trova_prodotto_listino():
+    # Sceglie il prodotto con più parole presenti nella frase
+    # ("acqua grande" batte "acqua piccola" se hai detto "grande").
+    testo_unito = testo_basso.replace(' ', '')
+    migliore, punti_migliori = None, 0
+    for prod_key in listino:
+        parole = prod_key.split('_')
+        punti = sum(1 for p in parole if contiene(p) or p in testo_unito)
+        if punti > punti_migliori:
+            migliore, punti_migliori = prod_key, punti
+    return migliore
+
+
+def trova_numero():
+    # Prima cerca un numero vicino a "euro"/"€" (così "pompa 3, 20 euro" dà 20), poi il primo numero
+    m = (re.search(r'(\d+(?:[.,]\d+)?)\s*(?:euro|€)', testo_basso)
+         or re.search(r'€\s*(\d+(?:[.,]\d+)?)', testo_basso)
+         or re.search(r'(\d+(?:[.,]\d+)?)', testo_basso))
+    return m.group(1).replace(',', '.') if m else None
+
+
+def metodo_pagamento():
+    for metodo, parole in PAGAMENTI.items():
+        if any(contiene(p) for p in parole):
+            return metodo
+    return 'Contanti'
+
+
+# --- PASSO 1: regole veloci, senza IA ---
+def carburante_detto():
+    for nome, parole in CARBURANTI.items():
+        if any(contiene(p) for p in parole):
+            return nome
+    return None
+
+
+def analisi_veloce():
+    numero = trova_numero()
+    if not numero:
+        return None
+    categoria = carburante_detto()
+    if not categoria and trova_prodotto_listino():
+        categoria = 'Listino'
+    if not categoria:
+        return None
+    return {"categoria": categoria, "metodo_pagamento": metodo_pagamento(), "importo": numero}
+
+
+# --- PASSO 2: IA, solo se le regole non bastano ---
+SISTEMA = (
+    "Sei il registratore di cassa di un distributore Q8. "
+    "Dalla frase dell'operatore estrai: categoria (prodotto, es. Benzina, Gasolio, AdBlue; "
+    "verde e senza piombo sono Benzina, diesel è Gasolio), "
+    "metodo_pagamento (Contanti, Carta, POS o Bancomat; se non detto: Contanti) "
+    "e importo (numero in euro, es. venti -> 20). Rispondi solo con il JSON."
+)
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "categoria": {"type": "string"},
+        "metodo_pagamento": {"type": "string", "enum": ["Contanti", "Carta", "POS", "Bancomat"]},
+        "importo": {"type": "number"},
+    },
+    "required": ["categoria", "metodo_pagamento", "importo"],
+}
+
+
+def analisi_ia():
+    # Formato chat di Qwen: la parte fissa resta identica a ogni richiesta,
+    # così il server la tiene in cache e rilegge solo la frase nuova.
+    prompt = (
+        f"<|im_start|>system\n{SISTEMA}<|im_end|>\n"
+        f"<|im_start|>user\n{testo_originale}<|im_end|>\n"
+        f"<|im_start|>assistant\n"
+    )
+    richiesta = {
+        "prompt": prompt,
+        "n_predict": 60,
+        "temperature": 0.0,
+        "cache_prompt": True,
+        "json_schema": SCHEMA,
+    }
+    req = urllib.request.Request(
+        SERVER_URL,
+        data=json.dumps(richiesta).encode('utf-8'),
+        headers={'Content-Type': 'application/json'},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=25) as r:
+            risposta = json.loads(r.read().decode('utf-8'))
+    except Exception as e:
+        print(f"⚠️ Server IA non raggiungibile ({e})")
+        return None
+
+    testo = risposta.get('content', '')
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(testo)
+    t = risposta.get('timings', {})
+    with open(os.path.expanduser('~/debug_tasker.log'), 'a') as f:
+        f.write(f"   IA: prompt {t.get('prompt_n')} token in {t.get('prompt_ms', 0):.0f} ms, "
+                f"risposta {t.get('predicted_n')} token in {t.get('predicted_ms', 0):.0f} ms\n")
+
+    matches = re.findall(r'\{.*?\}', testo, re.DOTALL)
+    if not matches:
+        return None
+    try:
+        return json.loads(matches[-1])
+    except Exception:
+        return None
+
+
+data = analisi_veloce()
+origine = 'regole'
+if data is None:
+    data = analisi_ia()
+    origine = 'IA'
+    # Se nella frase c'è una parola chiara (verde, diesel...), vale più dell'IA
+    if data and carburante_detto():
+        data['categoria'] = carburante_detto()
+
+# Ultimo tentativo d'emergenza: numero nella frase + parole chiave
+if not data or 'importo' not in data:
+    numero = trova_numero()
+    data = {
+        "categoria": "Gasolio" if "gasolio" in testo_basso else "Benzina",
+        "metodo_pagamento": metodo_pagamento(),
+        "importo": numero or "0",
+    }
+    origine = 'emergenza'
+
+data['note'] = testo_originale
+
+# --- INTEGRAZIONE LISTINO PREZZI.JSON: quantità x prezzo unitario ---
+prod_key = trova_prodotto_listino()
+if prod_key:
+    qta = trova_numero()
+    if qta:
+        data['importo'] = f"{float(qta) * float(listino[prod_key]):.2f}"
+        data['categoria'] = prod_key.replace('_', ' ').title()
+# ----------------------------------------
+
+try:
+    importo_numerico = re.sub(r'[^0-9.]', '', str(data.get('importo', '0')))
+
+    if not importo_numerico or float(importo_numerico) == 0:
+        print("❌ Transazione scartata: Nessun importo valido rilevato.")
+        sys.exit(1)
+
+    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    file_exists = os.path.isfile(csv_file)
+    with open(csv_file, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['data_ora', 'dettagli_json', 'importo'])
+        writer.writerow([now, json.dumps(data), float(importo_numerico)])
+
+    print(f"✅ Vendita salvata ({origine}): {data['categoria']} {float(importo_numerico):.2f} € - {data['metodo_pagamento']}")
+except Exception as e:
+    print('❌ Errore fatale nel salvataggio:', e)
+
+===== /data/data/com.termux/files/home/.termux/tasker/avvia_ia.sh =====
+#!/bin/bash
+# Chiamato da Tasker con la frase dettata come primo argomento.
+# Tutto il lavoro (regex veloce, eventuale IA, salvataggio) lo fa processa_ia.py.
+
+# Log di debug per Tasker
+echo "$(date) - Ricevuto da Tasker: '$1'" >> ~/debug_tasker.log
+
+TESTO_VOCALE="$1"
+
+if [ -z "$TESTO_VOCALE" ] || [[ "$TESTO_VOCALE" == %* ]]; then
+  echo "❌ Errore: Testo vocale non valido o variabile Tasker non espansa ($TESTO_VOCALE)" | tee -a ~/debug_tasker.log
+  exit 1
+fi
+
+python3 ~/.termux/tasker/processa_ia.py "$TESTO_VOCALE"
+
+===== /data/data/com.termux/files/home/.termux/tasker/avvia_server.sh =====
+#!/bin/bash
+# Avvia llama-server una sola volta, a inizio turno.
+termux-wake-lock
+
+# Percorso esplicito del modello: cambia solo questa riga per provare un altro modello.
+MODELLO=~/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf
+SERVER_BIN=~/llama.cpp/build/bin/llama-server
+
+# Se il server risponde già, non ne avviamo un secondo (sprecherebbe RAM e CPU)
+if curl -s --max-time 2 http://127.0.0.1:8080/health | grep -q ok; then
+  echo "✅ Server già attivo"
+  exit 0
+fi
+
+nohup "$SERVER_BIN" -m "$MODELLO" --host 127.0.0.1 --port 8080 --ctx-size 1024 -t 4 > ~/llama_server.log 2>&1 &
+echo "🚀 Server in avvio (pronto tra qualche secondo)"
+
+===== /data/data/com.termux/files/home/.termux/tasker/notifica.sh =====
+#!/bin/bash
+# Generiamo il testo tramite lo script Python
+TESTO_NOTIFICA=$(python3 ~/info_turno.py notifica)
+
+# Inviamo la notifica persistente alla tendina Android tramite Termux
+termux-notification \
+  --id "distributore_turno" \
+  --title "📊 Stato Turno Q8" \
+  --content "$TESTO_NOTIFICA" \
+  --ongoing \
+  --priority high
+
+===== /data/data/com.termux/files/home/.termux/tasker/run_llama.sh =====
+echo "/exit" | "/data/data/com.termux/files/home/llama.cpp/build/bin/llama-cli" -m "/data/data/com.termux/files/home/llama.cpp/models/qwen2.5-3b-instruct-q4_k_m.gguf" -f ~/.termux/tasker/prompt.txt -n 300 --temp 0.0
+
+===== /data/data/com.termux/files/home/.termux/tasker/totali.sh =====
+#!/bin/bash
+python3 ~/info_turno.py totali
+
+===== /data/data/com.termux/files/home/.termux/tasker/ultimi.sh =====
+#!/bin/bash
+python3 ~/info_turno.py ultimi
+
+===== ELENCO FILE =====
+/data/data/com.termux/files/home:
+total 97
+drwx------.  6 u0_a399 u0_a399 3452 Oct  1 22:38 .
+drwxrwx--x.  4 u0_a399 u0_a399 3452 Sep 25 14:34 ..
+-rw-------.  1 u0_a399 u0_a399 1143 Oct  1 06:41 .bash_history
+drwx------.  2 u0_a399 u0_a399 3452 Sep 25 14:40 .ssh
+drwx------.  3 u0_a399 u0_a399 3452 Sep 25 15:36 .termux
+-rw-------.  1 u0_a399 u0_a399  169 Oct  1 01:56 .wget-hsts
+-rw-------.  1 u0_a399 u0_a399  296 Sep 29 19:42 chiusura_turno.csv
+-rw-------.  1 u0_a399 u0_a399 6137 Oct  2 08:10 debug_tasker.log
+-rw-------.  1 u0_a399 u0_a399 6445 Oct  1 05:53 info_turno.py
+drwx------. 31 u0_a399 u0_a399 3452 Sep 25 14:50 llama.cpp
+-rw-------.  1 u0_a399 u0_a399 2572 Oct  2 08:06 llama_server.log
+-rw-------.  1 u0_a399 u0_a399  137 Sep 30 22:45 prezzi.json
+drwx------.  2 u0_a399 u0_a399 3452 Oct  2 07:06 storage
+-rw-------.  1 u0_a399 u0_a399  629 Oct  2 08:10 transazioni_turno.csv
+-rw-------.  1 u0_a399 u0_a399 2767 Oct  1 05:12 turno_archivio_2026-10-01_05-12-21.csv
+-rw-------.  1 u0_a399 u0_a399 2245 Oct  1 07:47 turno_archivio_2026-10-01_07-47-21.csv
+-rw-------.  1 u0_a399 u0_a399   16 Oct  1 08:03 turno_archivio_2026-10-01_08-03-06.csv
+-rw-------.  1 u0_a399 u0_a399  340 Oct  1 08:14 turno_archivio_2026-10-01_08-14-02.csv
+-rw-------.  1 u0_a399 u0_a399   16 Oct  1 08:18 turno_archivio_2026-10-01_08-18-00.csv
+-rw-------.  1 u0_a399 u0_a399   16 Oct  1 08:19 turno_archivio_2026-10-01_08-19-08.csv
+-rw-------.  1 u0_a399 u0_a399   16 Oct  1 08:21 turno_archivio_2026-10-01_08-21-41.csv
+-rw-------.  1 u0_a399 u0_a399  497 Oct  1 09:44 turno_archivio_2026-10-01_09-44-48.csv
+-rw-------.  1 u0_a399 u0_a399   16 Oct  1 22:38 turno_archivio_2026-10-01_22-38-57.csv
+
+/data/data/com.termux/files/home/.termux/tasker:
+total 83
+drwx------. 2 u0_a399 u0_a399  3452 Oct  2 08:06 .
+drwx------. 3 u0_a399 u0_a399  3452 Sep 25 15:36 ..
+-rwx------. 1 u0_a399 u0_a399   521 Oct  2 08:10 avvia_ia.sh
+-rwx------. 1 u0_a399 u0_a399   521 Oct  2 08:10 avvia_ia.sh.vecchio
+-rwx------. 1 u0_a399 u0_a399   644 Oct  2 08:10 avvia_server.sh
+-rwx------. 1 u0_a399 u0_a399   644 Oct  2 08:10 avvia_server.sh.vecchio
+-rwx------. 1 u0_a399 u0_a399 10150 Oct  2 08:10 installa.sh
+-rwx------. 1 u0_a399 u0_a399   330 Oct  1 09:33 notifica.sh
+-rw-------. 1 u0_a399 u0_a399    65 Oct  2 08:06 output_ia.txt
+-rw-------. 1 u0_a399 u0_a399  8542 Oct  2 08:10 processa_ia.py
+-rw-------. 1 u0_a399 u0_a399  6775 Oct  2 08:10 processa_ia.py.vecchio
+-rw-------. 1 u0_a399 u0_a399   573 Oct  1 08:36 prompt.txt
+-rw-------. 1 u0_a399 u0_a399   544 Oct  1 00:51 prompt_temporaneo.txt
+-rwx------. 1 u0_a399 u0_a399   216 Oct  1 08:36 run_llama.sh
+-rwx------. 1 u0_a399 u0_a399    43 Sep 30 23:42 totali.sh
+-rwx------. 1 u0_a399 u0_a399    43 Sep 30 23:42 ultimi.sh
