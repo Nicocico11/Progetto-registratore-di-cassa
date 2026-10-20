@@ -170,6 +170,11 @@ CREDITI CLIENTI (il cliente prende ora e paga più avanti)
   "📒 È la merce del credito di Rossi?": Sì = l'AdBlue è a credito, il credito resta uno solo e
   niente va nei contanti; No = pagata in contanti.
 
+FORNITORI PAGATI CON I CONTANTI DELLA CASSA (es. bibite)
+• "pagamento fornitore bibite 113,10" (anche "credito cliente fornitore bibite 113,10")
+  → i soldi escono dai contanti attesi e nell'Excel vanno nei CREDITI CLIENTI
+    con il nome "Fornitore Bibite", come si fa a mano: i conti tornano.
+
 CREDITI RISCOSSI (il cliente paga un vecchio credito)
 • "credito riscosso Rossi 50 euro"            (contanti)
 • "credito riscosso Rossi 50 euro sul nero"   (o sul bianco, in cassa, petrolifere)

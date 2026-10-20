@@ -2063,8 +2063,8 @@ def correggi(quale):
         print("❓ Cosa devo correggere? Es. \"correggi ultima sul nero\", \"correggi ultima 25 euro\", "
               "\"correggi ultima gasolio\", \"correggi ultima box acqua\". Niente cambiato.")
         sys.exit(1)
-    if any(v.get('reparto') == 'Anticipo' for v in voci):
-        print("❌ L'anticipo Cartissima non si corregge: \"cancella ultima\" e ridillo. Niente cambiato.")
+    if any(v.get('reparto') in ('Anticipo', 'Fornitore') for v in voci):
+        print("❌ Anticipo e pagamento fornitore non si correggono: \"cancella ultima\" e ridillo. Niente cambiato.")
         sys.exit(1)
     if nuovo_metodo and voci[0].get('reparto') == 'Credito cliente':
         print("❌ Un credito cliente non ha pagamento. Niente cambiato.")
@@ -2159,6 +2159,8 @@ def nome_cliente(testo):
 
 
 def tipo_speciale(testo):
+    if re.search(r'\bfornitor', testo):
+        return 'fornitore'          # anche "credito cliente fornitore bibite 113,10"
     if re.search(r'\banticip', testo):
         return 'anticipo'
     if re.search(r'\briscoss', testo):
@@ -2252,6 +2254,7 @@ def merce_del_credito(importo):
         return None
     righe = [r for r in tutte[1:] if len(r) >= 2 and r[1].strip()]
     crediti = [k for k, r in enumerate(righe) if json.loads(r[1]).get('reparto') == 'Credito cliente'
+               and not str(json.loads(r[1]).get('cliente', '')).startswith('Fornitore')
                and abs(float(json.loads(r[1]).get('importo', 0)) - importo) < 0.01]
     if not crediti:
         return None
@@ -2298,6 +2301,18 @@ def registra_speciale(tipo):
                  "metodo_pagamento": "Contanti"}]
         salva_voci(voci, [testo_basso] * 2, 'Petrolifere')
         print(f"✅ Anticipo Cartissima: {importo:.2f} € sulle petrolifere, {importo:.2f} € tolti dai contanti")
+        sys.exit(0)
+    if tipo == 'fornitore':
+        # Fornitore (bibite...) pagato con i contanti della cassa: come d'abitudine va nei CREDITI CLIENTI
+        # dell'Excel (col nome "Fornitore …") e i soldi escono dal cassetto
+        nome = nome_cliente(re.sub(r'\b(?:fornitor\w*|pagament\w*|pagat\w*|pago|soldi)\b', ' ', testo_basso))
+        cliente = f"Fornitore {nome}" if nome else "Fornitore"
+        voci = [{"categoria": f"Pagamento {cliente.lower()}", "reparto": "Credito cliente", "cliente": cliente,
+                 "importo": importo, "metodo_pagamento": "Credito"},
+                {"categoria": "Contanti dati al fornitore", "reparto": "Fornitore", "importo": -importo,
+                 "metodo_pagamento": "Contanti"}]
+        salva_voci(voci, [testo_basso] * 2, 'Credito')
+        print(f"✅ Pagato {cliente}: {importo:.2f} € tolti dai contanti, nell'Excel nei CREDITI CLIENTI")
         sys.exit(0)
     cliente = nome_cliente(testo_basso)
     if tipo == 'credito':
@@ -11489,6 +11504,11 @@ CREDITI CLIENTI (il cliente prende ora e paga più avanti)
   "📒 È la merce del credito di Rossi?": Sì = l'AdBlue è a credito, il credito resta uno solo e
   niente va nei contanti; No = pagata in contanti.
 
+FORNITORI PAGATI CON I CONTANTI DELLA CASSA (es. bibite)
+• "pagamento fornitore bibite 113,10" (anche "credito cliente fornitore bibite 113,10")
+  → i soldi escono dai contanti attesi e nell'Excel vanno nei CREDITI CLIENTI
+    con il nome "Fornitore Bibite", come si fa a mano: i conti tornano.
+
 CREDITI RISCOSSI (il cliente paga un vecchio credito)
 • "credito riscosso Rossi 50 euro"            (contanti)
 • "credito riscosso Rossi 50 euro sul nero"   (o sul bianco, in cassa, petrolifere)
@@ -11758,4 +11778,4 @@ python3 ~/info_turno.py salva > /dev/null 2>&1
 bash ~/.termux/tasker/notifica.sh
 bash ~/.termux/tasker/stato_ia.sh aggiorna
 if python3 ~/info_turno.py aperto; then echo "📅 Turno aperto: notifiche attive"; else echo "💤 Nessun turno aperto: notifiche tolte e IA spenta"; fi
-echo "✅ INSTALLAZIONE COMPLETATA - versione del 20/10 14:45"
+echo "✅ INSTALLAZIONE COMPLETATA - versione del 20/10 15:21"

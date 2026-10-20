@@ -496,6 +496,7 @@ controlla "secondo turno di prova"    "apertura turno prova notte"              
 controlla "vendita"                   "20 gasolio"                                   "Gasolio 20.00"
 controlla "adblue a credito"          "49 litri di adblue a credito cliente rossi"   "A credito (non pagato): 49 l AdBlue sfuso 63.70 € · credito cliente Rossi 63.70 €"
 python3 $HOME/info_turno.py totali breve | grep -q "Crediti clienti: 63.70" && echo "  ok   credito contato una volta sola" || { echo "  ERRORE credito doppio"; python3 $HOME/info_turno.py totali breve; ERRORI=$((ERRORI+1)); }
+controlla "fornitore pagato in contanti" "pagamento fornitore bibite 113,10"         "Pagato Fornitore Bibite: 113.10 € tolti dai contanti"
 controlla "30 sul nero (era cartissima)" "30 gasolio sul nero"                     "Gasolio 30.00 € - POS nero"
 echo 75,50 > $HOME/colonnina   # totale carburanti della colonnina: 20 + 30 segnati + 25,50 dimenticati
 echo 55,50 > $HOME/pax         # PAX petrolifere: i 30 (segnati per sbaglio sul nero) + 25,50 non segnati
@@ -514,9 +515,10 @@ import openpyxl, glob, sys
 f = [x for x in glob.glob(sys.argv[1] + '/*_Notte_TEST*/Excel/*notte_TEST.xlsx')]
 assert any(openpyxl.load_workbook(x).active['D2'].value == 75.5 for x in f), f
 ws = [openpyxl.load_workbook(x).active for x in f if openpyxl.load_workbook(x).active['D2'].value == 75.5][0]
-assert ws['I8'].value == 'Rossi' and ws['L8'].value == 63.7 and ws['I17'].value == 49, (ws['I8'].value, ws['L8'].value, ws['I17'].value)
+crediti = {ws[f'I{r}'].value: ws[f'L{r}'].value for r in range(8, 16) if ws[f'I{r}'].value}
+assert crediti == {'Rossi': 63.7, 'Fornitore Bibite': 113.1} and ws['I17'].value == 49, (crediti, ws['I17'].value)
 assert ws['D9'].value == 55.5 and not ws['D12'].value, (ws['D9'].value, ws['D12'].value)
-" $D && [[ "$CHIUSURA" == *"DIFFERENZA Excel: +0,00 €"* ]] && echo "  ok   colonnina in D2, PAX in D9, differenza 0" || { echo "  ERRORE totale carburanti colonnina"; ERRORI=$((ERRORI+1)); }
+" $D && [[ "$CHIUSURA" == *"DIFFERENZA Excel: +0,00 €"* ]] && echo "  ok   colonnina in D2, PAX in D9, differenza 0" || { echo "  ERRORE totale carburanti colonnina"; grep -E "DIFFERENZA|Excel" <<< "$CHIUSURA"; ERRORI=$((ERRORI+1)); }
 ls $D | grep -q "_Notte_TEST$" && ls $D/*_TEST/Excel | grep -q "notte_TEST.xlsx" && echo "  ok   cartella e file con TEST nel nome" || { echo "  ERRORE nomi TEST"; ls -R $D; ERRORI=$((ERRORI+1)); }
 
 # Turno senza vendite (solo avanzo): la chiusura fa lo stesso l'Excel; punto delle migliaia
